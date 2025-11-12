@@ -34,7 +34,7 @@ export default function LoginForm() {
 
   useEffect(() => {
     if (state.success) {
-      router.push('/private')
+      router.push('/private/agenda')
     }
   }, [state.success])
 
@@ -50,10 +50,10 @@ export default function LoginForm() {
         <form action={formAction}>
           <div className="grid gap-4">
             <Label htmlFor="email" className="text-white">Email</Label>
-            <Input id="email" name="email" type="email" required />
+            <Input className='text-white' id="email" name="email" type="email" required />
 
             <Label htmlFor="password" className="text-white">Senha</Label>
-            <Input id="password" name="password" type="password" required />
+            <Input className='text-white' id="password" name="password" type="password" required />
 
             {state.success === false && (
               <Alert className="text-muted-foreground">

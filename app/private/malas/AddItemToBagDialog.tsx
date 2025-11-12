@@ -1,8 +1,10 @@
-'use client'
+"use client"
 
-import * as Dialog from '@radix-ui/react-dialog'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 
 interface Props {
   bagId: string
@@ -45,51 +47,33 @@ export function AddItemToBagDialog({ bagId, onAdded }: Props) {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
-      >
-        Adicionar item
-      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button size="sm">Adicionar item</Button>
+        </DialogTrigger>
 
-      <Dialog.Root open={open} onOpenChange={setOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
-          <Dialog.Content
-            className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded shadow-lg w-[300px]"
-          >
-            <Dialog.Title className="text-lg font-bold mb-4">Adicionar item à mala</Dialog.Title>
+        <DialogContent>
+          <DialogTitle>Adicionar item à mala</DialogTitle>
 
-            <select
-              value={selectedItem}
-              onChange={(e) => setSelectedItem(e.target.value)}
-              className="w-full border rounded px-3 py-2 mb-4"
-            >
-              <option value="">Selecione um item</option>
-              {items.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
+          <div className="pt-2">
+            <Select onValueChange={(val) => setSelectedItem(val)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione um item" />
+              </SelectTrigger>
+              <SelectContent>
+                {items.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <button
-              onClick={handleAdd}
-              disabled={loading}
-              className="bg-green-600 text-white px-4 py-2 rounded w-full"
-            >
-              {loading ? 'Adicionando...' : 'Adicionar'}
-            </button>
-
-            <button
-              onClick={() => setOpen(false)}
-              className="mt-4 text-sm text-gray-500 underline"
-            >
-              Cancelar
-            </button>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAdd} disabled={loading}>{loading ? 'Adicionando...' : 'Adicionar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

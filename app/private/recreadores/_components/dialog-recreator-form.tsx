@@ -4,15 +4,22 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-// ✅ Schema com specialty como enum e specialtylevel como número
+// Schema com quatro especialidades e nível para cada uma (0-5)
 const formSchema = z.object({
   name: z.string().min(1, { message: 'O nome é obrigatório' }),
-  specialty: z.enum(['palhaço', 'animador', 'pintura facial'] as const),
-  specialtylevel: z.number().min(1, { message: 'Mínimo 1' }).max(5, { message: 'Máximo 5' }),
+  // skills: níveis para cada especialidade (0-5)
+  skills: z.object({
+    recreacao: z.number().min(0).max(5),
+    pintura: z.number().min(0).max(5),
+    balonismo: z.number().min(0).max(5),
+    oficina: z.number().min(0).max(5),
+  }),
   rg: z.string().min(1, { message: 'O RG é obrigatório' }),
   cpf: z.string().min(1, { message: 'O CPF é obrigatório' }),
   phone: z.string().min(1, { message: 'O telefone é obrigatório' }),
   address: z.string().min(1, { message: 'O endereço é obrigatório' }),
+  pixKey: z.string().optional(),
+  uniformSize: z.enum(['PP','P','M','G','GG'] as const).optional(),
   notes: z.string().optional(),
   availabledays: z.array(z.string()).optional()
 })
@@ -30,12 +37,18 @@ export function useDialogRecreatorForm({ initialValues }: UseDialogRecreatorForm
     resolver: zodResolver(formSchema),
     defaultValues: initialValues || {
       name: '',
-      specialty: 'palhaço', // ✅ valor padrão válido
-      specialtylevel: 1,
+      skills: {
+        recreacao: 1,
+        pintura: 0,
+        balonismo: 0,
+        oficina: 0,
+      },
       rg: '',
       cpf: '',
       phone: '',
       address: '',
+      pixKey: '',
+      uniformSize: undefined,
       notes: '',
       availabledays: [],
     },

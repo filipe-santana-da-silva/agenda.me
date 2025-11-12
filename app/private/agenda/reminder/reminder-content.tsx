@@ -1,7 +1,16 @@
 'use client'
 
 import { useState } from "react"
-import { Reminder } from "@/generated/prisma"
+
+// Lightweight local Reminder type to avoid depending on generated prisma types
+// The app only uses `id` and `description` here, but we include a couple of
+// optional fields that may exist in the DB for forward compatibility.
+type ReminderItem = {
+    id: string
+    description: string
+    userId?: string | null
+    createdat?: string | null
+}
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card"
 import { Plus, Trash2, NotebookPen } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,7 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Reminderlist } from "./reminder-list"
 
 interface ReminderListProps {
-    reminder: Reminder[]
+    reminder: ReminderItem[]
 }
 
 

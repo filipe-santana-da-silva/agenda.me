@@ -16,10 +16,14 @@ export interface Contractor {
   childname: string
   phone: string
   address: string
+  maritalstatus?: string | null
+  profession?: string | null
   documenttype: string
   documentvalue: string
   createdat?: string
   updatedat?: string
+  // optional: pessoa física ou jurídica
+  personType?: 'fisica' | 'juridica' | null
 }
 
 interface ContractorListProps {
@@ -28,6 +32,7 @@ interface ContractorListProps {
 
 export function ContractorList({ contractors }: ContractorListProps) {
   const [contractorList, setContractorList] = useState(contractors)
+  const [searchQuery, setSearchQuery] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingContractor, setEditingContractor] = useState<Contractor | null>(null)
   const [viewingContractor, setViewingContractor] = useState<Contractor | null>(null)
@@ -47,6 +52,28 @@ export function ContractorList({ contractors }: ContractorListProps) {
       setContractorList(prev => prev.filter(c => c.id !== contractorId)) // ✅ atualiza em tempo real
     }
   }
+
+  const filteredContractors = (() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return contractorList
+
+    return contractorList.filter((contractor) => {
+      const hay = [
+        contractor.name,
+        contractor.childname,
+        contractor.phone,
+        contractor.address,
+        contractor.documentvalue,
+        contractor.maritalstatus ?? '',
+        contractor.profession ?? '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
+      return hay.includes(q)
+    })
+  })()
 
   return (
     <>
@@ -68,6 +95,8 @@ export function ContractorList({ contractors }: ContractorListProps) {
                 <input
                   type="text"
                   placeholder="Pesquise um contratante aqui..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full border-none outline-none font-semibold text-xl placeholder:text-muted-foreground"
                 />
               </div>
@@ -84,7 +113,7 @@ export function ContractorList({ contractors }: ContractorListProps) {
           <Card>
             <CardContent>
               <section className="space-y-4 mt-2">
-                {contractorList.map((contractor) => (
+                {filteredContractors.map((contractor) => (
                   <article key={contractor.id} className="flex items-center justify-between">
                     <div className="flex flex-col">
                       <span className="font-medium">{contractor.name}</span>
@@ -93,6 +122,8 @@ export function ContractorList({ contractors }: ContractorListProps) {
                       </span>
                       <span className="text-sm text-muted-foreground">
                         {contractor.phone} • {contractor.documenttype}
+                        {contractor.maritalstatus ? ` • ${contractor.maritalstatus}` : ''}
+                        {contractor.profession ? ` • ${contractor.profession}` : ''}
                       </span>
                     </div>
 
@@ -130,9 +161,12 @@ export function ContractorList({ contractors }: ContractorListProps) {
               initialValues={
                 editingContractor
                   ? {
+                      personType: (editingContractor as any).personType ?? 'fisica',
                       name: editingContractor.name,
                       childname: editingContractor.childname,
                       phone: editingContractor.phone,
+                      maritalstatus: (editingContractor as any).maritalstatus ?? '',
+                      profession: (editingContractor as any).profession ?? '',
                       address: editingContractor.address,
                       documenttype: editingContractor.documenttype,
                       documentvalue: editingContractor.documentvalue,
@@ -156,6 +190,8 @@ export function ContractorList({ contractors }: ContractorListProps) {
             <p><strong>Responsável:</strong> {viewingContractor?.name}</p>
             <p><strong>Criança:</strong> {viewingContractor?.childname}</p>
             <p><strong>Telefone:</strong> {viewingContractor?.phone}</p>
+            <p><strong>Estado Civil:</strong> {viewingContractor?.maritalstatus ?? '—'}</p>
+            <p><strong>Profissão:</strong> {viewingContractor?.profession ?? '—'}</p>
             <p><strong>Endereço:</strong> {viewingContractor?.address}</p>
             <p>
               <strong>Documento:</strong>{' '}

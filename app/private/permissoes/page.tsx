@@ -5,186 +5,268 @@ import { createClient } from "@/utils/supabase/client"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+// no checkbox UI needed
 
 export default function GerenciarPermissoes() {
   const supabase = createClient()
 
-  const [roles, setRoles] = useState<{ id: string; name: string }[]>([])
-  const [paginas, setPaginas] = useState<{ id: string; name: string }[]>([])
-  const [usuarios, setUsuarios] = useState<{ email: string; role: string }[]>([])
+  const [roles, setRoles] = useState<{ id: number; name: string }[]>([])
+  const [usuarios, setUsuarios] = useState<{ email: string; role: string | null; pages: string[]; userId?: string }[]>([])
 
   const [email, setEmail] = useState("")
-  const [roleId, setRoleId] = useState("")
-  const [permissoes, setPermissoes] = useState<string[]>([])
+  // store roleName for POST/PUT since admin endpoint accepts roleName
+  const [roleName, setRoleName] = useState("")
+  const [password, setPassword] = useState("")
+  // by default create an authentication account when creating a new user
+  const [createAuthAccount, setCreateAuthAccount] = useState(true)
+  // roleName state stores selected role for RBAC
+  const [editingEmail, setEditingEmail] = useState<string | null>(null)
+  const [isSavingUser, setIsSavingUser] = useState(false)
 
   useEffect(() => {
     fetchRoles()
-    fetchPaginas()
     fetchUsuarios()
   }, [])
 
   useEffect(() => {
-    if (roleId) fetchPermissoesDoRole(roleId)
-  }, [roleId])
+    // no-op
+  }, [])
+
+
 
   async function fetchRoles() {
-    const { data } = await supabase.from("role").select("*")
-    if (data) setRoles(data)
+    try {
+      const { data, error } = await supabase.from('role').select('*')
+      if (error) {
+        console.error('fetchRoles error', error)
+        return
+      }
+      if (data) setRoles(data)
+    } catch (e) {
+      console.error('fetchRoles unexpected', e)
+    }
   }
 
-  async function fetchPaginas() {
-    const { data } = await supabase.from("page").select("*")
-    if (data) setPaginas(data)
-  }
 
   async function fetchUsuarios() {
-    const { data } = await supabase
-      .from("user_permission")
-      .select("email, role:role_id(name)")
-    if (data) {
-      const formatado = data.map((u: any) => ({
-        email: u.email,
-        role: u.role?.name ?? "—",
-      }))
-      setUsuarios(formatado)
+    try {
+      const res = await fetch('/api/admin/users')
+      let payload: any = undefined
+      try {
+        payload = await res.json()
+      } catch (err) {
+        // fallback: maybe empty body or non-json response
+        const txt = await res.text()
+        payload = { error: txt || String(err) }
+      }
+      if (!res.ok) {
+        console.error('fetchUsuarios error', payload)
+        alert('Erro ao buscar usuários: ' + (payload.error || res.statusText))
+        return
+      }
+
+  const data = payload.data || []
+  // map pages (names) to resource ids later when editing; keep pages as names for display
+  setUsuarios((data as any[]).map((u: any) => ({ email: u.email, role: Array.isArray(u.roles) && u.roles.length > 0 ? u.roles[0] : null, pages: u.pages || [], userId: u.userId })))
+    } catch (e) {
+      console.error('fetchUsuarios unexpected', e)
+      alert('Erro inesperado ao buscar usuários')
     }
   }
 
-  async function fetchPermissoesDoRole(roleId: string) {
-    const { data } = await supabase
-      .from("permission")
-      .select("page_id")
-      .eq("role_id", roleId)
-      .eq("can_view", true)
-
-    if (data) {
-      const permitidas = data.map((p: any) => p.page_id)
-      setPermissoes(permitidas)
-    }
-  }
-
-  function togglePermissao(pageId: string) {
-    if (permissoes.includes(pageId)) {
-      setPermissoes(permissoes.filter((id) => id !== pageId))
-    } else {
-      setPermissoes([...permissoes, pageId])
-    }
-  }
+  // no per-page permission toggles in RBAC-only UI
 
   async function salvarUsuario() {
-    if (!email || !roleId) return
+    if (!email || !roleName) {
+        alert("Por favor informe e-mail e selecione um papel.")
+      return
+    }
 
-    await supabase.from("user_permission").upsert({
-      email,
-      role_id: roleId,
-    })
+    setIsSavingUser(true)
+    try {
+      // prepare body common fields
+      const body: any = {
+        email: email.toLowerCase(),
+        createAuthAccount,
+        roleName: (roleName || '').toString().toUpperCase(),
+      }
 
-    setEmail("")
-    setRoleId("")
-    setPermissoes([])
-    fetchUsuarios()
+      if (!editingEmail) {
+        // creating a new user
+        if (createAuthAccount) {
+          if (!password || password.length < 6) {
+            alert("Para criar a conta, informe uma senha com ao menos 6 caracteres.")
+            setIsSavingUser(false)
+            return
+          }
+          body.password = password
+        }
+
+  const res = await fetch('/api/admin/users', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } })
+        let payload: any = undefined
+        try {
+          payload = await res.json()
+        } catch (err) {
+          const txt = await res.text()
+          payload = { error: txt || String(err) }
+        }
+        if (!res.ok) {
+          console.error('salvarUsuario error', payload)
+          alert('Erro salvando usuário: ' + (payload.error || res.statusText))
+          return
+        }
+      } else {
+        // updating existing user's role assignment
+        const updateBody = { roleName: (roleName || '').toString().toUpperCase() }
+        const res = await fetch(`/api/admin/users/${encodeURIComponent(editingEmail)}`, {
+          method: 'PUT',
+          body: JSON.stringify(updateBody),
+          headers: { 'Content-Type': 'application/json' },
+        })
+        let payload: any = undefined
+        try {
+          payload = await res.json()
+        } catch (err) {
+          const txt = await res.text()
+          payload = { error: txt || String(err) }
+        }
+        if (!res.ok) {
+          console.error('salvarUsuario (update) error', payload)
+          alert('Erro atualizando usuário: ' + (payload.error || res.statusText))
+          return
+        }
+      }
+
+      alert(editingEmail ? 'Usuário atualizado.' : 'Usuário criado com sucesso.')
+  setEmail('')
+  setPassword('')
+  setCreateAuthAccount(false)
+  // nothing to clear for per-page permissions
+      setEditingEmail(null)
+      // refresh users from server
+      await fetchUsuarios()
+    } catch (e) {
+      console.error('salvarUsuario unexpected', e)
+      alert('Erro inesperado ao salvar usuário')
+    } finally {
+      setIsSavingUser(false)
+    }
   }
 
-  async function salvarPermissoes() {
-    if (!roleId) return
+  // per-role permission management removed from UI (no checkbox selection available)
 
-    await supabase.from("permission").delete().eq("role_id", roleId)
+  async function handleEditUser(u: { email: string; role: string | null; pages: string[]; userId?: string }) {
+    // load the user's role and role permissions
+    setEditingEmail(u.email)
+    setEmail(u.email)
+    setRoleName(u.role ?? '')
+    try {
+      // nothing else to load for editing besides roleName
+      setCreateAuthAccount(false)
+    } catch (e) {
+      console.error('handleEditUser unexpected', e)
+      alert('Erro inesperado ao carregar permissões do papel do usuário')
+    }
+  }
 
-    const novasPermissoes = permissoes.map((pageId) => ({
-      role_id: roleId,
-      page_id: pageId,
-      can_view: true,
-    }))
-
-    await supabase.from("permission").insert(novasPermissoes)
-    alert("Permissões atualizadas com sucesso!")
+  async function handleDeleteUser(emailToDelete: string) {
+    if (!confirm(`Confirma remoção do usuário ${emailToDelete}?`)) return
+    try {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(emailToDelete)}`, { method: 'DELETE' })
+      let payload: any = undefined
+      try {
+        payload = await res.json()
+      } catch (err) {
+        const txt = await res.text()
+        payload = { error: txt || String(err) }
+      }
+      if (!res.ok) {
+        console.error('delete user error', payload)
+        alert('Erro ao deletar usuário: ' + (payload.error || res.statusText))
+        return
+      }
+      alert('Usuário removido com sucesso')
+      fetchUsuarios()
+    } catch (e) {
+      console.error('delete user unexpected', e)
+      alert('Erro inesperado ao deletar usuário')
+    }
   }
 
   return (
-    <div className="w-full h-full p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Usuários por papel */}
+    <div className="w-full h-full p-6 grid grid-cols-1 gap-6">
+      {/* Gerenciar permissões por usuário (CRUD) */}
       <Card className="p-6">
         <CardHeader>
-          <CardTitle className="text-xl font-bold mb-4">Usuários por Papel</CardTitle>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <CardTitle className="text-xl font-bold mb-4">Gerenciar Permissões (por Usuário)</CardTitle>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <Input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="usuario@email.com"
             />
-            <select
-              value={roleId}
-              onChange={(e) => setRoleId(e.target.value)}
-              className="border rounded px-3 py-2 text-sm"
-            >
-              <option value="">Selecione um papel</option>
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
+            <Input
+              type={createAuthAccount ? "password" : "text"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={createAuthAccount ? "Senha para criar conta (min 6 caracteres)" : "(Opcional) senha para criar conta"}
+            />
+            <div className="flex items-center gap-3">
+              <input
+                id="createAuth"
+                type="checkbox"
+                checked={createAuthAccount}
+                onChange={(e) => setCreateAuthAccount(e.target.checked)}
+              />
+              <label htmlFor="createAuth" className="text-sm">Criar conta de autenticação (Supabase)</label>
+            </div>
           </div>
-          <Button onClick={salvarUsuario}>Salvar Usuário</Button>
+
+          <div className="mb-4">
+            <label className="text-sm block mb-1">Papel </label>
+            <div className="flex items-center gap-2 mb-2">
+              <button type="button" onClick={() => setRoleName('ADMIN')} className="px-3 py-1 rounded bg-slate-100 text-sm">ADMIN</button>
+              <button type="button" onClick={() => setRoleName('RECREADOR')} className="px-3 py-1 rounded bg-slate-100 text-sm">RECREADOR</button>
+            </div>
+            <input
+              list="rolesList"
+              value={roleName}
+              onChange={(e) => setRoleName(e.target.value)}
+              placeholder="Por exemplo: ADMIN, RECREADOR"
+              className="border rounded px-3 py-2 text-sm w-full"
+            />
+            <datalist id="rolesList">
+              {roles.map((role) => (
+                <option key={role.id} value={role.name} />
+              ))}
+            </datalist>
+          </div>
+
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mt-3">
+              <Button onClick={salvarUsuario} disabled={isSavingUser}>{isSavingUser ? 'Salvando...' : (editingEmail ? 'Salvar Alterações' : 'Criar Usuário')}</Button>
+              {editingEmail && <Button variant="ghost" onClick={() => { setEditingEmail(null); setEmail(''); setRoleName(''); }}>Cancelar</Button>}
+            </div>
+          </div>
         </CardHeader>
 
         <CardContent>
           <h2 className="text-lg font-semibold mb-2">Usuários Cadastrados</h2>
-          <div className="grid grid-cols-2 font-semibold text-sm text-muted-foreground mb-2">
-            <span>E-MAIL</span>
-            <span>PAPEL</span>
-          </div>
-          {usuarios.map((u, index) => (
-            <div key={index} className="grid grid-cols-2 items-center py-2 border-b">
-              <span>{u.email}</span>
-              <span>{u.role}</span>
+            <div className="grid grid-cols-3 font-semibold text-sm text-muted-foreground mb-2">
+              <span>E-MAIL</span>
+              <span>PAPEL</span>
+              <span>AÇÕES</span>
             </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Permissões por papel */}
-      <Card className="p-6">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold mb-4">Permissões por Papel</CardTitle>
-          <div className="flex flex-col gap-2 mb-4">
-            <label className="text-sm font-medium">Selecione um papel:</label>
-            <select
-              value={roleId}
-              onChange={(e) => setRoleId(e.target.value)}
-              className="border rounded px-3 py-2 text-sm"
-            >
-              <option value="">—</option>
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          {roleId && (
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Páginas Permitidas</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {paginas.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2">
-                    <Checkbox
-                      checked={permissoes.includes(p.id)}
-                      onCheckedChange={() => togglePermissao(p.id)}
-                    />
-                    <label className="text-sm font-medium">{p.name}</label>
-                  </div>
-                ))}
+            {usuarios.map((u) => (
+              <div key={u.email} className="grid grid-cols-3 items-center py-2 border-b gap-2">
+                <div className="truncate">{u.email}</div>
+                <div className="text-sm text-muted-foreground">{u.role || '-'}</div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => handleEditUser(u)}>Editar</Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleDeleteUser(u.email)}>Excluir</Button>
+                </div>
               </div>
-              <Button onClick={salvarPermissoes} className="mt-6">
-                Salvar Permissões
-              </Button>
-            </div>
-          )}
+            ))}
         </CardContent>
       </Card>
     </div>

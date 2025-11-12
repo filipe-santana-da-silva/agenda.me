@@ -1,6 +1,6 @@
 'use server'
 
-import { supabase } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/server'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 
@@ -11,6 +11,7 @@ const formSchema = z.object({
 type FormSchema = z.infer<typeof formSchema>
 
 export async function deleteReminder(formData: FormSchema) {
+  const supabase = await createClient()
   const schema = formSchema.safeParse(formData)
 
   if (!schema.success) {
@@ -21,7 +22,7 @@ export async function deleteReminder(formData: FormSchema) {
 
   try {
     const { error: deleteError } = await supabase
-      .from('Reminder')
+      .from('reminder')
       .delete()
       .eq('id', formData.reminderId)
 
@@ -29,7 +30,7 @@ export async function deleteReminder(formData: FormSchema) {
       throw deleteError
     }
 
-    revalidatePath('/dashboard')
+    revalidatePath('/private/agenda')
 
     return {
       data: 'Lembrete deletado com sucesso!'

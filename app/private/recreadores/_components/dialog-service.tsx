@@ -21,6 +21,7 @@ import {
 
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 
 import { useDialogRecreatorForm, DialogRecreatorFormData } from './dialog-recreator-form'
 import { createRecreator } from '../_actions/create-recreator'
@@ -33,7 +34,7 @@ interface DialogServiceProps {
 }
 
 const weekDays = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom']
-const specialties = ['palhaço', 'animador', 'pintura facial'] as const
+const specialties = ['recreacao', 'pintura', 'balonismo', 'oficina'] as const
 
 export function DialogService({
   closeModal,
@@ -85,7 +86,7 @@ export function DialogService({
       </DialogHeader>
 
       <Form {...form}>
-        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+        <form className="space-y-3" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField control={form.control} name="name" render={({ field }) => (
             <FormItem>
               <FormLabel>Nome do Recreador</FormLabel>
@@ -94,42 +95,7 @@ export function DialogService({
             </FormItem>
           )} />
 
-          <FormField control={form.control} name="specialty" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Especialidade</FormLabel>
-              <FormControl>
-                <select {...field} className="w-full border rounded px-3 py-2">
-                  {specialties.map((option) => (
-                    <option key={option} value={option}>
-                      {option.charAt(0).toUpperCase() + option.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
 
-          <FormField control={form.control} name="specialtylevel" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Especialidade nível</FormLabel>
-              <FormControl>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      type="button"
-                      key={star}
-                      onClick={() => field.onChange(star)}
-                      className={`text-xl ${field.value >= star ? 'text-yellow-400' : 'text-gray-300'}`}
-                    >
-                      ★
-                    </button>
-                  ))}
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
 
           <FormField control={form.control} name="rg" render={({ field }) => (
             <FormItem>
@@ -155,6 +121,29 @@ export function DialogService({
             </FormItem>
           )} />
 
+          <FormField control={form.control} name="pixKey" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Chave PIX</FormLabel>
+              <FormControl><Input {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+
+          <FormField control={form.control} name="uniformSize" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tamanho do uniforme</FormLabel>
+              <FormControl>
+                <select {...field} className="w-full border rounded px-3 py-2">
+                  <option value="">-- selecione --</option>
+                  {['PP','P','M','G','GG'].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+
           <FormField control={form.control} name="address" render={({ field }) => (
             <FormItem>
               <FormLabel>Endereço</FormLabel>
@@ -170,6 +159,62 @@ export function DialogService({
               <FormMessage />
             </FormItem>
           )} />
+
+          {/* Skills: show star pickers for each of the four specialties (moved down to reduce dialog height) */}
+          {/* Collapsible with compact trigger showing top skill and small stars; opens by default when editing */}
+          <Collapsible defaultOpen={!!recreadorId}>
+            <CollapsibleTrigger asChild>
+              {/** trigger shows current top skill + small stars, updates via form.watch */}
+              <button type="button" className="w-full text-left px-2 py-2 rounded bg-gray-50 border border-gray-200">
+                {(() => {
+                  const skills = form.watch('skills') || { recreacao: 0, pintura: 0, balonismo: 0, oficina: 0 }
+                  const entries = Object.entries(skills) as [string, number][]
+                  const top = entries.reduce((acc, cur) => (cur[1] > acc[1] ? cur : acc), entries[0])
+                  const label = top ? top[0] : 'recreacao'
+                  const level = top ? top[1] : 0
+                  return (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block px-2 py-0.5 bg-gray-100 rounded text-xs capitalize">{label}</span>
+                        <div className="flex">
+                          {[1,2,3,4,5].map((star) => (
+                            <span key={star} className={`text-sm ${level >= star ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                          ))}
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground">Editar</span>
+                    </div>
+                  )
+                })()}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2 space-y-2">
+                {specialties.map((s) => (
+                  <FormField key={s} control={form.control} name={`skills.${s}`} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">{s.charAt(0).toUpperCase() + s.slice(1)}</FormLabel>
+                      <FormControl>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              type="button"
+                              key={star}
+                              onClick={() => field.onChange(star)}
+                              className={`text-lg ${field.value >= star ? 'text-yellow-400' : 'text-gray-300'}`}
+                            >
+                              ★
+                            </button>
+                          ))}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           <FormField control={form.control} name="availabledays" render={({ field }) => (
             <FormItem>

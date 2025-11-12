@@ -7,12 +7,18 @@ import { createClient } from '@/utils/supabase/server'
 const formSchema = z.object({
   recreadorId: z.string().min(1, 'O ID do recreador é obrigatório'),
   name: z.string().min(1, { message: 'O nome é obrigatório' }),
-  specialty: z.string().min(1, { message: 'A especialidade é obrigatória' }),
-  specialtylevel: z.number().min(1).max(5),
+  skills: z.object({
+    recreacao: z.number().min(0).max(5),
+    pintura: z.number().min(0).max(5),
+    balonismo: z.number().min(0).max(5),
+    oficina: z.number().min(0).max(5),
+  }).optional(),
   rg: z.string().min(1, { message: 'O RG é obrigatório' }),
   cpf: z.string().min(1, { message: 'O CPF é obrigatório' }),
   phone: z.string().min(1, { message: 'O telefone é obrigatório' }),
   address: z.string().min(1, { message: 'O endereço é obrigatório' }),
+  pixKey: z.string().optional(),
+  uniformSize: z.string().optional(),
   notes: z.string().optional(),
   availabledays: z.array(z.string()).optional(), 
 })
@@ -20,52 +26,73 @@ const formSchema = z.object({
 type FormSchema = z.infer<typeof formSchema>
 
 export async function updateRecreator(formData: FormSchema) {
-  const supabase = createClient()
-  const {
-    data: { session },
-  } = await (await supabase).auth.getSession()
+  try {
+    const supabase = await createClient()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-  if (!session?.user?.id) {
-    return {
-      error: 'Você precisa estar autenticado para atualizar um recreador.',
+    if (!session?.user?.id) {
+      return {
+        error: 'Você precisa estar autenticado para atualizar um recreador.',
+      }
     }
-  }
 
-  const schema = formSchema.safeParse(formData)
-  if (!schema.success) {
-    return {
-      error: schema.error.issues[0].message,
+    const schema = formSchema.safeParse(formData)
+    if (!schema.success) {
+      return {
+        error: schema.error.issues[0].message,
+      }
     }
-  }
 
-  const { error } = await (await supabase)
-    .from('Recreator')
-    .update({
-      name: formData.name,
-      specialty: formData.specialty,
-      specialtylevel: formData.specialtylevel,
-      rg: formData.rg,
-      cpf: formData.cpf,
-      phone: formData.phone,
-      address: formData.address,
-      notes: formData.notes,
-      availabledays: formData.availabledays, 
-    })
-    .match({
-      id: formData.recreadorId,
-      userId: session.user.id,
-    })
+    // prepare skills payload
+    const skillsPayload = (formData as any).skills ?? (() => {
+      const legacySpec = (formData as any).specialty
+      const legacyLevel = (formData as any).specialtylevel ?? 0
+      const s: any = { recreacao: 0, pintura: 0, balonismo: 0, oficina: 0 }
+      if (legacySpec && typeof legacyLevel === 'number') {
+        const key = legacySpec.toString().toLowerCase()
+        if (key.includes('pintura')) s.pintura = legacyLevel
+        else if (key.includes('balon')) s.balonismo = legacyLevel
+        else if (key.includes('oficina')) s.oficina = legacyLevel
+        else s.recreacao = legacyLevel
+      }
+      return s
+    })()
 
-  if (error) {
-    console.error(error)
-    return {
-      error: 'Erro ao atualizar recreador.',
+    const { error } = await supabase
+      .from('Recreator')
+      .update({
+        name: formData.name,
+        skills: skillsPayload,
+        rg: formData.rg,
+        cpf: formData.cpf,
+        phone: formData.phone,
+        pixKey: formData.pixKey ?? null,
+        uniformSize: formData.uniformSize ?? null,
+        address: formData.address,
+        notes: formData.notes,
+        availabledays: formData.availabledays, 
+      })
+      .match({
+        id: formData.recreadorId,
+        userId: session.user.id,
+      })
+
+    if (error) {
+      console.error(error)
+      return {
+        error: 'Erro ao atualizar recreador.',
+      }
     }
-  }
 
-  revalidatePath('/private/recreadores')
+    revalidatePath('/private/recreadores')
 
-  return {
-    data: 'Recreador atualizado com sucesso!',
+    return {
+      data: 'Recreador atualizado com sucesso!',
+    }
+  } catch (err) {
+    console.error('updateRecreator unexpected error', err)
+    return { error: 'Erro inesperado no servidor ao atualizar recreador.' }
   }
 }

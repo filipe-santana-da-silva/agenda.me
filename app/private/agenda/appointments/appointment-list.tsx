@@ -1,77 +1,135 @@
 'use client'
 
-import { useState } from "react"
-import { useSearchParams } from "next/navigation"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { format } from "date-fns"
-import { Button } from "@/components/ui/button"
-import { Eye, Palette, Pencil, Trash2 } from "lucide-react"
-import { cancelAppointment } from "../_actions/cancel-appointments"
-import { toast } from "sonner"
-import { Dialog, DialogTrigger } from "@/components/ui/dialog"
-import { DialogAppointment } from "./dialog-appointment"
-import { ButtonPickerAppointment } from "./button-date"
+import { useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { format } from 'date-fns'
+import { Button } from '@/components/ui/button'
+import { Eye, Palette, Pencil, Trash2 } from 'lucide-react'
+import { cancelAppointment } from '../_actions/cancel-appointments'
+import { toast } from 'sonner'
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog'
+import { useRouter } from 'next/navigation'
+import { DialogAppointment } from './dialog-appointment'
+import { ButtonPickerAppointment } from './button-date'
 
 interface AppointmentListProps {
   times: string[]
 }
 
-export type AppointmentWithService = Prisma.AppointmentGetPayload<{
-  include: {
-    service: true
+export type AppointmentWithService = {
+  id: string
+  appointmentdate: string
+  durationhours: number
+  childname: string
+  contractorname: string
+  phone: string
+  email: string
+  name: string
+  time: string // calculado no backend ou derivado
+  service: {
+    duration: number
+    name: string
+    price: number
   }
-}>
+  // optional normalized fields (may be null)
+  proof_url?: string | null
+  contract_url?: string | null
+  eventname?: string | null
+  bagid?: string | null
+  recreatorid?: string | null
+  recreator_ids?: string[] | null
+  responsible_recreatorid?: string | null
+  ownerpresent?: boolean
+  eventaddress?: string | null
+  // additional fields captured at creation
+  childagegroup?: string | null
+  address?: string | null
+  outofcity?: boolean | null
+  requestedbymother?: boolean | null
+  userid?: string | null
+  createdat?: string | null
+  color_index?: number | null
+}
 
-const COLORS = ["#B794F3", "#F2F27C", "#F3DD94", "#ED7E7E"]
+
+const COLORS = ['#B794F3', '#F2F27C', '#F3DD94', '#ED7E7E']
 
 export function AppointmentsList({ times }: AppointmentListProps) {
   const searchParams = useSearchParams()
-  const date = searchParams.get("date")
+  const date = searchParams.get('date')
   const queryClient = useQueryClient()
+  const router = useRouter()
   const [detailAppointment, setDetailAppointment] = useState<AppointmentWithService | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [toDeleteAppointment, setToDeleteAppointment] = useState<AppointmentWithService | null>(null)
   const [appointmentColors, setAppointmentColors] = useState<Record<string, number>>({})
   const [availableColors, setAvailableColors] = useState<Record<string, number>>({})
 
+  // (initialization moved below after data is loaded)
+
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["get-appointments", date],
+    queryKey: ['get-appointments', date],
     queryFn: async () => {
-      let activeDate = date
-      if (!activeDate) {
-        const today = format(new Date(), "yyyy-MM-dd")
-        activeDate = today
-      }
+      const activeDate = date ?? format(new Date(), 'yyyy-MM-dd')
       const url = `${process.env.NEXT_PUBLIC_URL}/api/clinic/appointments?date=${activeDate}`
       const response = await fetch(url)
-      const json = await response.json() as AppointmentWithService[]
-      if (!response.ok) {
-        return []
-      }
-      return json
+      const json = await response.json()
+      return response.ok ? (json as AppointmentWithService[]) : []
     },
     staleTime: 20000,
-    refetchInterval: 30000
+    refetchInterval: 30000,
   })
 
-  const occupantMap: Record<string, AppointmentWithService> = {}
+  // initialize appointmentColors from server data when available
+  // populate with the stored color_index for each appointment (if present)
+  useMemo(() => {
+    if (!data) return
+    // only initialize once when appointmentColors is empty
+    if (Object.keys(appointmentColors).length > 0) return
+    const map: Record<string, number> = {}
+    for (const a of data) {
+      if (typeof a.color_index === 'number') map[String(a.id)] = a.color_index
+    }
+    if (Object.keys(map).length > 0) setAppointmentColors(map)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data])
 
-  if (data && data.length > 0) {
+  // Map each time slot to an array of appointments (allow multiple appointments per slot)
+  const occupantMap = useMemo(() => {
+    const map: Record<string, AppointmentWithService[]> = {}
+    if (!data) return map
+
     for (const appointment of data) {
-      const requiredSlot = Math.ceil(appointment.service.duration / 30)
-      const startIndex = times.indexOf(appointment.time)
+      const durationHours = Number(appointment.durationhours) || (appointment.service?.duration ? (Number(appointment.service.duration) / 60) : 1)
+      const requiredSlot = Math.max(1, Math.ceil(durationHours))
+      const normalizedTime = (appointment.time || '').slice(0,5)
+      const startIndex = times.indexOf(normalizedTime)
       if (startIndex !== -1) {
         for (let i = 0; i < requiredSlot; i++) {
           const slotIndex = startIndex + i
           if (slotIndex < times.length) {
-            occupantMap[times[slotIndex]] = appointment
+            const key = times[slotIndex]
+            if (!map[key]) map[key] = []
+            map[key].push(appointment)
           }
         }
       }
     }
-  }
+    return map
+  }, [data, times])
 
   async function handleCancelAppointment(appointmentId: string) {
     const response = await cancelAppointment({ appointmentId })
@@ -79,31 +137,56 @@ export function AppointmentsList({ times }: AppointmentListProps) {
       toast.error(response.error)
       return
     }
-    queryClient.invalidateQueries({ queryKey: ["get-appointments"] })
+    // Invalidate the date-scoped appointments query so the list refreshes correctly
+    queryClient.invalidateQueries({ queryKey: ['get-appointments', date] })
     await refetch()
     toast.success(response.data)
   }
 
-  function cycleAppointmentColor(id: string) {
-    setAppointmentColors(prev => ({
-      ...prev,
-      [id]: (prev[id] ?? -1) + 1 >= COLORS.length ? 0 : (prev[id] ?? -1) + 1
-    }))
+  async function handleConfirmDelete() {
+    if (!toDeleteAppointment) return
+    await handleCancelAppointment(toDeleteAppointment.id)
+    setConfirmOpen(false)
+    setToDeleteAppointment(null)
   }
 
-  function cycleAvailableColor(slot: string) {
-    setAvailableColors(prev => ({
-      ...prev,
-      [slot]: (prev[slot] ?? -1) + 1 >= COLORS.length ? 0 : (prev[slot] ?? -1) + 1
-    }))
+  async function cycleColor(map: Record<string, number>, setMap: React.Dispatch<React.SetStateAction<Record<string, number>>>, key: string) {
+    // compute next index
+    const next = (map[key] ?? -1) + 1 >= COLORS.length ? 0 : (map[key] ?? -1) + 1
+    // optimistically update UI
+    setMap(prev => ({ ...prev, [key]: next }))
+
+    try {
+      const res = await fetch('/api/clinic/appointments/color', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: key, color_index: next }),
+      })
+      const jb = await res.json()
+      if (!res.ok || jb?.error) {
+        console.error('Failed to persist appointment color_index', jb?.error ?? jb)
+        // revert optimistic update
+        setMap(prev => ({ ...prev, [key]: map[key] ?? -1 }))
+        toast.error('Falha ao salvar cor do agendamento')
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['get-appointments', date] })
+      }
+    } catch (err) {
+      console.error('Error updating appointment color:', err)
+      setMap(prev => ({ ...prev, [key]: map[key] ?? -1 }))
+      toast.error('Erro ao atualizar cor')
+    }
   }
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <Card className="w-full max-w-none">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card className="w-full h-fit max-w-none">
+        <CardHeader className="flex justify-between items-center pb-2">
           <CardTitle className="text-xl md:text-2xl font-bold">Agendamentos</CardTitle>
-          <ButtonPickerAppointment />
+          <div className="flex items-center gap-2">
+            <ButtonPickerAppointment />
+            <Button onClick={() => router.push('/private/agenda/new')}>Novo agendamento</Button>
+          </div>
         </CardHeader>
         <CardContent>
           <ScrollArea className="w-full h-[calc(100vh-20rem)] lg:h-[calc(100vh-15rem)] pr-4">
@@ -111,72 +194,107 @@ export function AppointmentsList({ times }: AppointmentListProps) {
               <p>Carregando agenda...</p>
             ) : (
               times.map((slot, index) => {
-                const occupant = occupantMap[slot]
-                const isFirstSlot = occupant && occupant.time === slot
-                const bgColor = occupant
-                  ? COLORS[appointmentColors[occupant.id] ?? -1] ?? "transparent"
-                  : COLORS[availableColors[slot] ?? -1] ?? "transparent"
+                  const occupants = occupantMap[slot] ?? []
+                  const hasOccupants = occupants.length > 0
+                  const representative = occupants[0]
+                  const bgColor = hasOccupants
+                    ? COLORS[appointmentColors[representative.id] ?? -1] ?? 'transparent'
+                    : COLORS[availableColors[slot] ?? -1] ?? 'transparent'
 
-                return (
-                  <div
-                    key={slot + index}
-                    className="w-full flex items-center py-2 border-t last:border-b"
-                    style={{ backgroundColor: bgColor }}
-                  >
-                    <div className="min-w-[4rem] text-sm font-semibold ml-4">{slot}</div>
-                    {occupant ? (
-                      <>
-                        <div className="flex-grow text-sm flex flex-col">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 font-semibold">
-                              {occupant.name}
-                              {isFirstSlot && (
-                                <>
-                                <DialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="bg-transparent hover:bg-transparent focus:outline-none focus:ring-0 cursor-pointer" onClick={() => setDetailAppointment(occupant)}>
-                                      <Eye className="w-4 h-4" />
+                  return (
+                    <div
+                      key={slot + index}
+                      className="w-full flex items-center py-2 border-t last:border-b"
+                      style={{ backgroundColor: bgColor }}
+                    >
+                      <div className="min-w-16 text-sm font-semibold ml-4">{slot}</div>
+                      {hasOccupants ? (
+                        <div className="grow text-sm flex flex-col">
+                          {/* Render each appointment occupying this slot as a compact row */}
+                          {occupants.map((occ, occIndex) => {
+                            const isFirstSlot = occ.time === slot
+                            return (
+                              <div key={occ.id + '-' + occIndex} className="flex justify-between items-center py-1">
+                                <div className="flex items-center gap-2 font-semibold">
+                                  {occ.contractorname}
+                                  {isFirstSlot && (
+                                    <>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => setDetailAppointment(occ)}
+                                        >
+                                          <Eye className="w-4 h-4" />
+                                        </Button>
+                                      </DialogTrigger>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => cycleColor(appointmentColors, setAppointmentColors, occ.id)}
+                                        title="Alterar cor"
+                                      >
+                                        <Palette className="w-8 h-8" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon">
+                                        <Pencil className="w-4 h-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="text-sm text-gray-500 mr-2">{occ.phone}</div>
+                                  {isFirstSlot && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => {
+                                        setToDeleteAppointment(occ)
+                                        setConfirmOpen(true)
+                                      }}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
                                     </Button>
-                                  </DialogTrigger>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="bg-transparent hover:bg-transparent focus:outline-none focus:ring-0 cursor-pointer"
-                                    onClick={() => cycleAppointmentColor(occupant.id)}
-                                    title="Alterar cor"
-                                  >
-                                    <Palette className="w-8 h-8" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="bg-transparent hover:bg-transparent focus:outline-none focus:ring-0 cursor-pointer">
-                                    <Pencil className="w-4 h-4"/>
-                                  </Button>
-                                  
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-sm text-gray-500">{occupant.phone}</div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
-                        {isFirstSlot && (
-                          <div className="ml-2 p-2">
-                            <Button variant="ghost" size="icon" className="bg-transparent hover:bg-transparent focus:outline-none focus:ring-0 cursor-pointer" onClick={() => handleCancelAppointment(occupant.id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex-grow text-sm text-gray-500">Disponível</div>
-                      </>
-                    )}
-                  </div>
-                )
-              })
+                      ) : (
+                        <div className="grow text-sm text-gray-500">Disponível</div>
+                      )}
+                    </div>
+                  )
+                })
             )}
           </ScrollArea>
         </CardContent>
       </Card>
       <DialogAppointment appointment={detailAppointment} />
+
+      {/* Confirmation dialog for deleting an appointment */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogDescription>
+              Você tem certeza que deseja excluir este agendamento?
+              {toDeleteAppointment && (
+                <span className="mt-2 block text-sm text-muted-foreground">
+                  {toDeleteAppointment.contractorname} — {toDeleteAppointment.time}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost">Cancelar</Button>
+            </DialogClose>
+            <Button onClick={handleConfirmDelete} className="ml-2">Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

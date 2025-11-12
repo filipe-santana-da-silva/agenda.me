@@ -49,20 +49,13 @@ export default function MeuPerfilPage() {
       .single()
 
     if (papelError || !papel?.role) {
-      console.error('Erro ao buscar papel:', papelError?.message)
-      router.push('/acesso-negado')
-      return
+      // não bloquear por falta de papel: apenas logue e continue (remoção das restrições RBAC)
+      console.warn('Aviso: não foi possível determinar o papel do usuário:', papelError?.message)
     }
 
     // Trata role como array ou objeto, dependendo do retorno
-    const roleName = Array.isArray(papel.role)
-      ? papel.role[0]?.name
-      : papel.role?.name
-
-    if (!roleName) {
-      router.push('/acesso-negado')
-      return
-    }
+  // cast to any to safely access joined records returned by Supabase
+  const roleName = Array.isArray((papel as any)?.role) ? (papel as any).role[0]?.name : (papel as any)?.role?.name
 
     setUserId(session.user.id)
     fetchUser(session.user.id)

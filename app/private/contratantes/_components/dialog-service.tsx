@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -33,6 +33,21 @@ export function DialogService({ closeModal, initialValues, contractorId, onCreat
   const [loading, setLoading] = useState(false)
   const form = useDialogContractorForm({ initialValues })
   const documentType = form.watch('documenttype')
+  const personType = form.watch('personType')
+
+  useEffect(() => {
+    // when switching to juridica, prefer CNPJ and clear child-specific fields
+    if (personType === 'juridica') {
+      form.setValue('documenttype', 'CNPJ')
+      form.setValue('childname', '')
+      form.setValue('maritalstatus', '')
+      form.setValue('profession', '')
+    }
+    // when switching to fisica, ensure document type has a sensible default
+    if (personType === 'fisica' && (form.getValues().documenttype === '' || form.getValues().documenttype === 'CNPJ')) {
+      form.setValue('documenttype', 'CPF')
+    }
+  }, [personType])
 
   async function onSubmit(values: DialogContractorFormData) {
     setLoading(true)
@@ -76,16 +91,26 @@ export function DialogService({ closeModal, initialValues, contractorId, onCreat
         <DialogDescription>Preencha os dados do contratante.</DialogDescription>
       </DialogHeader>
 
-      <Form {...form}>
-        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+      <Form {...(form as any)}>
+        <form className="space-y-4" onSubmit={(form as any).handleSubmit(onSubmit as any)}>
           <FormField
             control={form.control}
-            name="name"
+            name="personType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nome do responsável</FormLabel>
+                <FormLabel>Tipo de pessoa</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="Ex: Fernanda" />
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="fisica">Pessoa Física</SelectItem>
+                      <SelectItem value="juridica">Pessoa Jurídica</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -94,17 +119,33 @@ export function DialogService({ closeModal, initialValues, contractorId, onCreat
 
           <FormField
             control={form.control}
-            name="childname"
+            name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nome da criança</FormLabel>
+                <FormLabel>{personType === 'juridica' ? 'Nome da empresa / Razão social' : 'Nome do responsável'}</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="Ex: Ana Clara" />
+                  <Input {...field} placeholder={personType === 'juridica' ? 'Ex: Empresa ABC Ltda' : 'Ex: Fernanda'} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          {personType === 'fisica' && (
+            <FormField
+              control={form.control}
+              name="childname"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome da criança</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Ex: Ana Clara" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}
@@ -133,6 +174,45 @@ export function DialogService({ closeModal, initialValues, contractorId, onCreat
               </FormItem>
             )}
           />
+
+          {personType === 'fisica' && (
+            <>
+              <FormField
+                control={form.control}
+                name="maritalstatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estado Civil</FormLabel>
+                    <FormControl>
+                      <select {...field} className="w-full border rounded px-3 py-2">
+                        <option value="">-- selecione --</option>
+                        <option value="solteiro">Solteiro(a)</option>
+                        <option value="casado">Casado(a)</option>
+                        <option value="separado">Separado(a)</option>
+                        <option value="divorciado">Divorciado(a)</option>
+                        <option value="viuvo">Viúvo(a)</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="profession"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Profissão</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Ex: Advogado, Médico, Autônomo" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
 
           <FormField
             control={form.control}

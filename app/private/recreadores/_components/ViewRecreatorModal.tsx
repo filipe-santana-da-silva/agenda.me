@@ -26,17 +26,30 @@ export function ViewRecreatorModal({ recreador }: ViewRecreatorModalProps) {
 
       <div className="space-y-2 text-sm">
         <p><strong>Nome:</strong> {recreador.name}</p>
-        <p><strong>Especialidade:</strong> {recreador.specialty}</p>
-        <p className="flex items-center gap-1">
-          <strong>Especialidade nível:</strong>
-          {[...Array(recreador.specialtylevel)].map((_, i) => (
-            <span key={i} className="text-yellow-400">★</span>
-          ))}
-        </p>
+        <div>
+          <strong>Habilidades:</strong>
+          <div className="mt-1 space-y-1">
+            {(() => {
+              const skills = recreador.skills ?? { recreacao: 0, pintura: 0, balonismo: 0, oficina: 0 }
+              return Object.entries(skills).map(([k, v]) => (
+                <div key={k} className="flex items-center gap-2">
+                  <span className="capitalize w-28">{k}</span>
+                  <div className="flex">
+                    {[1,2,3,4,5].map((i) => (
+                      <span key={i} className={`text-xl ${v >= i ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                    ))}
+                  </div>
+                </div>
+              ))
+            })()}
+          </div>
+        </div>
         <p><strong>RG:</strong> {recreador.rg}</p>
         <p><strong>CPF:</strong> {recreador.cpf}</p>
-        <p><strong>Telefone:</strong> {recreador.phone}</p>
-        <p><strong>Endereço:</strong> {recreador.address}</p>
+  <p><strong>Telefone:</strong> {recreador.phone}</p>
+  <p><strong>Endereço:</strong> {recreador.address}</p>
+  <p><strong>PIX:</strong> {recreador.pixKey || '—'}</p>
+  <p><strong>Tamanho do uniforme:</strong> {recreador.uniformSize || '—'}</p>
         <p><strong>Observações:</strong> {recreador.notes || '—'}</p>
         <div>
           <strong>Disponibilidade de dias:</strong>

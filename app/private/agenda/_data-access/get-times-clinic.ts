@@ -1,8 +1,10 @@
-'use server'
+"use server"
 
-import { supabase } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/server'
+import { format } from 'date-fns'
 
-export async function getTimesClinic({ userId }: { userId: string }) {
+export async function getTimesClinicInternal({ userId }: { userId: string }) {
+  const supabase = await createClient()
   if (!userId) {
     return {
       times: [],
@@ -11,21 +13,58 @@ export async function getTimesClinic({ userId }: { userId: string }) {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('ClinicTime') // ajuste se sua tabela tiver outro nome
-      .select('*')
-      .eq('userId', userId)
+    // Attempt to read scheduled appointments for this user from the Appointment table
+    // and produce a list of time slots (HH:mm) for the UI. We also include a
+    // default set of half-hour slots (08:00-18:00) so the UI has a full day grid.
+    const { data: appointments, error } = await supabase
+      .from('Appointment')
+      .select('appointmentdate, durationhours')
+      .or(`recreatorid.eq.${userId},userid.eq.${userId}`)
+
+    // build a base set of one-hour slots between 08:00 and 19:00 (inclusive)
+    const baseSlots: string[] = []
+    const startHour = 8
+    const endHour = 19
+    for (let h = startHour; h <= endHour; h++) {
+      baseSlots.push(`${String(h).padStart(2, '0')}:00`)
+    }
 
     if (error) {
-      console.error('Erro ao buscar horários da clínica:', error.message)
+      console.error('Erro ao buscar appointments:', (error as any)?.message || error)
+      // fallback to baseSlots
       return {
-        times: [],
-        userId: ''
+        times: baseSlots,
+        userId
       }
     }
 
+    // Extract time-of-day from appointmentdate and include into slots
+    const appointmentTimes = new Set<string>()
+    if (Array.isArray(appointments)) {
+      for (const ap of appointments as any[]) {
+        try {
+          const dt = new Date(ap.appointmentdate)
+          if (!isNaN(dt.getTime())) {
+            appointmentTimes.add(format(dt, 'HH:mm'))
+            // If appointment has duration, also add hourly increments covered by it
+            const duration = Number(ap.durationhours) || 0
+            const slices = Math.ceil(duration) || 0
+            for (let i = 1; i < slices; i++) {
+              const slot = new Date(dt.getTime() + i * 60 * 60 * 1000)
+              appointmentTimes.add(format(slot, 'HH:mm'))
+            }
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      }
+    }
+
+    // Combine base slots and appointment times, sort and return
+    const combined = Array.from(new Set([...baseSlots, ...Array.from(appointmentTimes)])).sort()
+
     return {
-      times: data || [],
+      times: combined,
       userId
     }
   } catch (err) {
@@ -36,3 +75,7 @@ export async function getTimesClinic({ userId }: { userId: string }) {
     }
   }
 }
+
+// Named export for other modules that import { getTimesClinic }
+export const getTimesClinic = getTimesClinicInternal
+export default getTimesClinicInternal

@@ -1,6 +1,6 @@
 'use server'
 
-import { supabase } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/server'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 
@@ -11,6 +11,7 @@ const formSchema = z.object({
 type FormSchema = z.infer<typeof formSchema>
 
 export async function createReminder(formData: FormSchema) {
+  const supabase = await createClient()
   const schema = formSchema.safeParse(formData)
 
   if (!schema.success) {
@@ -30,11 +31,11 @@ export async function createReminder(formData: FormSchema) {
 
   try {
     const { error: insertError } = await supabase
-      .from('Reminder')
+      .from('reminder')
       .insert([
         {
           description: formData.description,
-          userId: user.id
+          user_id: user.id
         }
       ])
 
@@ -42,7 +43,7 @@ export async function createReminder(formData: FormSchema) {
       throw insertError
     }
 
-    revalidatePath('/dashboard')
+    revalidatePath('/private/agenda')
 
     return {
       data: 'Lembrete cadastrado com sucesso!'
