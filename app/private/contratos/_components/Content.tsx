@@ -59,16 +59,73 @@ export function Content() {
             const els = Array.from(root.querySelectorAll<HTMLElement>('*'))
             // include root itself
             els.unshift(root)
+            const suspiciousFunc = (s?: string) => {
+              if (!s) return false
+              return /\b(lab|lch|oklab|color|display-p3|device-cmyk)\b/i.test(s)
+            }
+
             for (const el of els) {
               try {
                 const cs = getComputedStyle(el)
-                if (cs) {
-                  if (cs.color) el.style.color = cs.color
-                  if (cs.backgroundColor && cs.backgroundColor !== 'transparent' && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') el.style.backgroundColor = cs.backgroundColor
-                  if (cs.borderColor && cs.borderColor !== 'transparent') el.style.borderColor = cs.borderColor
+                if (!cs) continue
+
+                // basic colors
+                if (cs.color) el.style.color = cs.color
+                if (cs.backgroundColor && cs.backgroundColor !== 'transparent' && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') el.style.backgroundColor = cs.backgroundColor
+
+                // borders
+                if (cs.borderTopColor && cs.borderTopColor !== 'transparent') el.style.borderTopColor = cs.borderTopColor
+                if (cs.borderRightColor && cs.borderRightColor !== 'transparent') el.style.borderRightColor = cs.borderRightColor
+                if (cs.borderBottomColor && cs.borderBottomColor !== 'transparent') el.style.borderBottomColor = cs.borderBottomColor
+                if (cs.borderLeftColor && cs.borderLeftColor !== 'transparent') el.style.borderLeftColor = cs.borderLeftColor
+
+                // outline
+                if (cs.outlineColor && cs.outlineColor !== 'transparent') el.style.outlineColor = cs.outlineColor
+
+                // svg fill / stroke (if element is svg-related)
+                if (cs.fill) el.style.fill = cs.fill
+                if (cs.stroke) el.style.stroke = cs.stroke
+
+                // shadows
+                if (cs.boxShadow && cs.boxShadow !== 'none') {
+                  if (suspiciousFunc(cs.boxShadow)) {
+                    // fallback: remove complex shadows
+                    el.style.boxShadow = 'none'
+                  } else {
+                    el.style.boxShadow = cs.boxShadow
+                  }
                 }
+                if (cs.textShadow && cs.textShadow !== 'none') {
+                  if (suspiciousFunc(cs.textShadow)) el.style.textShadow = 'none'
+                  else el.style.textShadow = cs.textShadow
+                }
+
+                // background images / gradients — if they contain unsupported funcs, remove and rely on backgroundColor
+                const bg = cs.backgroundImage
+                if (bg && bg !== 'none') {
+                  if (suspiciousFunc(bg) || /gradient\(/i.test(bg)) {
+                    // fallback to computed backgroundColor
+                    el.style.backgroundImage = 'none'
+                    if (cs.backgroundColor && cs.backgroundColor !== 'transparent') el.style.backgroundColor = cs.backgroundColor
+                  } else {
+                    el.style.backgroundImage = bg
+                  }
+                }
+
+                // also guard border-image
+                const bImg = cs.borderImageSource
+                if (bImg && bImg !== 'none') {
+                  if (suspiciousFunc(bImg)) {
+                    el.style.borderImageSource = 'none'
+                  } else {
+                    el.style.borderImageSource = bImg
+                  }
+                }
+
+                // finally, inline background-clip/color stops for canvas fidelity
+                if (cs.backgroundClip) el.style.backgroundClip = cs.backgroundClip
               } catch (e) {
-                // ignore elements that throw on getComputedStyle
+                // ignore elements that throw on getComputedStyle (SVG in some browsers etc.)
               }
             }
           }
