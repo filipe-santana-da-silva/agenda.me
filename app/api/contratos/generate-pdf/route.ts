@@ -5,18 +5,19 @@ import puppeteer from 'puppeteer'
 let browserInstance: any = null
 
 async function getBrowser() {
-  // Try to use chromium from @sparticuz/chromium if available (for serverless environments)
+  // Try to use chromium from @sparticuz/chromium-min if available (for serverless environments)
   try {
-    const chromium = await import('@sparticuz/chromium-min')
-    console.log('[PDF] Using @sparticuz/chromium')
+    const chromium = (await import('@sparticuz/chromium-min')).default
+    console.log('[PDF] Using @sparticuz/chromium-min')
+    const executablePath = await chromium.executablePath()
     return await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+      executablePath: executablePath,
+      headless: true,
     })
   } catch (e) {
-    console.log('[PDF] @sparticuz/chromium not available, using system chromium')
+    console.log('[PDF] @sparticuz/chromium-min not available, using system chromium:', e instanceof Error ? e.message : String(e))
     // Fallback to system chromium or bundled one
     return await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
