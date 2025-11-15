@@ -88,28 +88,23 @@ export function Content() {
   <div id="contrato" className="space-y-4 text-sm leading-relaxed">
     <h2 className="text-lg font-bold text-center">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2>
 
-    {/* Logo centralizado */}
     <div className="flex justify-center">
       <img src="/logo.svg" alt="logo" className="h-28 object-contain" />
     </div>
 
-    <p>
-      <strong>CONTRATANTE:</strong>
-      <Textarea
-        name="contratante_info"
-        value={form.contratante_info}
-        onChange={handleChange}
-        className="mt-2"
-      />
-    </p>
+    <p><strong>CONTRATANTE:</strong></p>
+    <Textarea
+      name="contratante_info"
+      value={form.contratante_info}
+      onChange={handleChange}
+      className="w-full"
+    />
 
-    <p>
-      <strong>CONTRATADO:</strong> RECREART INDAIATUBA, inscrita no CNPJ nº 51.688.436/0001-56,
+    <p><strong>CONTRATADO:</strong> RECREART INDAIATUBA, inscrita no CNPJ nº 51.688.436/0001-56,
       com sede em Rua Octacílio Furlan, 659, Jardim Morada do Sol, CEP 13348-52, Indaiatuba, São Paulo.
     </p>
 
-    <p>
-      As partes acima identificadas têm, entre si, justo e acertado o presente contrato de prestação
+    <p>As partes acima identificadas têm, entre si, justo e acertado o presente contrato de prestação
       de serviços, que se regerá pelas cláusulas seguintes:
     </p>
 
@@ -126,13 +121,13 @@ export function Content() {
     <ul className="list-disc pl-6">
       <li>Fornecer ao CONTRATADO todas as informações necessárias e disponibilizar o local para a realização do serviço;</li>
       <li>Efetuar o pagamento na forma e condições estabelecidas neste contrato de prestação de serviços;</li>
-      <li>Comunicar a CONTRATADO, de forma imediata e formal, qualquer irregularidade no cumprimento deste contrato;</li>
+      <li>Comunicar ao CONTRATADO, de forma imediata e formal, qualquer irregularidade no cumprimento deste contrato;</li>
       <li>Cumprir bem e fielmente as obrigações decorrentes do presente instrumento;</li>
     </ul>
 
     <p><strong>II. Das obrigações do contratado:</strong></p>
     <ul className="list-disc pl-6">
-      <li>Fornecer Nota Fiscal de Serviços, referente ao serviço prestado junto ao CONTRATANTE;</li>
+      <li>Fornecer Nota Fiscal de Serviços referente ao serviço prestado junto ao CONTRATANTE;</li>
       <li>Prestar os serviços com qualidade e dentro do horário contratado;</li>
       <li>Fornecer todo material necessário para execução do serviço;</li>
       <li>Informar o CONTRATANTE sobre qualquer fato que interfira na regularidade do contrato;</li>
@@ -142,7 +137,7 @@ export function Content() {
       <li>Cumprir bem e fielmente as obrigações contratuais.</li>
     </ul>
 
-    <h3>Cláusula Terceira: do preço e das condições de pagamento</h3>
+    <h3>Cláusula Terceira: Do preço e das condições de pagamento</h3>
     <Textarea
       name="terceira_clausula"
       value={form.terceira_clausula}
@@ -152,15 +147,15 @@ export function Content() {
 
     <h3>Cláusula Quarta: Do inadimplemento contratual</h3>
     <p>Em caso de inadimplemento por parte da CONTRATANTE, incidirá multa de 2%, juros de 1% ao mês e correção monetária.</p>
-    <p>§1°. Cobrança judicial: acréscimo de 20% de honorários e custas processuais.</p>
-    <p>§2°. Descumprimento contratual: multa de 10% do valor total.</p>
+    <p>§1º. Cobrança judicial: acréscimo de 20% de honorários e custas processuais.</p>
+    <p>§2º. Descumprimento contratual: multa de 10% do valor total.</p>
 
     <h3>Cláusula Quinta: Da rescisão contratual</h3>
     <p>Rescisão imotivada requer aviso prévio de 30 dias.</p>
-    <p>§1°. Se a CONTRATANTE rescindir, o CONTRATADO retém 30% do valor.</p>
-    <p>§2°. Se o CONTRATADO rescindir, devolução integral ao CONTRATANTE.</p>
-    <p>§3°. Rescisão por violação contratual é imediata e pode gerar indenização.</p>
-    <p>§4°. Tolerância não configura renúncia ou novação.</p>
+    <p>§1º. Se a CONTRATANTE rescindir, o CONTRATADO retém 30% do valor.</p>
+    <p>§2º. Se o CONTRATADO rescindir, devolução integral ao CONTRATANTE.</p>
+    <p>§3º. Rescisão por violação contratual é imediata e pode gerar indenização.</p>
+    <p>§4º. Tolerância não configura renúncia ou novação.</p>
 
     <h3>Cláusula Sexta: Autorização de uso de imagem</h3>
     <p>( ) AUTORIZO o uso de imagens e vídeos do serviço contratado...</p>
@@ -183,20 +178,26 @@ export function Content() {
     </div>
     <p className="mt-2">{formatBrDate(form.data_contrato)}</p>
 
-    <p className="mt-8">
-      ______________________________________<br />CONTRATANTE<br />
-      <Input
-        name="contratante_nome_assinatura"
-        value={form.contratante_nome_assinatura}
-        onChange={handleChange}
-        className="mt-2 w-80"
-      />
-    </p>
-    <p className="mt-8">
-      ___________________________________<br />CONTRATADO<br />Recreart Indaiatuba
-    </p>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+      <div>
+        <p className="mt-8">______________________________________</p>
+        <p>CONTRATANTE</p>
+        <Input
+          name="contratante_nome_assinatura"
+          value={form.contratante_nome_assinatura}
+          onChange={handleChange}
+          className="mt-2 w-80"
+        />
+      </div>
+      <div>
+        <p className="mt-8">_________________________________</p>
+        <p>CONTRATADO</p>
+        <p>Recreart Indaiatuba</p>
+      </div>
+    </div>
   </div>
 </CardContent>
+
 
       <div className="px-6 pb-6">
         <Button onClick={gerarPDF}>Gerar PDF do contrato</Button>
