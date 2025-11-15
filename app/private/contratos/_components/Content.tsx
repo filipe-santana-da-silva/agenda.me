@@ -49,10 +49,34 @@ export function Content() {
         container.style.position = 'fixed'
         container.style.left = '-9999px'
         container.style.top = '0'
+        container.style.width = '800px'
         container.innerHTML = data.html
         document.body.appendChild(container)
 
+        // Inline computed colors/styles to avoid html2canvas errors parsing modern color() functions (eg. lab())
         try {
+          const inlineComputedStyles = (root: HTMLElement) => {
+            const els = Array.from(root.querySelectorAll<HTMLElement>('*'))
+            // include root itself
+            els.unshift(root)
+            for (const el of els) {
+              try {
+                const cs = getComputedStyle(el)
+                if (cs) {
+                  if (cs.color) el.style.color = cs.color
+                  if (cs.backgroundColor && cs.backgroundColor !== 'transparent' && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') el.style.backgroundColor = cs.backgroundColor
+                  if (cs.borderColor && cs.borderColor !== 'transparent') el.style.borderColor = cs.borderColor
+                }
+              } catch (e) {
+                // ignore elements that throw on getComputedStyle
+              }
+            }
+          }
+
+          // Allow the browser to compute styles before reading them
+          await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)))
+          inlineComputedStyles(container)
+
           await html2pdf().from(container).set({ filename: 'Contrato_Recreart.pdf' }).save()
         } finally {
           document.body.removeChild(container)
