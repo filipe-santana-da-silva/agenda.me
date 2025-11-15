@@ -29,10 +29,38 @@ export function Content() {
         body: JSON.stringify(form),
       })
       if (!res.ok) {
+        // try to read json error details
         const data = await res.json().catch(() => ({}))
         const errorMsg = data?.details || data?.error || 'Erro desconhecido'
         throw new Error(`Servidor retornou erro ao gerar PDF: ${res.status} - ${errorMsg}`)
       }
+
+      const contentType = (res.headers.get('content-type') || '').toLowerCase()
+      if (contentType.includes('application/json')) {
+        // server returned the HTML for client-side rendering
+        const data = await res.json().catch(() => ({}))
+        if (!data || !data.html) throw new Error('Resposta inválida do servidor ao gerar PDF')
+
+        // dynamic import to avoid SSR issues
+        const html2pdf: any = (await import('html2pdf.js')).default
+
+        // create off-screen container with the HTML
+        const container = document.createElement('div')
+        container.style.position = 'fixed'
+        container.style.left = '-9999px'
+        container.style.top = '0'
+        container.innerHTML = data.html
+        document.body.appendChild(container)
+
+        try {
+          await html2pdf().from(container).set({ filename: 'Contrato_Recreart.pdf' }).save()
+        } finally {
+          document.body.removeChild(container)
+        }
+        return
+      }
+
+      // otherwise assume a PDF blob was returned
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
