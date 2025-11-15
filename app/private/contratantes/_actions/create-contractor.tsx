@@ -40,38 +40,50 @@ export async function createContractor(formData: FormSchema) {
   }
 
   try {
-    const { data, error } = await (await supabase)
-  .from('Contractor')
-  .insert({
-    name: formData.name,
-    childname: formData.childname,
-    phone: formData.phone,
-    maritalstatus: formData.maritalstatus ?? null,
-    profession: formData.profession ?? null,
-    address: formData.address,
-    documenttype: formData.documenttype,
-    documentvalue: formData.documentvalue,
-    createdat: new Date().toISOString(),
-    updatedat: new Date().toISOString(),
-    user_id: user.id,
-  })
-  .select()
-  .single()
+    // quick env debug to help on production where envs may be misconfigured
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('Supabase env vars missing on server:', {
+        NEXT_PUBLIC_SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+      })
+    }
 
+    const { data, error } = await (await supabase)
+      .from('Contractor')
+      .insert({
+        name: formData.name,
+        childname: formData.childname,
+        phone: formData.phone,
+        maritalstatus: formData.maritalstatus ?? null,
+        profession: formData.profession ?? null,
+        address: formData.address,
+        documenttype: formData.documenttype,
+        documentvalue: formData.documentvalue,
+        createdat: new Date().toISOString(),
+        updatedat: new Date().toISOString(),
+        user_id: user.id,
+      })
+      .select()
+      .single()
 
     if (error) {
-      throw error
+      console.error('Supabase insert error (Contractor):', error)
+      return { error: error.message }
     }
 
-    revalidatePath('/private/contractors')
-
-    return {
-      data
+    // ensure we revalidate the correct path (Portuguese folder `contratantes`)
+    try {
+      revalidatePath('/private/contratantes')
+    } catch (revalErr) {
+      // non-fatal in case revalidation is disabled in the environment
+      console.debug('revalidatePath failed (non-fatal):', revalErr)
     }
+
+    return { data }
   } catch (err) {
-    console.error(err)
-    return {
-      error: 'Erro ao cadastrar contratante.',
-    }
+    // Try to return a helpful message when possible
+    console.error('createContractor unexpected error:', err)
+    const message = (err as any)?.message || String(err)
+    return { error: `Erro ao cadastrar contratante: ${message}` }
   }
 }

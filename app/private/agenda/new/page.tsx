@@ -39,6 +39,10 @@ export default function NewAppointmentPage() {
 
   const [proofFile, setProofFile] = useState<File | null>(null)
   const [contractFile, setContractFile] = useState<File | null>(null)
+  const [creatorName, setCreatorName] = useState<string>("")
+  const [showProofError, setShowProofError] = useState(false)
+  const [showContractError, setShowContractError] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [selectedBagId, setSelectedBagId] = useState<string | null>(null)
 
   const proofInputRef = useRef<HTMLInputElement | null>(null)
@@ -110,6 +114,24 @@ export default function NewAppointmentPage() {
     }
   }, [])
 
+  // detect auth state to conditionally show creator name input
+  useEffect(() => {
+    let mounted = true
+    async function checkSession() {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase.auth.getSession()
+        if (!mounted) return
+        setIsAuthenticated(Boolean(data?.session?.user))
+      } catch (e) {
+        if (!mounted) return
+        setIsAuthenticated(false)
+      }
+    }
+    checkSession()
+    return () => { mounted = false }
+  }, [])
+
   // whenever a contractor is selected, auto-fill contact fields (phone)
   useEffect(() => {
     if (!contractorId) return
@@ -144,6 +166,10 @@ export default function NewAppointmentPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    const supabase = createClient()
+    const { data: sessionData } = await supabase.auth.getSession()
+    const userId = sessionData?.session?.user?.id ?? null
+    const userEmail = sessionData?.session?.user?.email ?? null
     try {
       // basic validation
       if (!date || !time) {
@@ -172,20 +198,36 @@ export default function NewAppointmentPage() {
         return
       }
 
+      // when user is not authenticated, require creator name
+      if (!userId && !creatorName.trim()) {
+        alert('Informe seu nome para registrar quem criou o agendamento')
+        setLoading(false)
+        return
+      }
+
+      // require attachments (comprovante e contrato)
+      if (!proofFile || !contractFile) {
+        if (!proofFile) setShowProofError(true)
+        if (!contractFile) setShowContractError(true)
+        alert('Anexe o comprovante e o contrato obrigatoriamente')
+        setLoading(false)
+        return
+      }
+
       const localDate = new Date(`${date}T${time}`)
-      // enforce closed-hour (minute === 0)
-      if (localDate.getMinutes() !== 0) {
-        alert("Escolha horário fechado (minutos = 00). Ex: 15:00")
+      // enforce closed 30-minute boundary (minutes === 00 or 30)
+      if (![0, 30].includes(localDate.getMinutes())) {
+        alert("Escolha horário em intervalos de 30 minutos (ex: 15:00 ou 15:30)")
         setLoading(false)
         return
       }
 
       const appointmentdate = format(localDate, "yyyy-MM-dd HH:mm:ss")
 
-      // uploads
-      const bucket = "appointments"
-      let proof_url: string | null = null
-      let contract_url: string | null = null
+  // uploads
+  const bucket = "appointments"
+  let proof_url: string | null = null
+  let contract_url: string | null = null
       if (proofFile) {
         try {
           proof_url = await uploadFileToBucket(bucket, proofFile)
@@ -207,15 +249,34 @@ export default function NewAppointmentPage() {
         }
       }
 
-      const supabase = createClient()
-  const { data: sessionData } = await supabase.auth.getSession()
-  const userId = sessionData?.session?.user?.id ?? null
-  const userEmail = sessionData?.session?.user?.email ?? null
 
-      // find selected contractor to include contractorname (some schemas require it)
-      const selectedContractor = contractors.find((c) => String(c.id ?? c.contractorid) === String(contractorId))
+  // find selected contractor to include contractorname (some schemas require it)
+  const selectedContractor = contractors.find((c) => String(c.id ?? c.contractorid) === String(contractorId))
 
-      const payloadAny: any = {
+  // determine creator name to store:
+  // Prefer the profile `User.name` (the name the user entered at login) when the user is authenticated.
+  // If that's not available, fall back to session metadata (full_name/name) or email.
+  // If unauthenticated, use the explicit `creatorName` input.
+  let creatorFromSession: string | null = null
+
+  if (userId) {
+    try {
+      const { data: profile, error: profileError } = await supabase.from('User').select('name').eq('id', userId).maybeSingle()
+      if (!profileError && profile && (profile as any).name) {
+        creatorFromSession = (profile as any).name
+      }
+    } catch (e) {
+      // ignore profile read errors
+    }
+  }
+
+  if (!creatorFromSession) {
+    creatorFromSession = (sessionData?.session?.user?.user_metadata && (sessionData!.session!.user!.user_metadata.full_name || sessionData!.session!.user!.user_metadata.name)) || userEmail || null
+  }
+
+  const creatorForDb = (creatorName && creatorName.trim()) ? creatorName.trim() : (creatorFromSession ? String(creatorFromSession) : null)
+
+  const payloadAny: any = {
         appointmentdate,
         durationhours: Number(durationhours) || 1,
         childname,
@@ -233,6 +294,8 @@ export default function NewAppointmentPage() {
         bagid: selectedBagId,
         responsible_recreatorid: responsibleRecreatorId,
         userid: userId,
+        // creator name if provided (saved to appointment.created_by)
+        created_by: creatorForDb,
       }
 
       // optional fields - include if available
@@ -243,7 +306,7 @@ export default function NewAppointmentPage() {
   if (recreatorRequested && selectedRecreatorId) payloadAny.recreatorid = selectedRecreatorId
 
       // Insert appointment base record first (avoid schema issues when optional columns differ).
-      const basePayload: any = {
+  const basePayload: any = {
         appointmentdate,
         durationhours: Number(durationhours) || 1,
         childname,
@@ -257,6 +320,7 @@ export default function NewAppointmentPage() {
         outofcity,
         ownerpresent: ownerPresent,
         userid: userId,
+        created_by: creatorForDb,
         // color_index: will be set based on owner/recreator defaults below
       }
 
@@ -389,7 +453,7 @@ export default function NewAppointmentPage() {
               </div>
               <div>
                 <Label>Hora</Label>
-                <Input name="time" type="time" step={3600} value={time} onChange={(e) => setTime(e.target.value)} className="mt-1 w-36" />
+                <Input name="time" type="time" step={1800} value={time} onChange={(e) => setTime(e.target.value)} className="mt-1 w-36" />
               </div>
             </div>
 
@@ -527,16 +591,28 @@ export default function NewAppointmentPage() {
                   type="file"
                   accept="image/png"
                   className="hidden"
-                  onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-                />
+                     onChange={(e) => { setProofFile(e.target.files?.[0] ?? null); setShowProofError(false) }}
+                required/>
                 <Button type="button" variant="outline" onClick={() => proofInputRef.current?.click()}>
                   Selecionar arquivo
                 </Button>
                 <div className="text-sm text-muted-foreground">
                   {proofFile ? proofFile.name : <span className="italic">Nenhum arquivo selecionado</span>}
                 </div>
+                {showProofError && (
+                  <div className="text-sm text-red-600">Comprovante obrigatório</div>
+                )}
               </div>
             </div>
+
+            {/* Creator name input only visible when user is not authenticated */}
+            {isAuthenticated === false && (
+              <div>
+                <Label>Seu nome</Label>
+                <Input value={creatorName} onChange={(e) => setCreatorName(e.target.value)} className="mt-1" placeholder="Seu nome completo" />
+                <div className="text-xs text-muted-foreground mt-1">Informe seu nome para registrar quem criou este agendamento.</div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Contrato (PDF)</Label>
@@ -546,14 +622,17 @@ export default function NewAppointmentPage() {
                   type="file"
                   accept="application/pdf"
                   className="hidden"
-                  onChange={(e) => setContractFile(e.target.files?.[0] ?? null)}
-                />
+                     onChange={(e) => { setContractFile(e.target.files?.[0] ?? null); setShowContractError(false) }}
+                required/>
                 <Button type="button" variant="outline" onClick={() => contractInputRef.current?.click()}>
                   Selecionar PDF
                 </Button>
                 <div className="text-sm text-muted-foreground">
                   {contractFile ? contractFile.name : <span className="italic">Nenhum arquivo selecionado</span>}
                 </div>
+                {showContractError && (
+                  <div className="text-sm text-red-600">Contrato obrigatório</div>
+                )}
               </div>
             </div>
 

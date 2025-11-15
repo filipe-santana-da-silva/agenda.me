@@ -38,9 +38,10 @@ export const useRankingStore = create<RankingStore>((set, get) => ({
 
     const { startDate, endDate } = get()
 
-    // normalize to include the full day window to avoid timestamp/timezone mismatches
-    const startDateTime = `${startDate}T00:00:00`
-    const endDateTime = `${endDate}T23:59:59`
+    // normalize to include the full day window and force UTC (append Z)
+    // This avoids timezone mismatch where createdat is stored as ISO with Z
+    const startDateTime = `${startDate}T00:00:00Z`
+    const endDateTime = `${endDate}T23:59:59Z`
 
     // try fetching with date-time filters first
     let { data, error } = await supabase
@@ -52,23 +53,11 @@ export const useRankingStore = create<RankingStore>((set, get) => ({
     // debug info for troubleshooting - will appear in browser console
     // (helps detect RLS/permission errors or date range mismatches)
     // eslint-disable-next-line no-console
-    console.debug('[ranking] fetch with range', { startDate, endDate, dataLength: data?.length ?? 0, error })
+    console.debug('[ranking] fetch with range', { startDate, endDate, startDateTime, endDateTime, dataLength: data?.length ?? 0, error })
 
-    // If we got an empty result without an error, try a fallback fetch without date filters
-    if ((!data || data.length === 0) && !error) {
-      const fallback = await supabase
-        .from('RankingEventDetail')
-        .select('pointsawarded, recreatorid, recreator:recreatorid (name)')
-
-      // eslint-disable-next-line no-console
-      console.debug('[ranking] fallback fetch (no date filter)', { fallbackLength: fallback.data?.length ?? 0, fallbackError: fallback.error })
-
-      // prefer fallback data if it returned rows
-      if (fallback.data && fallback.data.length > 0) {
-        data = fallback.data
-        error = fallback.error
-      }
-    }
+    // NOTE: do NOT fallback to a fetch without date filters when the range returns
+    // an empty array. Returning empty results is expected for a date window with
+    // no events. Only treat real errors by aborting and showing no results.
 
     if (!data || error) {
       // eslint-disable-next-line no-console

@@ -58,7 +58,9 @@ export async function GET(request: Request) {
   contractorid: a.contractorid,
   // event name (some schemas use eventname or event_name)
   eventname: a.eventname ?? a.event_name ?? null,
-        userid: a.userid,
+  userid: a.userid,
+  // creator name: support several naming variants (created_by, creator_name, creatorname)
+  created_by: a.created_by ?? a.creator_name ?? a.creatorname ?? a.createdby ?? null,
         createdat: a.createdat,
         updatedat: a.updatedat,
         // derived fields

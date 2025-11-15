@@ -43,6 +43,8 @@ export function ContractorList({ contractors }: ContractorListProps) {
   }
 
   const handleDelete = async (contractorId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este contratante?')) return
+
     const response = await deleteContractor({ contractorId })
 
     if (response.error) {

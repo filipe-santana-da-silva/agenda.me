@@ -32,10 +32,14 @@ export function ReminderList({ reminder } : ReminderListProps){
     const router = useRouter();
 
     async function handleDeleteReminder(id: string){
+        const ok = confirm('Tem certeza que deseja deletar este lembrete?')
+        if (!ok) return
+
         const response = await deleteReminder({ reminderId: id})
 
         if(response.error){
             toast.error(response.error)
+            return
         }
         toast.success(response.data);
         router.refresh();

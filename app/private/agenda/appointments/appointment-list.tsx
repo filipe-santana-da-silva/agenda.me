@@ -61,6 +61,7 @@ export type AppointmentWithService = {
   userid?: string | null
   createdat?: string | null
   color_index?: number | null
+  created_by?: string | null
 }
 
 
@@ -73,6 +74,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
   const router = useRouter()
   const [detailAppointment, setDetailAppointment] = useState<AppointmentWithService | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [startEditing, setStartEditing] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toDeleteAppointment, setToDeleteAppointment] = useState<AppointmentWithService | null>(null)
   const [appointmentColors, setAppointmentColors] = useState<Record<string, number>>({})
@@ -114,7 +116,8 @@ export function AppointmentsList({ times }: AppointmentListProps) {
 
     for (const appointment of data) {
       const durationHours = Number(appointment.durationhours) || (appointment.service?.duration ? (Number(appointment.service.duration) / 60) : 1)
-      const requiredSlot = Math.max(1, Math.ceil(durationHours))
+      // convert duration (hours) to number of 30-minute slots
+      const requiredSlot = Math.max(1, Math.ceil((durationHours || 0) * 2))
       const normalizedTime = (appointment.time || '').slice(0,5)
       const startIndex = times.indexOf(normalizedTime)
       if (startIndex !== -1) {
@@ -204,10 +207,14 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                   return (
                     <div
                       key={slot + index}
-                      className="w-full flex items-center py-2 border-t last:border-b"
+                      className="w-full flex items-center py-2 border-t last:border-b relative"
                       style={{ backgroundColor: bgColor }}
                     >
                       <div className="min-w-16 text-sm font-semibold ml-4">{slot}</div>
+                      {/* creator name (bottom-left) for the representative appointment in this slot */}
+                      <div className="absolute left-3 bottom-1 text-xs text-muted-foreground">
+                        {representative?.created_by ? `Criado por: ${String(representative.created_by)}` : ''}
+                      </div>
                       {hasOccupants ? (
                         <div className="grow text-sm flex flex-col">
                           {/* Render each appointment occupying this slot as a compact row */}
@@ -236,9 +243,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                                       >
                                         <Palette className="w-8 h-8" />
                                       </Button>
-                                      <Button variant="ghost" size="icon">
-                                        <Pencil className="w-4 h-4" />
-                                      </Button>
+                                     
                                     </>
                                   )}
                                 </div>
@@ -271,7 +276,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
           </ScrollArea>
         </CardContent>
       </Card>
-      <DialogAppointment appointment={detailAppointment} />
+      <DialogAppointment appointment={detailAppointment} startEditing={startEditing} />
 
       {/* Confirmation dialog for deleting an appointment */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>

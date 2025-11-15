@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Pencil1Icon, CheckIcon, Cross1Icon } from '@radix-ui/react-icons'
+import { Pencil1Icon, CheckIcon, Cross1Icon, TrashIcon } from '@radix-ui/react-icons'
 
 interface StockItem {
   id: string
@@ -59,6 +59,18 @@ export default function EstoquePage() {
       setEditingId(null)
       setEditedQuantity(0)
       fetchStock()
+    }
+  }
+
+  async function handleDeleteItem(id: string) {
+    if (!confirm('Tem certeza que deseja excluir este item do estoque?')) return
+
+    const { error } = await supabase.from('StockItem').delete().eq('id', id)
+    if (!error) {
+      fetchStock()
+    } else {
+      console.error('Erro ao excluir item do estoque:', error.message)
+      alert('Erro ao excluir item do estoque.')
     }
   }
 
@@ -143,6 +155,13 @@ export default function EstoquePage() {
                       className="text-gray-500 hover:text-gray-700"
                     >
                       <Pencil1Icon />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="text-red-500 hover:text-red-700"
+                      aria-label={`Excluir ${item.name}`}
+                    >
+                      <TrashIcon />
                     </button>
                   </div>
                 )}

@@ -15,13 +15,16 @@ import { uploadFileToBucket } from '@/utils/supabase/storage'
 import { UploadCloud } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Eye } from 'lucide-react'
 
 interface DialogAppointmentProps {
   appointment: AppointmentWithService | null
+  startEditing?: boolean
 }
 
-export function DialogAppointment({ appointment }: DialogAppointmentProps) {
+export function DialogAppointment({ appointment, startEditing }: DialogAppointmentProps) {
   // Always render DialogContent to keep the component tree stable between
   // server and client renders. Rendering nothing here when the dialog root
   // is present can cause React/Next to complain about missing static flags
@@ -33,6 +36,7 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
   const [recreatorNames, setRecreatorNames] = useState<string[]>([])
   const [responsibleName, setResponsibleName] = useState<string | null>(null)
   const [bagName, setBagName] = useState<string | null>(null)
+  const [creatorDisplayName, setCreatorDisplayName] = useState<string | null>(ap?.created_by ?? null)
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null)
   const [contractPreviewUrl, setContractPreviewUrl] = useState<string | null>(null)
   const [showProofPreview, setShowProofPreview] = useState(false)
@@ -44,10 +48,52 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
   const [eventName, setEventName] = useState<string | null>(ap?.eventname ?? null)
   const [editingEventName, setEditingEventName] = useState(false)
   const [savingEventName, setSavingEventName] = useState(false)
+  const [editingMode, setEditingMode] = useState(false)
+
+  // editable copy of fields for full edit mode
+  const [editable, setEditable] = useState<any>({
+    eventname: ap?.eventname ?? null,
+    childname: ap?.childname ?? null,
+    childagegroup: ap?.childagegroup ?? null,
+    phone: ap?.phone ?? null,
+    email: ap?.email ?? null,
+    eventaddress: ap?.eventaddress ?? null,
+    address: ap?.address ?? null,
+    outofcity: ap?.outofcity ?? false,
+    ownerpresent: ap?.ownerpresent ?? false,
+    durationhours: ap?.durationhours ?? 1,
+    created_by: ap?.created_by ?? null,
+    requestedbymother: typeof ap?.requestedbymother !== 'undefined' ? ap.requestedbymother : false,
+    bagid: ap?.bagid ?? null,
+    responsible_recreatorid: ap?.responsible_recreatorid ?? null,
+    recreator_ids: Array.isArray(ap?.recreator_ids) ? ap?.recreator_ids : (ap?.recreator_ids ? [ap.recreator_ids] : []),
+  })
+
+  // lists for select controls
+  const [recreatorsList, setRecreatorsList] = useState<Array<{ id: string; name: string }>>([])
+  const [bagsList, setBagsList] = useState<Array<{ id: string; number?: string }>>([])
 
   useEffect(() => {
     setEventName(ap?.eventname ?? null)
+    setEditable((prev: any) => ({
+      ...prev,
+      eventname: ap?.eventname ?? null,
+      childname: ap?.childname ?? null,
+      childagegroup: ap?.childagegroup ?? null,
+      phone: ap?.phone ?? null,
+      email: ap?.email ?? null,
+      eventaddress: ap?.eventaddress ?? null,
+      address: ap?.address ?? null,
+      outofcity: ap?.outofcity ?? false,
+      ownerpresent: ap?.ownerpresent ?? false,
+      durationhours: ap?.durationhours ?? 1,
+      created_by: ap?.created_by ?? null,
+    }))
   }, [ap])
+
+  useEffect(() => {
+    if (startEditing) setEditingMode(true)
+  }, [startEditing])
 
   useEffect(() => {
     let mounted = true
@@ -111,6 +157,42 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
         } catch (e) {
           if (mounted) setContractPreviewUrl(ap?.contract_url ?? null)
         }
+
+        // Creator display name: prefer User.name (profile) when appointment.userid is present,
+        // otherwise prefer appointment.created_by, else null.
+        try {
+          if (ap?.userid) {
+            const { data: profile, error: profileError } = await supabase.from('User').select('name').eq('id', ap.userid).maybeSingle()
+            if (!profileError && profile && (profile as any).name) {
+              if (mounted) setCreatorDisplayName((profile as any).name)
+            } else if (ap?.created_by) {
+              if (mounted) setCreatorDisplayName(String(ap.created_by))
+            } else {
+              if (mounted) setCreatorDisplayName(null)
+            }
+          } else if (ap?.created_by) {
+            if (mounted) setCreatorDisplayName(String(ap.created_by))
+          } else {
+            if (mounted) setCreatorDisplayName(null)
+          }
+        } catch (e) {
+          if (mounted) setCreatorDisplayName(ap?.created_by ?? null)
+        }
+        // Also fetch lists used for editing controls
+        try {
+          const { data: allRecreators } = await supabase.from('Recreator').select('id, name').order('name', { ascending: true })
+          if (mounted && Array.isArray(allRecreators)) setRecreatorsList(allRecreators.map((r: any) => ({ id: String(r.id), name: r.name ?? String(r.id) })))
+        } catch (e) {
+          // ignore
+        }
+
+        try {
+          const { data: allBags } = await supabase.from('Bag').select('id, number').order('number', { ascending: true })
+          if (mounted && Array.isArray(allBags)) setBagsList(allBags.map((b: any) => ({ id: String(b.id), number: b.number })))
+        } catch (e) {
+          // ignore
+        }
+
       } catch (err) {
         // ignore
       }
@@ -121,13 +203,46 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
     }
   }, [appointment])
 
-  function openInNewTab(url?: string | null) {
-    if (!url) return
-    window.open(url, '_blank', 'noreferrer')
-  }
 
   const isImage = (url?: string | null) => /\.(png|jpe?g|gif|webp)$/i.test(String(url ?? ''))
   const isPdf = (url?: string | null) => /\.pdf$/i.test(String(url ?? ''))
+
+  // Save edited appointment fields
+  async function handleSaveEdits() {
+    if (!ap) return
+    const supabase = createClient()
+    const updates: any = {
+      eventname: editable.eventname ?? null,
+      childname: editable.childname ?? (ap?.childname ?? ''),
+      // childagegroup is NOT NULL in the DB schema — ensure we send a non-null value
+      childagegroup: editable.childagegroup ?? (ap?.childagegroup ?? ''),
+      phone: editable.phone ?? null,
+      email: editable.email ?? null,
+      eventaddress: editable.eventaddress ?? null,
+      address: editable.address ?? null,
+      outofcity: Boolean(editable.outofcity),
+      ownerpresent: Boolean(editable.ownerpresent),
+      durationhours: Number(editable.durationhours) || 1,
+      created_by: editable.created_by ?? null,
+      requestedbymother: Boolean(editable.requestedbymother),
+      bagid: editable.bagid ?? null,
+      responsible_recreatorid: editable.responsible_recreatorid ?? null,
+      recreator_ids: Array.isArray(editable.recreator_ids) ? editable.recreator_ids : (editable.recreator_ids ? [editable.recreator_ids] : []),
+    }
+    try {
+      const { error } = await supabase.from('Appointment').update(updates).eq('id', ap.id)
+      if (error) {
+        console.error('Failed to save appointment edits', error)
+        toast.error('Falha ao salvar alterações')
+        return
+      }
+      toast.success('Alterações salvas')
+      setEditingMode(false)
+    } catch (e) {
+      console.error('Save error', e)
+      toast.error('Erro ao salvar alterações')
+    }
+  }
 
   return (
     <DialogContent>
@@ -135,7 +250,8 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
         <DialogTitle>Detalhes do agendamento</DialogTitle>
         <DialogDescription>Veja todos os detalhes do agendamento</DialogDescription>
       </DialogHeader>
-      <div className="py-4 space-y-2 text-sm">
+      <ScrollArea className="max-h-[60vh] pr-2">
+        <div className="py-4 space-y-2 text-sm relative">
         {!ap && (
           <div className="text-sm text-muted-foreground">Selecione um agendamento para ver detalhes.</div>
         )}
@@ -155,13 +271,15 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
                             setSavingEventName(true)
                             const supabase = createClient()
                             const { error } = await supabase.from('Appointment').update({ eventname: eventName ?? '' }).eq('id', ap.id)
-                            if (error) {
-                              console.error('Failed to save event name', error)
-                              toast.error('Falha ao salvar nome do evento')
-                            } else {
-                              setEditingEventName(false)
-                              toast.success('Nome do evento salvo')
-                            }
+                              if (error) {
+                                console.error('Failed to save event name', error)
+                                toast.error('Falha ao salvar nome do evento')
+                              } else {
+                                setEditingEventName(false)
+                                toast.success('Nome do evento salvo')
+                              }
+                              // refresh displayed creator name from appointment data
+                              if (ap?.created_by) setCreatorDisplayName(String(ap.created_by))
                           } finally {
                             setSavingEventName(false)
                           }
@@ -176,7 +294,13 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
                     )}
                   </div>
                   <div className="text-lg font-semibold">{ap.contractorname}</div>
-                  <div className="text-sm text-muted-foreground">{ap.childname}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {editingMode ? (
+                      <input className="border rounded px-2 py-1 text-sm" value={editable.childname ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, childname: e.target.value }))} />
+                    ) : (
+                      ap.childname
+                    )}
+                  </div>
                 </div>
                 <div className="text-sm text-right">
                   {ap.time}
@@ -190,60 +314,138 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
               </p>
 
               {ap.childagegroup && (
-                <p>
-                  <span className="font-semibold">Faixa etária:</span> {ap.childagegroup}
-                </p>
+                  <div className="text-sm text-muted-foreground">
+                    {editingMode ? (
+                      <input className="border rounded px-2 py-1 text-sm" value={editable.childagegroup ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, childagegroup: e.target.value }))} />
+                    ) : (
+                      ap.childagegroup
+                    )}
+                  </div>
               )}
 
               <p>
-                <span className="font-semibold">Email:</span> {ap.email}
+                <span className="font-semibold">Email:</span>
+                {editingMode ? (
+                  <input className="border rounded px-2 py-1 ml-2 text-sm" value={editable.email ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, email: e.target.value }))} />
+                ) : (
+                  ap.email
+                )}
               </p>
 
               {ap.eventaddress && (
                 <p>
-                  <span className="font-semibold">Endereço do evento:</span> {ap.eventaddress}
+                  <span className="font-semibold">Endereço do evento:</span>
+                  {editingMode ? (
+                    <input className="border rounded px-2 py-1 ml-2 text-sm" value={editable.eventaddress ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, eventaddress: e.target.value }))} />
+                  ) : (
+                    ap.eventaddress
+                  )}
                 </p>
               )}
 
               {ap.address && (
                 <p>
-                  <span className="font-semibold">Endereço do contratante:</span> {ap.address}
+                  <span className="font-semibold">Endereço do contratante:</span>
+                  {editingMode ? (
+                    <input className="border rounded px-2 py-1 ml-2 text-sm" value={editable.address ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, address: e.target.value }))} />
+                  ) : (
+                    ap.address
+                  )}
                 </p>
               )}
 
               <p>
-                <span className="font-semibold">Fora da cidade:</span> {String(ap.outofcity) === 'true' || ap.outofcity ? 'Sim' : 'Não'}
+                <span className="font-semibold">Fora da cidade:</span>
+                {editingMode ? (
+                  <input type="checkbox" className="ml-2" checked={Boolean(editable.outofcity)} onChange={(e) => setEditable((p: any) => ({ ...p, outofcity: e.target.checked }))} />
+                ) : (
+                  (String(ap.outofcity) === 'true' || ap.outofcity) ? ' Sim' : ' Não'
+                )}
               </p>
 
               {typeof ap.requestedbymother !== 'undefined' && (
                 <p>
-                  <span className="font-semibold">Recreador solicitado pela mãe:</span> {ap.requestedbymother ? 'Sim' : 'Não'}
+                  <span className="font-semibold">Recreador solicitado pela mãe:</span>
+                  {editingMode ? (
+                    <input type="checkbox" className="ml-2" checked={Boolean(editable.requestedbymother)} onChange={(e) => setEditable((p: any) => ({ ...p, requestedbymother: e.target.checked }))} />
+                  ) : (
+                    ap.requestedbymother ? ' Sim' : ' Não'
+                  )}
                 </p>
               )}
 
               {typeof ap.ownerpresent !== 'undefined' && (
                 <p>
-                  <span className="font-semibold">Dono presente:</span> {ap.ownerpresent ? 'Sim' : 'Não'}
+                  <span className="font-semibold">Dono presente:</span>
+                  {editingMode ? (
+                    <input type="checkbox" className="ml-2" checked={Boolean(editable.ownerpresent)} onChange={(e) => setEditable((p: any) => ({ ...p, ownerpresent: e.target.checked }))} />
+                  ) : (
+                    ap.ownerpresent ? ' Sim' : ' Não'
+                  )}
                 </p>
               )}
 
-              {bagName && (
-                <p>
-                  <span className="font-semibold">Mala:</span> {bagName}
-                </p>
-              )}
+              <p>
+                <span className="font-semibold">Mala:</span>
+                {editingMode ? (
+                  <Select onValueChange={(v) => setEditable((p: any) => ({ ...p, bagid: v || null }))} defaultValue={editable.bagid ?? ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="-- escolha --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bagsList.map((b) => (
+                        <SelectItem key={b.id} value={String(b.id)}>{b.number ? `Mala ${b.number}` : b.id}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  bagName ?? ''
+                )}
+              </p>
 
-              {responsibleName && (
-                <p>
-                  <span className="font-semibold">Recreador responsável:</span> {responsibleName}
-                </p>
-              )}
+              <p>
+                <span className="font-semibold">Recreador responsável:</span>
+                {editingMode ? (
+                  <Select onValueChange={(v) => setEditable((p: any) => ({ ...p, responsible_recreatorid: v || null }))} defaultValue={editable.responsible_recreatorid ?? ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="-- escolha --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {recreatorsList.map((r) => (
+                        <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  responsibleName ?? ''
+                )}
+              </p>
 
-              {recreatorNames && recreatorNames.length > 0 && (
-                <p>
-                  <span className="font-semibold">Recreadores presentes:</span> {recreatorNames.join(', ')}
-                </p>
-              )}
+              <div>
+                <span className="font-semibold">Recreadores presentes:</span>
+                {editingMode ? (
+                  <div className="mt-1 w-full border rounded px-2 py-2 h-40 overflow-auto">
+                    {recreatorsList.map((r) => {
+                      const id = String(r.id)
+                      const checked = Array.isArray(editable.recreator_ids) && editable.recreator_ids.includes(id)
+                      return (
+                        <div key={id} className="flex items-center gap-2 py-1">
+                          <input type="checkbox" checked={checked} onChange={() => {
+                            setEditable((p: any) => {
+                              const prev = Array.isArray(p.recreator_ids) ? [...p.recreator_ids] : []
+                              if (prev.includes(id)) return { ...p, recreator_ids: prev.filter((x) => x !== id) }
+                              return { ...p, recreator_ids: [...prev, id] }
+                            })
+                          }} />
+                          <span className="select-none">{r.name}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">{recreatorNames.join(', ')}</div>
+                )}
+              </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -283,6 +485,9 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
                       if (proofInputRef.current) proofInputRef.current.value = ''
                     }
                   }} />
+                  {editingMode && (
+                    <div className="text-xs text-muted-foreground ml-2">Você pode subir um novo comprovante ao editar.</div>
+                  )}
                   <Button variant="ghost" size="icon" onClick={() => proofInputRef.current?.click()} disabled={uploadingProof} title="Subir novo comprovante">
                     <UploadCloud className="w-4 h-4" />
                   </Button>
@@ -343,6 +548,9 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
                       if (contractInputRef.current) contractInputRef.current.value = ''
                     }
                   }} />
+                  {editingMode && (
+                    <div className="text-xs text-muted-foreground ml-2">Você pode subir um novo contrato ao editar.</div>
+                  )}
                   <Button variant="ghost" size="icon" onClick={() => contractInputRef.current?.click()} disabled={uploadingContract} title="Subir novo contrato">
                     <UploadCloud className="w-4 h-4" />
                   </Button>
@@ -367,13 +575,27 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
                 )}
               </div>
 
-        {/* removed created/author display as requested */}
+        {/* Creator display: show under contract, left aligned */}
+        <div className="mt-2 text-xs text-muted-foreground">
+          Criado por: {creatorDisplayName}
+        </div>
 
-        {/* Removed embedded preview panels — use Eye icon / open-in-new-tab instead. */}
-        {/* debug removed */}
+        {/* Save / Edit controls */}
+        <div className="pt-4 flex items-center gap-2">
+          {!editingMode && (
+            <Button variant="default" onClick={() => setEditingMode(true)}>Editar</Button>
+          )}
+          {editingMode && (
+            <>
+              <Button onClick={handleSaveEdits}>Salvar alterações</Button>
+              <Button variant="ghost" onClick={() => { setEditingMode(false); setEditable((p: any) => ({ ...p, eventname: ap?.eventname ?? null, childname: ap?.childname ?? null })) }}>Cancelar</Button>
+            </>
+          )}
+        </div>
       </>
       )}
-      </div>
+        </div>
+      </ScrollArea>
     </DialogContent>
   )
 }

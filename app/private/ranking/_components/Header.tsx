@@ -24,9 +24,7 @@ export function Header() {
           <Input type="date" className="w-36" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           <label className="text-sm font-medium">Até</label>
           <Input type="date" className="w-36" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-          <Button className="bg-blue-800 hover:bg-blue-900 text-white text-sm px-4" onClick={handleSearch} disabled={loading}>
-            {loading ? 'Buscando...' : 'Buscar'}
-          </Button>
+          
         </div>
       </div>
     </header>

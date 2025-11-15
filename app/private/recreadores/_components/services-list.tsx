@@ -64,6 +64,8 @@ export function RecreatorList({ recreadores }: RecreatorListProps) {
   }
 
   const handleDelete = async (recreatorId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este recreador?')) return
+
     const response = await deleteRecreator({ recreadorId: recreatorId })
 
     if (response.error) {

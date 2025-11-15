@@ -21,12 +21,16 @@ export async function getTimesClinicInternal({ userId }: { userId: string }) {
       .select('appointmentdate, durationhours')
       .or(`recreatorid.eq.${userId},userid.eq.${userId}`)
 
-    // build a base set of one-hour slots between 08:00 and 19:00 (inclusive)
+    // build a base set of half-hour slots between 08:00 and 19:00 (inclusive)
     const baseSlots: string[] = []
     const startHour = 8
     const endHour = 19
-    for (let h = startHour; h <= endHour; h++) {
-      baseSlots.push(`${String(h).padStart(2, '0')}:00`)
+    const startMinutes = startHour * 60
+    const endMinutes = endHour * 60
+    for (let m = startMinutes; m <= endMinutes; m += 30) {
+      const h = Math.floor(m / 60)
+      const mm = m % 60
+      baseSlots.push(`${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`)
     }
 
     if (error) {
@@ -48,9 +52,10 @@ export async function getTimesClinicInternal({ userId }: { userId: string }) {
             appointmentTimes.add(format(dt, 'HH:mm'))
             // If appointment has duration, also add hourly increments covered by it
             const duration = Number(ap.durationhours) || 0
-            const slices = Math.ceil(duration) || 0
+            // convert duration in hours to number of half-hour slices
+            const slices = Math.ceil((duration || 0) * 2)
             for (let i = 1; i < slices; i++) {
-              const slot = new Date(dt.getTime() + i * 60 * 60 * 1000)
+              const slot = new Date(dt.getTime() + i * 30 * 60 * 1000)
               appointmentTimes.add(format(slot, 'HH:mm'))
             }
           }
