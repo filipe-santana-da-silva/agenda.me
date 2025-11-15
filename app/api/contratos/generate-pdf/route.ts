@@ -1,7 +1,4 @@
-import fs from 'fs/promises'
-import path from 'path'
-import puppeteer from 'puppeteer-core'
-import chromium from '@sparticuz/chromium'
+import { jsPDF } from "jspdf"
 
 export async function POST(req: Request) {
   try {
@@ -14,123 +11,79 @@ export async function POST(req: Request) {
       contratante_nome_assinatura,
     } = body || {}
 
-    // tenta ler logo do public (opcional)
-    let logoSvg = ''
-    try {
-      const logoPath = path.join(process.cwd(), 'public', 'logo.svg')
-      logoSvg = await fs.readFile(logoPath, 'utf8')
-    } catch {
-      console.warn('Logo não encontrado ou não pôde ser lido')
-    }
+    // cria documento
+    const doc = new jsPDF()
 
-    const html = `<!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <style>
-          body { font-family: Arial, sans-serif; color: #000; }
-          .container { padding: 20px; font-size: 14px; line-height: 1.5; }
-          h2 { text-align:center; font-size:18px; margin-bottom:10px }
-          h3 { font-size: 16px; margin: 15px 0 10px 0; }
-          .pre { white-space: pre-wrap; word-wrap: break-word; }
-          .signature { margin-top: 40px; }
-          p { margin: 10px 0; }
-          ul { margin-left: 20px; }
-          li { margin: 5px 0; }
-          svg { max-width: 100px; height: auto; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h2>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2>
-          <div style="text-align:center">${logoSvg}</div>
+    // título
+    doc.setFontSize(16)
+    doc.text("CONTRATO DE PRESTAÇÃO DE SERVIÇOS", 105, 20, { align: "center" })
 
-          <p><strong>CONTRATANTE:</strong></p>
-          <div class="pre">${escapeHtml(contratante_info || '')}</div>
+    doc.setFontSize(12)
+    doc.text("CONTRATANTE:", 20, 40)
+    doc.text(contratante_info || "", 20, 50)
 
-          <p><strong>CONTRATADO:</strong> RECREART INDAIATUBA, inscrita no CNPJ nº 51.688.436/0001-56...</p>
+    doc.text(
+      "CONTRATADO: RECREART INDAIATUBA, inscrita no CNPJ nº 51.688.436/0001-56...",
+      20,
+      70,
+      { maxWidth: 170 }
+    )
 
-          <h3>Cláusula Primeira: Objeto do contrato</h3>
-          <div class="pre">${escapeHtml(primeira_clausula || '')}</div>
+    doc.setFontSize(14)
+    doc.text("Cláusula Primeira: Objeto do contrato", 20, 90)
+    doc.setFontSize(12)
+    doc.text(primeira_clausula || "", 20, 100, { maxWidth: 170 })
 
-          <h3>Cláusula Terceira: do preço e das condições de pagamento</h3>
-          <div class="pre">${escapeHtml(terceira_clausula || '')}</div>
+    doc.setFontSize(14)
+    doc.text("Cláusula Terceira: do preço e das condições de pagamento", 20, 120)
+    doc.setFontSize(12)
+    doc.text(terceira_clausula || "", 20, 130, { maxWidth: 170 })
 
-          <div>
-            <p><strong>Data do contrato:</strong></p>
-            <p>${formatBrDateForPdf(data_contrato)}</p>
-          </div>
+    doc.setFontSize(12)
+    doc.text("Data do contrato:", 20, 150)
+    doc.text(formatBrDateForPdf(data_contrato), 20, 160)
 
-          <div class="signature">
-            <p>______________________________________<br/>CONTRATANTE<br/>${escapeHtml(contratante_nome_assinatura || '')}</p>
-            <p>_________________________________<br/>CONTRATADO<br/>Recreart Indaiatuba</p>
-          </div>
-        </div>
-      </body>
-    </html>`
+    // assinaturas
+    doc.text("______________________________________", 20, 200)
+    doc.text("CONTRATANTE", 20, 210)
+    doc.text(contratante_nome_assinatura || "", 20, 220)
 
-    // Chromium compatível com Vercel
-   const browser = await puppeteer.launch({
-  args: chromium.args,
-  defaultViewport: chromium.defaultViewport,
-  executablePath: await chromium.executablePath(),
-  headless: true,
-});
+    doc.text("______________________________________", 120, 200)
+    doc.text("CONTRATADO", 120, 210)
+    doc.text("Recreart Indaiatuba", 120, 220)
 
-
-
-    const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 })
-    await page.waitForFunction(() => document.readyState === 'complete', { timeout: 30000 })
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
-    })
-
-    await browser.close()
-
+    // gera buffer
+    const pdfBuffer = doc.output("arraybuffer")
     const outBuf = Buffer.from(pdfBuffer)
+
     return new Response(outBuf, {
       status: 200,
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': 'attachment; filename="Contrato_Recreart.pdf"',
-        'Content-Length': String(outBuf.length),
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'attachment; filename="Contrato_Recreart.pdf"',
+        "Content-Length": String(outBuf.length),
       },
     })
   } catch (err) {
-    console.error('Erro ao gerar PDF:', err)
-    return new Response(JSON.stringify({ error: 'Failed to generate PDF' }), {
+    console.error("Erro ao gerar PDF:", err)
+    return new Response(JSON.stringify({ error: "Failed to generate PDF" }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
-      
+      headers: { "Content-Type": "application/json" },
     })
   }
 }
 
-function escapeHtml(str: string) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
 function formatBrDateForPdf(iso?: string) {
-  if (!iso) return 'Indaiatuba, __ de ________ de ____'
+  if (!iso) return "Indaiatuba, __ de ________ de ____"
   try {
     const d = new Date(iso)
-    const formatted = new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
+    const formatted = new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
     }).format(d)
     return `Indaiatuba, ${formatted}`
   } catch {
-    return 'Indaiatuba, __ de ________ de ____'
+    return "Indaiatuba, __ de ________ de ____"
   }
 }
