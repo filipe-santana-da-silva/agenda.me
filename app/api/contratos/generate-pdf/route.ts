@@ -71,11 +71,12 @@ export async function POST(req: Request) {
     </html>`
 
     // Chromium compatível com Vercel
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: true, // força headless padrão
-    })
+   const browser = await puppeteer.launch({
+  args: chromium.args,
+  executablePath: await chromium.executablePath() || '/usr/bin/chromium-browser',
+  headless: true,
+})
+
 
     const page = await browser.newPage()
     await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 })
@@ -103,6 +104,7 @@ export async function POST(req: Request) {
     return new Response(JSON.stringify({ error: 'Failed to generate PDF' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
+      
     })
   }
 }
