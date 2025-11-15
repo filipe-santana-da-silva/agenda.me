@@ -73,9 +73,11 @@ export async function POST(req: Request) {
     // Chromium compatível com Vercel
    const browser = await puppeteer.launch({
   args: chromium.args,
-  executablePath: await chromium.executablePath() || '/usr/bin/chromium-browser',
+  defaultViewport: chromium.defaultViewport,
+  executablePath: await chromium.executablePath(),
   headless: true,
-})
+});
+
 
 
     const page = await browser.newPage()
