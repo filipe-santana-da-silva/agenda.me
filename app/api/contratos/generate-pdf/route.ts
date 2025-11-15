@@ -1,70 +1,8 @@
-import fs from 'fs/promises'
-import path from 'path'
-import puppeteer from 'puppeteer'
-
-let browserInstance: any = null
-
-async function getBrowser() {
-  // Try to use chromium from @sparticuz packages (for serverless environments like Vercel)
-  try {
-    console.log('[PDF] Attempting to use @sparticuz/chromium')
-    const chromium = (await import('@sparticuz/chromium')).default
-    const executablePath = await chromium.executablePath()
-    console.log('[PDF] Chromium executable found at:', executablePath)
-    return await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: executablePath,
-      headless: true,
-    })
-  } catch (e) {
-    console.log('[PDF] @sparticuz/chromium failed, trying chromium-min:', e instanceof Error ? e.message : String(e))
-    try {
-      const chromium = (await import('@sparticuz/chromium-min')).default
-      const executablePath = await chromium.executablePath()
-      console.log('[PDF] Chromium-min executable found at:', executablePath)
-      return await puppeteer.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: executablePath,
-        headless: true,
-      })
-    } catch (e2) {
-      console.log('[PDF] @sparticuz/chromium-min also failed, trying puppeteer.launch with system chromium:', e2 instanceof Error ? e2.message : String(e2))
-      // Fallback: try launching with system chromium or let puppeteer find it
-      try {
-        return await puppeteer.launch({
-          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-          headless: true,
-        })
-      } catch (err) {
-        console.error('[PDF] Puppeteer launch failed, trying with minimal args:', err instanceof Error ? err.message : String(err))
-        // Last resort: launch with absolutely minimal args
-        return await puppeteer.launch({
-          headless: true,
-        })
-      }
-    }
-  }
-}
-
 export async function POST(req: Request) {
-  let browser: any = null
   try {
-    console.log('[PDF] Starting PDF generation request...')
-    const body = await req.json()
+    console.log('[PDF] Starting PDF generation request (using html2pdf)...')
+    const body = await req.json() 
     const { contratante_info, primeira_clausula, terceira_clausula, data_contrato, contratante_nome_assinatura } = body || {}
-
-    // read logo svg from public folder and inline it
-    let logoSvg = ''
-    try {
-      const logoPath = path.join(process.cwd(), 'public', 'logo.svg')
-      logoSvg = await fs.readFile(logoPath, 'utf8')
-      console.log('[PDF] Logo loaded successfully')
-    } catch (e) {
-      // ignore: logo optional
-      console.warn('[PDF] Logo not found or could not be read', e)
-    }
 
     const html = `<!doctype html>
     <html>
@@ -72,18 +10,29 @@ export async function POST(req: Request) {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
+          * { margin: 0; padding: 0; }
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #000; }
-            .container { padding: 20px; font-size: 14px; line-height: 1.5; }
-            .center { display:flex; justify-content:center; }
-            h2 { text-align:center; font-size:18px; margin:0 0 10px 0 }
-          .pre { white-space: pre-wrap; }
+          .container { padding: 20px; font-size: 14px; line-height: 1.5; }
+          .center { display:flex; justify-content:center; }
+          h2 { text-align:center; font-size:18px; margin:0 0 10px 0 }
+          h3 { font-size: 16px; margin: 15px 0 10px 0; }
+          .pre { white-space: pre-wrap; word-wrap: break-word; }
           .signature { margin-top: 40px; }
+          p { margin: 10px 0; }
+          ul { margin-left: 20px; }
+          li { margin: 5px 0; }
+          svg { max-width: 100px; height: auto; }
         </style>
       </head>
       <body>
         <div class="container">
           <h2>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2>
-          <div class="center">${logoSvg}</div>
+          <div class="center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#333" stroke-width="2"/>
+              <text x="50" y="55" text-anchor="middle" font-size="20" font-weight="bold">RA</text>
+            </svg>
+          </div>
 
           <p><strong>CONTRATANTE:</strong></p>
           <div class="pre">${escapeHtml(contratante_info || '')}</div>
@@ -153,60 +102,22 @@ export async function POST(req: Request) {
       </body>
     </html>`
 
-    const browser = await getBrowser()
-    console.log('[PDF] Browser launched successfully')
-    const page = await browser.newPage()
-    console.log('[PDF] Page created, setting content...')
-    // Use DOMContentLoaded, then wait for full load and images to finish
-    try {
-      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 })
-      console.log('[PDF] HTML content set, waiting for document ready...')
-      // wait until the document reports complete
-      await page.waitForFunction(() => document.readyState === 'complete', { timeout: 30000 })
-      console.log('[PDF] Document ready, waiting for images...')
-      // wait for images to load (if any)
-      await page.evaluate(() => Promise.all(Array.from(document.images).map(img => img.complete ? Promise.resolve() : new Promise<void>(res => { img.onload = img.onerror = () => res(); }))))
-      console.log('[PDF] Images loaded, generating PDF...')
-    } catch (e) {
-      console.error('[PDF] Error during page setup:', e)
-      try { await browser.close() } catch (er) { /* ignore */ }
-      throw e
-    }
-
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' } })
-    console.log('[PDF] PDF generated successfully, size:', pdfBuffer.length, 'bytes')
-    try { await browser.close() } catch (e) { console.warn('[PDF] Error closing browser:', e) }
-
-    const outBuf = Buffer.from(pdfBuffer)
-    return new Response(outBuf, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': 'attachment; filename="Contrato_Recreart.pdf"',
-        'Content-Length': String(outBuf.length),
-        'Accept-Ranges': 'bytes',
-      },
+    console.log('[PDF] HTML generated, converting to PDF buffer...')
+    // Convert HTML string to Buffer for response
+    const pdfBuffer = Buffer.from(html)
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      html: html,
+      message: 'Use client-side generation with html2pdf library'
+    }), { 
+      status: 200, 
+      headers: { 'Content-Type': 'application/json' } 
     })
   } catch (err) {
-    console.error('[PDF] PDF generation error:', err instanceof Error ? err.message : String(err))
-    if (err instanceof Error) {
-      console.error('[PDF] Error stack:', err.stack)
-    }
+    console.error('[PDF] Error:', err instanceof Error ? err.message : String(err))
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-    // Check if this is a Chrome not found error and suggest solution
-    const suggestion = errorMessage.includes('Could not find Chrome') 
-      ? ' — Make sure Chromium is installed or @sparticuz/chromium-min is available'
-      : ''
-    return new Response(JSON.stringify({ error: 'Failed to generate PDF', details: errorMessage + suggestion }), { status: 500, headers: { 'Content-Type': 'application/json' } })
-  } finally {
-    // cleanup browser
-    if (browser) {
-      try {
-        await browser.close()
-      } catch (e) {
-        console.warn('[PDF] Error closing browser in finally:', e)
-      }
-    }
+    return new Response(JSON.stringify({ error: 'Failed to generate PDF', details: errorMessage }), { status: 500, headers: { 'Content-Type': 'application/json' } })
   }
 }
 
