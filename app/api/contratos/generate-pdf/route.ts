@@ -23,18 +23,29 @@ export async function POST(req: Request) {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
+          * { margin: 0; padding: 0; }
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #000; }
-            .container { padding: 20px; font-size: 14px; line-height: 1.5; }
-            .center { display:flex; justify-content:center; }
-            h2 { text-align:center; font-size:18px; margin:0 0 10px 0 }
-          .pre { white-space: pre-wrap; }
+          .container { padding: 20px; font-size: 14px; line-height: 1.5; }
+          .center { display:flex; justify-content:center; }
+          h2 { text-align:center; font-size:18px; margin:0 0 10px 0 }
+          h3 { font-size: 16px; margin: 15px 0 10px 0; }
+          .pre { white-space: pre-wrap; word-wrap: break-word; }
           .signature { margin-top: 40px; }
+          p { margin: 10px 0; }
+          ul { margin-left: 20px; }
+          li { margin: 5px 0; }
+          svg { max-width: 100px; height: auto; }
         </style>
       </head>
       <body>
         <div class="container">
           <h2>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2>
-          <div class="center">${logoSvg}</div>
+          <div class="center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#333" stroke-width="2"/>
+              <text x="50" y="55" text-anchor="middle" font-size="20" font-weight="bold">RA</text>
+            </svg>
+          </div>
 
           <p><strong>CONTRATANTE:</strong></p>
           <div class="pre">${escapeHtml(contratante_info || '')}</div>

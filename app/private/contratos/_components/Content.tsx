@@ -32,6 +32,7 @@ export function Content() {
         const text = await res.text()
         throw new Error(`Servidor retornou erro ao gerar PDF: ${text}`)
       }
+
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
