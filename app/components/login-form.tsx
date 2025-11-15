@@ -52,9 +52,6 @@ export default function LoginForm() {
             <Label htmlFor="email" className="text-white">Email</Label>
             <Input className='text-white' id="email" name="email" type="email" required />
 
-            <Label htmlFor="name" className="text-white">Nome</Label>
-            <Input className='text-white' id="name" name="name" type="text" placeholder="Seu nome completo (opcional)" />
-
             <Label htmlFor="password" className="text-white">Senha</Label>
             <Input className='text-white' id="password" name="password" type="password" required />
 
