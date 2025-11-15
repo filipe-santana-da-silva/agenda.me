@@ -2,8 +2,33 @@ import fs from 'fs/promises'
 import path from 'path'
 import puppeteer from 'puppeteer'
 
-export async function POST(req: Request) {
+let browserInstance: any = null
+
+async function getBrowser() {
+  // Try to use chromium from @sparticuz/chromium if available (for serverless environments)
   try {
+    const chromium = await import('@sparticuz/chromium-min')
+    console.log('[PDF] Using @sparticuz/chromium')
+    return await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    })
+  } catch (e) {
+    console.log('[PDF] @sparticuz/chromium not available, using system chromium')
+    // Fallback to system chromium or bundled one
+    return await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      headless: true,
+    })
+  }
+}
+
+export async function POST(req: Request) {
+  let browser: any = null
+  try {
+    console.log('[PDF] Starting PDF generation request...')
     const body = await req.json()
     const { contratante_info, primeira_clausula, terceira_clausula, data_contrato, contratante_nome_assinatura } = body || {}
 
@@ -12,9 +37,10 @@ export async function POST(req: Request) {
     try {
       const logoPath = path.join(process.cwd(), 'public', 'logo.svg')
       logoSvg = await fs.readFile(logoPath, 'utf8')
+      console.log('[PDF] Logo loaded successfully')
     } catch (e) {
       // ignore: logo optional
-      console.warn('Logo not found or could not be read', e)
+      console.warn('[PDF] Logo not found or could not be read', e)
     }
 
     const html = `<!doctype html>
@@ -104,22 +130,29 @@ export async function POST(req: Request) {
       </body>
     </html>`
 
-    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] })
+    const browser = await getBrowser()
+    console.log('[PDF] Browser launched successfully')
     const page = await browser.newPage()
+    console.log('[PDF] Page created, setting content...')
     // Use DOMContentLoaded, then wait for full load and images to finish
     try {
       await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 })
+      console.log('[PDF] HTML content set, waiting for document ready...')
       // wait until the document reports complete
       await page.waitForFunction(() => document.readyState === 'complete', { timeout: 30000 })
+      console.log('[PDF] Document ready, waiting for images...')
       // wait for images to load (if any)
       await page.evaluate(() => Promise.all(Array.from(document.images).map(img => img.complete ? Promise.resolve() : new Promise<void>(res => { img.onload = img.onerror = () => res(); }))))
+      console.log('[PDF] Images loaded, generating PDF...')
     } catch (e) {
+      console.error('[PDF] Error during page setup:', e)
       try { await browser.close() } catch (er) { /* ignore */ }
       throw e
     }
 
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' } })
-    try { await browser.close() } catch (e) { /* ignore */ }
+    console.log('[PDF] PDF generated successfully, size:', pdfBuffer.length, 'bytes')
+    try { await browser.close() } catch (e) { console.warn('[PDF] Error closing browser:', e) }
 
     const outBuf = Buffer.from(pdfBuffer)
     return new Response(outBuf, {
@@ -132,9 +165,19 @@ export async function POST(req: Request) {
       },
     })
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('PDF generation error:', err)
-    return new Response(JSON.stringify({ error: 'Failed to generate PDF' }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+    console.error('[PDF] PDF generation error:', err instanceof Error ? err.message : String(err))
+    console.error('[PDF] Full error:', err)
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+    return new Response(JSON.stringify({ error: 'Failed to generate PDF', details: errorMessage }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+  } finally {
+    // cleanup browser
+    if (browser) {
+      try {
+        await browser.close()
+      } catch (e) {
+        console.warn('[PDF] Error closing browser in finally:', e)
+      }
+    }
   }
 }
 

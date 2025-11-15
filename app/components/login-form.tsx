@@ -34,7 +34,12 @@ export default function LoginForm() {
 
   useEffect(() => {
     if (state.success) {
+      // Redirect to private agenda page
       router.push('/private/agenda')
+      // Refresh the page after a short delay to ensure all auth state is updated
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
     }
   }, [state.success])
 
@@ -54,6 +59,9 @@ export default function LoginForm() {
 
             <Label htmlFor="password" className="text-white">Senha</Label>
             <Input className='text-white' id="password" name="password" type="password" required />
+
+            <Label htmlFor="name" className="text-white">Nome (opcional)</Label>
+            <Input className='text-white' id="name" name="name" type="text" placeholder="Seu nome completo" />
 
             {state.success === false && (
               <Alert className="text-muted-foreground">

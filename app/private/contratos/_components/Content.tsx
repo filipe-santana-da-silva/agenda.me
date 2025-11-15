@@ -29,8 +29,9 @@ export function Content() {
         body: JSON.stringify(form),
       })
       if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`Servidor retornou erro ao gerar PDF: ${text}`)
+        const data = await res.json().catch(() => ({}))
+        const errorMsg = data?.details || data?.error || 'Erro desconhecido'
+        throw new Error(`Servidor retornou erro ao gerar PDF: ${res.status} - ${errorMsg}`)
       }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
@@ -44,7 +45,7 @@ export function Content() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('Erro ao gerar PDF via servidor:', err)
-      alert('Erro ao gerar o PDF no servidor. Veja o console do navegador para detalhes.')
+      alert(`Erro ao gerar o PDF no servidor: ${err instanceof Error ? err.message : String(err)}. Veja o console do navegador para detalhes.`)
     }
   }
 
