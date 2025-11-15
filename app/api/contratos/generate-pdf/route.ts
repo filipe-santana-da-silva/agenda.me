@@ -5,11 +5,12 @@ import puppeteer from 'puppeteer'
 let browserInstance: any = null
 
 async function getBrowser() {
-  // Try to use chromium from @sparticuz/chromium-min if available (for serverless environments)
+  // Try to use chromium from @sparticuz packages (for serverless environments like Vercel)
   try {
-    const chromium = (await import('@sparticuz/chromium-min')).default
-    console.log('[PDF] Using @sparticuz/chromium-min')
+    console.log('[PDF] Attempting to use @sparticuz/chromium')
+    const chromium = (await import('@sparticuz/chromium')).default
     const executablePath = await chromium.executablePath()
+    console.log('[PDF] Chromium executable found at:', executablePath)
     return await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
@@ -17,12 +18,33 @@ async function getBrowser() {
       headless: true,
     })
   } catch (e) {
-    console.log('[PDF] @sparticuz/chromium-min not available, using system chromium:', e instanceof Error ? e.message : String(e))
-    // Fallback to system chromium or bundled one
-    return await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      headless: true,
-    })
+    console.log('[PDF] @sparticuz/chromium failed, trying chromium-min:', e instanceof Error ? e.message : String(e))
+    try {
+      const chromium = (await import('@sparticuz/chromium-min')).default
+      const executablePath = await chromium.executablePath()
+      console.log('[PDF] Chromium-min executable found at:', executablePath)
+      return await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: executablePath,
+        headless: true,
+      })
+    } catch (e2) {
+      console.log('[PDF] @sparticuz/chromium-min also failed, trying puppeteer.launch with system chromium:', e2 instanceof Error ? e2.message : String(e2))
+      // Fallback: try launching with system chromium or let puppeteer find it
+      try {
+        return await puppeteer.launch({
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+          headless: true,
+        })
+      } catch (err) {
+        console.error('[PDF] Puppeteer launch failed, trying with minimal args:', err instanceof Error ? err.message : String(err))
+        // Last resort: launch with absolutely minimal args
+        return await puppeteer.launch({
+          headless: true,
+        })
+      }
+    }
   }
 }
 
@@ -167,9 +189,15 @@ export async function POST(req: Request) {
     })
   } catch (err) {
     console.error('[PDF] PDF generation error:', err instanceof Error ? err.message : String(err))
-    console.error('[PDF] Full error:', err)
+    if (err instanceof Error) {
+      console.error('[PDF] Error stack:', err.stack)
+    }
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: 'Failed to generate PDF', details: errorMessage }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+    // Check if this is a Chrome not found error and suggest solution
+    const suggestion = errorMessage.includes('Could not find Chrome') 
+      ? ' — Make sure Chromium is installed or @sparticuz/chromium-min is available'
+      : ''
+    return new Response(JSON.stringify({ error: 'Failed to generate PDF', details: errorMessage + suggestion }), { status: 500, headers: { 'Content-Type': 'application/json' } })
   } finally {
     // cleanup browser
     if (browser) {
