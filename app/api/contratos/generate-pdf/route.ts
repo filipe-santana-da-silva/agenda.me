@@ -19,8 +19,8 @@ export async function POST(req: Request) {
     try {
       const logoPath = path.join(process.cwd(), 'public', 'logo.svg')
       logoSvg = await fs.readFile(logoPath, 'utf8')
-    } catch (e) {
-      console.warn('Logo não encontrado ou não pôde ser lido', e)
+    } catch {
+      console.warn('Logo não encontrado ou não pôde ser lido')
     }
 
     const html = `<!doctype html>
@@ -70,11 +70,11 @@ export async function POST(req: Request) {
       </body>
     </html>`
 
-    // Lança Chromium compatível com Vercel
+    // Chromium compatível com Vercel
     const browser = await puppeteer.launch({
       args: chromium.args,
       executablePath: await chromium.executablePath(),
-      headless: true,
+      headless: true, // força headless padrão
     })
 
     const page = await browser.newPage()
