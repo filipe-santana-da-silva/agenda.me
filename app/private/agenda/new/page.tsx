@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { toast } from 'sonner'
+import { Toaster } from '@/components/ui/sonner'
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -445,6 +446,7 @@ export default function NewAppointmentPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
+      <Toaster />
       <h1 className="text-2xl font-bold mb-4">Novo Agendamento</h1>
 
       <Card>
