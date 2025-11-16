@@ -143,16 +143,16 @@ export function Content() {
     doc.text('Firmam o presente instrumento, em duas vias de igual teor.', 20, 250, { maxWidth: 170 })
 
     // Data
-    doc.text('Data do contrato:', 20, 270)
+    doc.text('Data do contrato:', 20, 240)
     doc.text(formatBrDate(form.data_contrato), 20, 280)
 
    // assinaturas
     doc.text('______________________________________', 20, 260)
-    doc.text('CONTRATANTE', 20, 270)
+    doc.text('CONTRATANTE', 20, 280)
     doc.text(form.contratante_nome_assinatura || '', 20, 280)
 
     doc.text('______________________________________', 120, 260)
-    doc.text('CONTRATADO', 120, 270)
+    doc.text('CONTRATADO', 120, 280)
     doc.text('Recreart Indaiatuba', 120, 280)
 
 
