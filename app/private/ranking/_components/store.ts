@@ -17,6 +17,7 @@ interface RankingStore {
   loading: boolean
   setLoading: (value: boolean) => void
   handleSearch: () => void
+  clearRankingPeriod: () => Promise<void>
 }
 
 export const useRankingStore = create<RankingStore>((set, get) => ({
@@ -85,5 +86,34 @@ export const useRankingStore = create<RankingStore>((set, get) => ({
 
     // write results back into the store and finish loading
     set({ rankings: sorted, loading: false })
+  },
+
+  clearRankingPeriod: async () => {
+    const supabase = createClient()
+    const { startDate, endDate } = get()
+
+    // Convert dates to ISO format
+    const startDateTime = new Date(`${startDate}T00:00:00Z`).toISOString()
+    const endDateTime = new Date(`${endDate}T23:59:59.999Z`).toISOString()
+
+    // eslint-disable-next-line no-console
+    console.log('[ranking] Clearing period:', { startDate, endDate, startDateTime, endDateTime })
+
+    const { error } = await supabase
+      .from('RankingEventDetail')
+      .delete()
+      .gte('createdat', startDateTime)
+      .lte('createdat', endDateTime)
+
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error('[ranking] Error clearing period:', error)
+      alert(`Erro ao limpar período: ${error.message}`)
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('[ranking] Period cleared successfully')
+      alert('Período limpo com sucesso!')
+      set({ rankings: [] })
+    }
   },
 }))
