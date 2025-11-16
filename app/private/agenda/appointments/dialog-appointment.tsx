@@ -415,48 +415,58 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                 )}
               </p>
 
-              <p>
-                <span className="font-semibold">Recreador responsável: </span>
-                {editingMode ? (
-                  <Select onValueChange={(v) => setEditable((p: any) => ({ ...p, responsible_recreatorid: v || null }))} defaultValue={editable.responsible_recreatorid ?? ''}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="-- escolha --" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {recreatorsList.map((r) => (
-                        <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  responsibleName ?? ''
-                )}
-              </p>
+              <div className="space-y-3 pt-2">
+                <div>
+                  <p className="text-sm font-semibold mb-2">Recreador responsável:</p>
+                  {editingMode ? (
+                    <Select onValueChange={(v) => setEditable((p: any) => ({ ...p, responsible_recreatorid: v || null }))} defaultValue={editable.responsible_recreatorid ?? ''}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="-- escolha --" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {recreatorsList.map((r) => (
+                          <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">{responsibleName ?? '(nenhum)'}</div>
+                  )}
+                </div>
 
-              <div>
-                <span className="font-semibold">Recreadores presentes: </span>
-                {editingMode ? (
-                  <div className="mt-1 w-full border rounded px-2 py-2 h-40 overflow-auto">
-                    {recreatorsList.map((r) => {
-                      const id = String(r.id)
-                      const checked = Array.isArray(editable.recreator_ids) && editable.recreator_ids.includes(id)
-                      return (
-                        <div key={id} className="flex items-center gap-2 py-1">
-                          <input type="checkbox" checked={checked} onChange={() => {
-                            setEditable((p: any) => {
-                              const prev = Array.isArray(p.recreator_ids) ? [...p.recreator_ids] : []
-                              if (prev.includes(id)) return { ...p, recreator_ids: prev.filter((x) => x !== id) }
-                              return { ...p, recreator_ids: [...prev, id] }
-                            })
-                          }} />
-                          <span className="select-none">{r.name}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">{recreatorNames.join(', ')}</div>
-                )}
+                <div>
+                  <p className="text-sm font-semibold mb-2">Recreadores presentes:</p>
+                  {editingMode ? (
+                    <div className="w-full border rounded px-2 py-2 h-40 overflow-auto">
+                      {recreatorsList.map((r) => {
+                        const id = String(r.id)
+                        const checked = Array.isArray(editable.recreator_ids) && editable.recreator_ids.includes(id)
+                        return (
+                          <div key={id} className="flex items-center gap-2 py-1">
+                            <input type="checkbox" checked={checked} onChange={() => {
+                              setEditable((p: any) => {
+                                const prev = Array.isArray(p.recreator_ids) ? [...p.recreator_ids] : []
+                                if (prev.includes(id)) return { ...p, recreator_ids: prev.filter((x) => x !== id) }
+                                return { ...p, recreator_ids: [...prev, id] }
+                              })
+                            }} />
+                            <span className="select-none">{r.name}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      {recreatorNames
+                        .filter((name, idx) => {
+                          // Filter out the responsible recreator to avoid duplication
+                          const id = Array.isArray(ap?.recreator_ids) ? ap.recreator_ids[idx] : undefined
+                          return String(id) !== String(ap?.responsible_recreatorid)
+                        })
+                        .join(', ') || '(nenhum)'}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Alerta de documentos obrigatórios */}
