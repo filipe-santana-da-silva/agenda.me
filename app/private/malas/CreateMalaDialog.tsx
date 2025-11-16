@@ -21,14 +21,26 @@ export function CreateMalaDialog({ onCreated }: Props) {
     setLoading(true)
 
     const supabase = createClient()
+    
+    // Buscar o próximo número disponível
+    const { data: existingBags } = await supabase
+      .from('Bag')
+      .select('number')
+      .order('number', { ascending: false })
+      .limit(1)
+    
+    const nextNumber = (existingBags?.[0]?.number ?? 0) + 1
+
     const { error } = await supabase
       .from('Bag')
-      .insert({ name })
+      .insert({ name, number: nextNumber })
 
     if (!error) {
       setOpen(false)
       setName('')
       onCreated?.()
+    } else {
+      console.error('Erro ao criar mala:', error)
     }
 
     setLoading(false)
