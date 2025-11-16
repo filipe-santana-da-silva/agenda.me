@@ -151,6 +151,10 @@ export function Content() {
     doc.text('CONTRATANTE', 20, 310)
     doc.text(form.contratante_nome_assinatura || '', 20, 320)
 
+    // finalize and save PDF
+    doc.save('Contrato_Recreart.pdf')
+  }
+
   return (
     <div>
       <Card>
@@ -276,5 +280,4 @@ export function Content() {
     </Card>
     </div>
   )
-}
 }
