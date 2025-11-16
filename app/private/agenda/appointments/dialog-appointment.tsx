@@ -17,7 +17,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Eye } from 'lucide-react'
+import { Eye, AlertCircle } from 'lucide-react'
 
 interface DialogAppointmentProps {
   appointment: AppointmentWithService | null
@@ -210,6 +210,17 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
   // Save edited appointment fields
   async function handleSaveEdits() {
     if (!ap) return
+    
+    // Validar se comprovante e contrato estão presentes
+    if (!proofPreviewUrl && !ap?.proof_url) {
+      toast.error('Comprovante é obrigatório! Por favor, envie um comprovante.')
+      return
+    }
+    if (!contractPreviewUrl && !ap?.contract_url) {
+      toast.error('Contrato é obrigatório! Por favor, envie um contrato.')
+      return
+    }
+    
     const supabase = createClient()
     const updates: any = {
       eventname: editable.eventname ?? null,
@@ -446,6 +457,20 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                   <div className="text-sm text-muted-foreground">{recreatorNames.join(', ')}</div>
                 )}
               </div>
+
+              {/* Alerta de documentos obrigatórios */}
+              {(!proofPreviewUrl && !ap?.proof_url) || (!contractPreviewUrl && !ap?.contract_url) ? (
+                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                  <div className="text-sm text-red-800">
+                    <p className="font-semibold mb-1">Documentos obrigatórios:</p>
+                    <ul className="list-disc pl-5 space-y-0.5">
+                      {!proofPreviewUrl && !ap?.proof_url && <li>Comprovante é obrigatório</li>}
+                      {!contractPreviewUrl && !ap?.contract_url && <li>Contrato é obrigatório</li>}
+                    </ul>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
