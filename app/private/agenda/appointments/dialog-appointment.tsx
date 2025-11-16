@@ -273,7 +273,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                   {/* Event name field placed above other fields */}
                   <div className="mb-2">
                     <label className="text-sm font-semibold block">Nome do evento:</label>
-                    {editingEventName ? (
+                    {(editingEventName || editingMode) ? (
                       <div className="flex items-center gap-2">
                         <input className="border rounded px-2 py-1 text-sm" value={eventName ?? ''} onChange={(e) => setEventName(e.target.value)} />
                         <Button size="sm" onClick={async () => {
