@@ -146,10 +146,15 @@ export function Content() {
     doc.text('Data do contrato:', 20, 270)
     doc.text(formatBrDate(form.data_contrato), 20, 280)
 
-    // assinaturas
-    doc.text('______________________________________', 20, 300)
-    doc.text('CONTRATANTE', 20, 310)
-    doc.text(form.contratante_nome_assinatura || '', 20, 320)
+   // assinaturas
+    doc.text('______________________________________', 20, 260)
+    doc.text('CONTRATANTE', 20, 270)
+    doc.text(form.contratante_nome_assinatura || '', 20, 280)
+
+    doc.text('______________________________________', 120, 260)
+    doc.text('CONTRATADO', 120, 270)
+    doc.text('Recreart Indaiatuba', 120, 280)
+
 
     // finalize and save PDF
     doc.save('Contrato_Recreart.pdf')
