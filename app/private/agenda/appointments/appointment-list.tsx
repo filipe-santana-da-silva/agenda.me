@@ -226,7 +226,16 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                                   {occ.contractorname}
                                   {isFirstSlot && (
                                     <>
-                                      <DialogTrigger asChild>
+                                      <div className="text-sm text-gray-500 mr-2">{occ.phone}</div>
+                                      
+                                    </>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                               
+                                  {isFirstSlot && (
+                                    <>
+                                    <DialogTrigger asChild>
                                         <Button
                                           variant="ghost"
                                           size="icon"
@@ -244,12 +253,6 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                                         <Palette className="w-8 h-8" />
                                       </Button>
                                      
-                                    </>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="text-sm text-gray-500 mr-2">{occ.phone}</div>
-                                  {isFirstSlot && (
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -260,6 +263,8 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </Button>
+                                    </>
+                                    
                                   )}
                                 </div>
                               </div>

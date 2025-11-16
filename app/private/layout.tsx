@@ -1,11 +1,12 @@
 import React from "react"
-import { SideBarDashboard } from "./components/sidebar"
+import SideBarClientWrapper from "./components/SideBarClientWrapper"
+
 export default function DashboardLayout({ children }: {children: React.ReactNode}){
     return (
         <>
-            <SideBarDashboard>
+            <SideBarClientWrapper>
                 {children}
-            </SideBarDashboard>
+            </SideBarClientWrapper>
         </>
     )
 }

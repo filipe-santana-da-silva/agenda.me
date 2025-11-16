@@ -91,7 +91,7 @@ export function AddItemToBagDialog({ bagId, onAdded }: Props) {
           <div className="pt-4 space-y-4">
             <div>
               <Label className="text-sm font-medium">Item</Label>
-              <Select onValueChange={(val) => {
+              <Select value={selectedItem?.id ?? undefined} onValueChange={(val) => {
                 const item = items.find(i => i.id === val)
                 setSelectedItem(item || null)
                 setQuantity(1)
@@ -109,21 +109,31 @@ export function AddItemToBagDialog({ bagId, onAdded }: Props) {
               </Select>
             </div>
 
-            {selectedItem && (
-              <div>
-                <Label htmlFor="quantity" className="text-sm font-medium">Quantidade</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min={1}
-                  max={selectedItem.quantity}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Máximo disponível: {selectedItem.quantity}</p>
+            <div>
+              <Label htmlFor="quantity" className="text-sm font-medium">Quantidade</Label>
+              <div className="mt-1">
+                <Select value={String(quantity)} onValueChange={(val) => setQuantity(parseInt(val) || 1)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={selectedItem ? 'Selecione a quantidade' : 'Selecione um item para ver o estoque'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedItem ? (
+                      Array.from({ length: selectedItem.quantity }).map((_, i) => {
+                        const v = String(i + 1)
+                        return (
+                          <SelectItem key={v} value={v}>
+                            {v}
+                          </SelectItem>
+                        )
+                      })
+                    ) : (
+                      <SelectItem value="1">1</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+              <p className="text-xs text-muted-foreground mt-1">{selectedItem ? `Máximo disponível: ${selectedItem.quantity}` : 'Selecione um item para ver o estoque'}</p>
+            </div>
           </div>
 
           <DialogFooter className="mt-4">
