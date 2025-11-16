@@ -136,24 +136,25 @@ export function Content() {
 
     // Cláusula Sétima
     doc.setFontSize(14)
-    doc.text('Cláusula Sétima: Do foro competente', 20, 230)
+    doc.text('Cláusula Sétima: Do foro competente', 20, 220)
     doc.setFontSize(12)
-    doc.text('Para dirimir quaisquer controvérsias, as partes elegem o foro da Comarca de Indaiatuba.', 20, 240, { maxWidth: 170 })
+    doc.text('Para dirimir quaisquer controvérsias, as partes elegem o foro da Comarca de Indaiatuba.', 20, 230, { maxWidth: 170 })
 
-    doc.text('Firmam o presente instrumento, em duas vias de igual teor.', 20, 250, { maxWidth: 170 })
+    doc.text('Firmam o presente instrumento, em duas vias de igual teor.', 20, 240, { maxWidth: 170 })
 
     // Data
-    doc.text('Data do contrato:', 20, 240)
-    doc.text(formatBrDate(form.data_contrato), 20, 280)
+doc.text('Data do contrato:', 20, 245)
+doc.text(formatBrDate(form.data_contrato), 20, 250)
 
-   // assinaturas
-    doc.text('______________________________________', 20, 260)
-    doc.text('CONTRATANTE', 20, 280)
-    doc.text(form.contratante_nome_assinatura || '', 20, 280)
+// Assinaturas
+doc.text('______________________________________', 20, 270)
+doc.text('CONTRATANTE', 20, 280)
+doc.text(form.contratante_nome_assinatura || '', 20, 290)
 
-    doc.text('______________________________________', 120, 260)
-    doc.text('CONTRATADO', 120, 280)
-    doc.text('Recreart Indaiatuba', 120, 280)
+doc.text('______________________________________', 120, 270)
+doc.text('CONTRATADO', 120, 280)
+doc.text('Recreart Indaiatuba', 120, 290)
+
 
 
     // finalize and save PDF
