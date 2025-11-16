@@ -388,18 +388,14 @@ export default function NewAppointmentPage() {
       }
 
       // --- RANKING: award points to selected recreators at creation time ---
-      // Assumption: award points based on duration (10 points per hour).
-      // We only award at creation time using the selectedRecreatorIds captured here to
-      // avoid double-awarding on later edits. If you prefer awarding on completion,
-      // move this logic to the flow that marks the appointment as finished.
       try {
-        // New scoring rules:
-        // - If the appointment is out of city -> every recreator on the event gets 4 points
-        // - Else if a specific recreator was requested by the mother -> that recreator gets 4 points, others get 2
-        // - Otherwise -> each recreator gets 2 points
-        const POINTS_OUT_OF_CITY = 4
-        const POINTS_REQUESTED = 4
-        const POINTS_DEFAULT = 2
+        // New scoring rules (revised):
+        // - All recreators present in the event get 4 points base
+        // - If the appointment is out of city -> add 2 points (total 6 for all)
+        // - If a specific recreator was requested by the mother -> that recreator gets +2 additional points
+        const POINTS_BASE = 4
+        const POINTS_OUT_OF_CITY_BONUS = 2
+        const POINTS_REQUESTED_BONUS = 2
 
         // Build a set of target recreator ids to award points to.
         const chosenRecreatorIds = new Set<string>()
@@ -415,9 +411,16 @@ export default function NewAppointmentPage() {
         const ids = Array.from(chosenRecreatorIds)
         if (ids.length > 0) {
           const rows = ids.map((rid) => {
-            let points = POINTS_DEFAULT
-            if (outofcity) points = POINTS_OUT_OF_CITY
-            else if (recreatorRequested && selectedRecreatorId && String(rid) === String(selectedRecreatorId)) points = POINTS_REQUESTED
+            // Base 4 points for all recreators present
+            let points = POINTS_BASE
+
+            // Add 2 points if event is out of city
+            if (outofcity) points += POINTS_OUT_OF_CITY_BONUS
+
+            // Add 2 points if this specific recreator was requested by mother
+            if (recreatorRequested && selectedRecreatorId && String(rid) === String(selectedRecreatorId)) {
+              points += POINTS_REQUESTED_BONUS
+            }
 
             return {
               recreatorid: rid,
