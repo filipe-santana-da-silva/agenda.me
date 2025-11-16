@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent } from "@/components/ui/card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
 import { uploadFileToBucket } from "@/utils/supabase/storage"
 
 type Option = { id?: string; name?: string; [k: string]: any }
@@ -47,6 +49,7 @@ export default function NewAppointmentPage() {
   const [showContractError, setShowContractError] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [selectedBagId, setSelectedBagId] = useState<string | null>(null)
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   const proofInputRef = useRef<HTMLInputElement | null>(null)
   const contractInputRef = useRef<HTMLInputElement | null>(null)
@@ -212,9 +215,11 @@ export default function NewAppointmentPage() {
       if (!proofFile || !contractFile) {
         if (!proofFile) setShowProofError(true)
         if (!contractFile) setShowContractError(true)
-        toast.error('Não é possível criar agendamento sem comprovante e contrato')
+        setValidationError('Não é possível criar agendamento sem comprovante e contrato')
         setLoading(false)
         return
+      } else {
+        setValidationError(null)
       }
 
       const localDate = new Date(`${date}T${time}`)
@@ -448,6 +453,14 @@ export default function NewAppointmentPage() {
     <div className="p-6 max-w-2xl mx-auto">
       <Toaster />
       <h1 className="text-2xl font-bold mb-4">Novo Agendamento</h1>
+
+      {validationError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro de validação</AlertTitle>
+          <AlertDescription>{validationError}</AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardContent>
