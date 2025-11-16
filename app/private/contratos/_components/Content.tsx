@@ -25,9 +25,6 @@ export function Content() {
     terceira_clausula: `Pagará a CONTRATANTE ao CONTRATADO valor em comum acordo de R$560,00...`,
     data_contrato: '',
     contratante_nome_assinatura: 'Michelle Stefany Silva Egydio',
-    contratante_signature_date: '',
-    contratado_nome_assinatura: 'Recreart Indaiatuba',
-    contratado_signature_date: '',
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -149,23 +146,10 @@ export function Content() {
     doc.text('Data do contrato:', 20, 270)
     doc.text(formatBrDate(form.data_contrato), 20, 280)
 
-    // assinaturas — calcular posição a partir da altura da página para garantir que fiquem visíveis
-    const pageHeight = doc.internal.pageSize.getHeight()
-    const sigY = Math.max(230, pageHeight - 70) // garanta pelo menos y=230 caso a página seja menor
-    const leftX = 20
-    const rightX = 110
-
-    doc.text('______________________________________', leftX, sigY)
-    doc.text('CONTRATANTE', leftX, sigY + 10)
-    doc.text(form.contratante_nome_assinatura || '', leftX, sigY + 20)
-
-    doc.text('______________________________________', rightX, sigY)
-    doc.text('CONTRATADO', rightX, sigY + 10)
-    doc.text(form.contratado_nome_assinatura || 'Recreart Indaiatuba', rightX, sigY + 20)
-
-    // signature dates (abaixo das assinaturas)
-    if (form.contratante_signature_date) doc.text(`Data: ${formatBrDate(form.contratante_signature_date)}`, leftX, sigY + 30)
-    if (form.contratado_signature_date) doc.text(`Data: ${formatBrDate(form.contratado_signature_date)}`, rightX, sigY + 30)
+    // assinaturas
+    doc.text('______________________________________', 20, 300)
+    doc.text('CONTRATANTE', 20, 310)
+    doc.text(form.contratante_nome_assinatura || '', 20, 320)
 
     // finalize and save PDF
     doc.save('Contrato_Recreart.pdf')
@@ -201,7 +185,7 @@ export function Content() {
             de serviços, que se regerá pelas cláusulas seguintes:
           </p>
 
-          <h3 className="font-semibold">Cláusula Primeira: Objeto do contrato</h3>
+          <h3>Cláusula Primeira: Objeto do contrato</h3>
           <Textarea
             name="primeira_clausula"
             value={form.primeira_clausula}
@@ -209,7 +193,7 @@ export function Content() {
             className="w-full"
           />
 
-          <h3 className="font-semibold">Cláusula Segunda: Das obrigações das partes</h3>
+          <h3>Cláusula Segunda: Das obrigações das partes</h3>
           <p><strong>I. Das obrigações do contratante:</strong></p>
           <ul className="list-disc pl-6">
             <li>Fornecer ao CONTRATADO todas as informações necessárias e disponibilizar o local para a realização do serviço;</li>
@@ -230,7 +214,7 @@ export function Content() {
             <li>Cumprir bem e fielmente as obrigações contratuais.</li>
           </ul>
 
-          <h3 className="font-semibold">Cláusula Terceira: Do preço e das condições de pagamento</h3>
+          <h3>Cláusula Terceira: Do preço e das condições de pagamento</h3>
           <Textarea
             name="terceira_clausula"
             value={form.terceira_clausula}
@@ -238,23 +222,23 @@ export function Content() {
             className="w-full"
           />
 
-          <h3 className="font-semibold">Cláusula Quarta: Do inadimplemento contratual</h3>
+          <h3>Cláusula Quarta: Do inadimplemento contratual</h3>
           <p>Em caso de inadimplemento por parte da CONTRATANTE, incidirá multa de 2%, juros de 1% ao mês e correção monetária.</p>
           <p>§1º. Cobrança judicial: acréscimo de 20% de honorários e custas processuais.</p>
           <p>§2º. Descumprimento contratual: multa de 10% do valor total.</p>
 
-          <h3 className="font-semibold">Cláusula Quinta: Da rescisão contratual</h3>
+          <h3>Cláusula Quinta: Da rescisão contratual</h3>
           <p>Rescisão imotivada requer aviso prévio de 30 dias.</p>
           <p>§1º. Se a CONTRATANTE rescindir, o CONTRATADO retém 30% do valor.</p>
           <p>§2º. Se o CONTRATADO rescindir, devolução integral ao CONTRATANTE.</p>
           <p>§3º. Rescisão por violação contratual é imediata e pode gerar indenização.</p>
           <p>§4º. Tolerância não configura renúncia ou novação.</p>
 
-          <h3 className="font-semibold">Cláusula Sexta: Autorização de uso de imagem</h3>
+          <h3>Cláusula Sexta: Autorização de uso de imagem</h3>
           <p>( ) AUTORIZO o uso de imagens e vídeos do serviço contratado...</p>
           <p>( ) NÃO AUTORIZO o uso de imagens e vídeos do serviço contratado...</p>
 
-          <h3 className="font-semibold">Cláusula Sétima: Do foro competente</h3>
+          <h3>Cláusula Sétima: Do foro competente</h3>
           <p>Para dirimir quaisquer controvérsias, as partes elegem o foro da Comarca de Indaiatuba.</p>
 
           <p>Firmam o presente instrumento, em duas vias de igual teor.</p>
@@ -281,36 +265,11 @@ export function Content() {
                 onChange={handleChange}
                 className="mt-2 w-80"
               />
-              <div className="mt-2">
-                <label className="text-sm">Data da assinatura</label>
-                <Input
-                  name="contratante_signature_date"
-                  type="date"
-                  value={form.contratante_signature_date}
-                  onChange={handleChange}
-                  className="mt-1 w-40"
-                />
-              </div>
             </div>
             <div>
               <p className="mt-8">_________________________________</p>
               <p>CONTRATADO</p>
-              <Input
-                name="contratado_nome_assinatura"
-                value={form.contratado_nome_assinatura}
-                onChange={handleChange}
-                className="mt-2 w-80"
-              />
-              <div className="mt-2">
-                <label className="text-sm">Data da assinatura</label>
-                <Input
-                  name="contratado_signature_date"
-                  type="date"
-                  value={form.contratado_signature_date}
-                  onChange={handleChange}
-                  className="mt-1 w-40"
-                />
-              </div>
+              <p>Recreart Indaiatuba</p>
             </div>
           </div>
         </div>
