@@ -615,8 +615,8 @@ export default function NewAppointmentPage() {
                   type="file"
                   accept="image/png"
                   className="hidden"
-                     onChange={(e) => { setProofFile(e.target.files?.[0] ?? null); setShowProofError(false) }}
-                required/>
+                  onChange={(e) => { setProofFile(e.target.files?.[0] ?? null); setShowProofError(false) }}
+                />
                 <Button type="button" variant="outline" onClick={() => proofInputRef.current?.click()}>
                   Selecionar arquivo
                 </Button>
@@ -646,8 +646,8 @@ export default function NewAppointmentPage() {
                   type="file"
                   accept="application/pdf"
                   className="hidden"
-                     onChange={(e) => { setContractFile(e.target.files?.[0] ?? null); setShowContractError(false) }}
-                required/>
+                  onChange={(e) => { setContractFile(e.target.files?.[0] ?? null); setShowContractError(false) }}
+                />
                 <Button type="button" variant="outline" onClick={() => contractInputRef.current?.click()}>
                   Selecionar PDF
                 </Button>
