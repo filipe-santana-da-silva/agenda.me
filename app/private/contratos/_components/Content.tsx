@@ -143,8 +143,8 @@ export function Content() {
     doc.text('Firmam o presente instrumento, em duas vias de igual teor.', 20, 240, { maxWidth: 170 })
 
     // Data
-doc.text('Data do contrato:', 20, 245)
-doc.text(formatBrDate(form.data_contrato), 20, 250)
+doc.text('Data do contrato:', 20, 247)
+doc.text(formatBrDate(form.data_contrato), 20, 255)
 
 // Assinaturas
 doc.text('______________________________________', 20, 270)
