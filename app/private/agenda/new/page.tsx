@@ -22,6 +22,7 @@ export default function NewAppointmentPage() {
   const [durationhours, setDurationHours] = useState<number>(1)
   const [childname, setChildname] = useState("")
   const [childagegroup, setChildagegroup] = useState("")
+  const [eventName, setEventName] = useState("")
   const [phone, setPhone] = useState("")
   const [eventaddress, setEventaddress] = useState("")
   const [outofcity, setOutOfCity] = useState(false)
@@ -276,9 +277,10 @@ export default function NewAppointmentPage() {
 
   const creatorForDb = (creatorName && creatorName.trim()) ? creatorName.trim() : (creatorFromSession ? String(creatorFromSession) : null)
 
-  const payloadAny: any = {
-        appointmentdate,
-        durationhours: Number(durationhours) || 1,
+    const payloadAny: any = {
+      appointmentdate,
+      eventname: eventName || null,
+      durationhours: Number(durationhours) || 1,
         childname,
         childagegroup,
         contractorid: contractorId,
@@ -306,9 +308,10 @@ export default function NewAppointmentPage() {
   if (recreatorRequested && selectedRecreatorId) payloadAny.recreatorid = selectedRecreatorId
 
       // Insert appointment base record first (avoid schema issues when optional columns differ).
-  const basePayload: any = {
-        appointmentdate,
-        durationhours: Number(durationhours) || 1,
+    const basePayload: any = {
+      appointmentdate,
+      eventname: eventName || null,
+      durationhours: Number(durationhours) || 1,
         childname,
         childagegroup,
         contractorid: contractorId,
@@ -455,6 +458,11 @@ export default function NewAppointmentPage() {
                 <Label>Hora</Label>
                 <Input name="time" type="time" step={1800} value={time} onChange={(e) => setTime(e.target.value)} className="mt-1 w-36" />
               </div>
+            </div>
+
+            <div>
+              <Label>Nome do evento</Label>
+              <Input value={eventName} onChange={(e) => setEventName(e.target.value)} className="mt-1" placeholder="Ex: Festa de aniversário" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

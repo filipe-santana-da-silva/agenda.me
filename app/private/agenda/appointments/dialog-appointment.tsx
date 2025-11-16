@@ -300,11 +300,12 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                     ) : (
                       <div className="flex items-center gap-2">
                         <div className="text-lg font-medium">{eventName ?? <span className="text-muted-foreground">(sem nome)</span>}</div>
-                        <Button variant="ghost" size="icon" onClick={() => setEditingEventName(true)} title="Editar nome do evento">Editar</Button>
                       </div>
                     )}
                   </div>
+                  <span className='font-semibold'>Contratante: </span>
                   <div className="text-lg font-semibold">{ap.contractorname}</div>
+                  <span className="font-semibold">Criança: </span>
                   <div className="text-sm text-muted-foreground">
                     {editingMode ? (
                       <input className="border rounded px-2 py-1 text-sm" value={editable.childname ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, childname: e.target.value }))} />
@@ -313,7 +314,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                     )}
                   </div>
                 </div>
-                <div className="text-sm text-right">
+                <div className="text-sm text-right mr-5">
                   {ap.time}
                   <div>{formattedDate}</div>
                   <div>Duração: {ap.durationhours ?? 1}h</div>
@@ -321,7 +322,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
               </div>
 
               <p>
-                <span className="font-semibold">Telefone:</span> {ap.phone}
+                <span className="font-semibold">Telefone: </span> {ap.phone}
               </p>
 
               {ap.childagegroup && (
@@ -335,7 +336,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
               )}
 
               <p>
-                <span className="font-semibold">Email:</span>
+                <span className="font-semibold">Email: </span>
                 {editingMode ? (
                   <input className="border rounded px-2 py-1 ml-2 text-sm" value={editable.email ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, email: e.target.value }))} />
                 ) : (
@@ -345,7 +346,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
 
               {ap.eventaddress && (
                 <p>
-                  <span className="font-semibold">Endereço do evento:</span>
+                  <span className="font-semibold">Endereço do evento: </span>
                   {editingMode ? (
                     <input className="border rounded px-2 py-1 ml-2 text-sm" value={editable.eventaddress ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, eventaddress: e.target.value }))} />
                   ) : (
@@ -356,7 +357,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
 
               {ap.address && (
                 <p>
-                  <span className="font-semibold">Endereço do contratante:</span>
+                  <span className="font-semibold">Endereço do contratante: </span>
                   {editingMode ? (
                     <input className="border rounded px-2 py-1 ml-2 text-sm" value={editable.address ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, address: e.target.value }))} />
                   ) : (
@@ -366,7 +367,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
               )}
 
               <p>
-                <span className="font-semibold">Fora da cidade:</span>
+                <span className="font-semibold">Fora da cidade: </span>
                 {editingMode ? (
                   <input type="checkbox" className="ml-2" checked={Boolean(editable.outofcity)} onChange={(e) => setEditable((p: any) => ({ ...p, outofcity: e.target.checked }))} />
                 ) : (
@@ -376,7 +377,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
 
               {typeof ap.requestedbymother !== 'undefined' && (
                 <p>
-                  <span className="font-semibold">Recreador solicitado pela mãe:</span>
+                  <span className="font-semibold">Recreador solicitado pela mãe: </span>
                   {editingMode ? (
                     <input type="checkbox" className="ml-2" checked={Boolean(editable.requestedbymother)} onChange={(e) => setEditable((p: any) => ({ ...p, requestedbymother: e.target.checked }))} />
                   ) : (
@@ -387,7 +388,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
 
               {typeof ap.ownerpresent !== 'undefined' && (
                 <p>
-                  <span className="font-semibold">Dono presente:</span>
+                  <span className="font-semibold">Dono presente: </span>
                   {editingMode ? (
                     <input type="checkbox" className="ml-2" checked={Boolean(editable.ownerpresent)} onChange={(e) => setEditable((p: any) => ({ ...p, ownerpresent: e.target.checked }))} />
                   ) : (
@@ -397,7 +398,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
               )}
 
               <p>
-                <span className="font-semibold">Mala:</span>
+                <span className="font-semibold">Mala: </span>
                 {editingMode ? (
                   <Select onValueChange={(v) => setEditable((p: any) => ({ ...p, bagid: v || null }))} defaultValue={editable.bagid ?? ''}>
                     <SelectTrigger>
@@ -415,7 +416,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
               </p>
 
               <p>
-                <span className="font-semibold">Recreador responsável:</span>
+                <span className="font-semibold">Recreador responsável: </span>
                 {editingMode ? (
                   <Select onValueChange={(v) => setEditable((p: any) => ({ ...p, responsible_recreatorid: v || null }))} defaultValue={editable.responsible_recreatorid ?? ''}>
                     <SelectTrigger>
@@ -433,7 +434,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
               </p>
 
               <div>
-                <span className="font-semibold">Recreadores presentes:</span>
+                <span className="font-semibold">Recreadores presentes: </span>
                 {editingMode ? (
                   <div className="mt-1 w-full border rounded px-2 py-2 h-40 overflow-auto">
                     {recreatorsList.map((r) => {
