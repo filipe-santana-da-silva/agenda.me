@@ -152,7 +152,8 @@ export function Content() {
     doc.text(form.contratante_nome_assinatura || '', 20, 320)
 
   return (
-    <Card>
+    <div>
+      <Card>
       <CardHeader>
         <CardTitle>Contrato de Prestação de Serviços</CardTitle>
       </CardHeader>
@@ -273,6 +274,7 @@ export function Content() {
         <Button onClick={gerarPDF}>Gerar PDF do contrato</Button>
       </div>
     </Card>
+    </div>
   )
 }
 }
