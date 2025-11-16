@@ -38,26 +38,26 @@ export const useRankingStore = create<RankingStore>((set, get) => ({
 
     const { startDate, endDate } = get()
 
-    // normalize to include the full day window and force UTC (append Z)
-    // This avoids timezone mismatch where createdat is stored as ISO with Z
-    const startDateTime = `${startDate}T00:00:00Z`
-    const endDateTime = `${endDate}T23:59:59Z`
+    // Convert dates to ISO format with proper timezone handling
+    // Start of startDate (00:00:00 UTC)
+    const startDateTime = new Date(`${startDate}T00:00:00Z`).toISOString()
+    // End of endDate (23:59:59 UTC)
+    const endDateTime = new Date(`${endDate}T23:59:59.999Z`).toISOString()
 
-    // try fetching with date-time filters first
+    // debug info for troubleshooting
+    // eslint-disable-next-line no-console
+    console.debug('[ranking] fetch with range', { startDate, endDate, startDateTime, endDateTime })
+
     let { data, error } = await supabase
       .from('RankingEventDetail')
       .select('pointsawarded, recreatorid, recreator:recreatorid (name)')
       .gte('createdat', startDateTime)
       .lte('createdat', endDateTime)
+      .order('createdat', { ascending: false })
 
     // debug info for troubleshooting - will appear in browser console
-    // (helps detect RLS/permission errors or date range mismatches)
     // eslint-disable-next-line no-console
-    console.debug('[ranking] fetch with range', { startDate, endDate, startDateTime, endDateTime, dataLength: data?.length ?? 0, error })
-
-    // NOTE: do NOT fallback to a fetch without date filters when the range returns
-    // an empty array. Returning empty results is expected for a date window with
-    // no events. Only treat real errors by aborting and showing no results.
+    console.debug('[ranking] fetch result', { dataLength: data?.length ?? 0, error, data })
 
     if (!data || error) {
       // eslint-disable-next-line no-console
