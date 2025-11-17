@@ -51,7 +51,34 @@ export async function cancelAppointment(formData: FormSchema) {
       console.warn('Role lookup failed in cancelAppointment:', e)
     }
 
-    // Perform delete: admins may delete any appointment; others can only delete their own (userid)
+    // Verify appointment exists and ownership before deleting related records
+    const { data: apptData, error: apptFetchError } = await (await supabase)
+      .from('Appointment')
+      .select('id, userid')
+      .eq('id', formData.appointmentId)
+      .limit(1)
+
+    if (apptFetchError) throw apptFetchError
+
+    if (!apptData || apptData.length === 0) {
+      return { error: 'Agendamento não encontrado.' }
+    }
+
+    const appt = apptData[0] as any
+
+    if (!isAdmin && appt.userid !== user.id) {
+      return { error: 'Agendamento não encontrado ou você não tem permissão para deletá-lo.' }
+    }
+
+    // Delete RankingEventDetail rows that reference this appointment first to avoid FK violations
+    const { error: deleteRankingError } = await (await supabase)
+      .from('RankingEventDetail')
+      .delete()
+      .eq('appointmentid', formData.appointmentId)
+
+    if (deleteRankingError) throw deleteRankingError
+
+    // Now delete the appointment
     let deletedRows: any = null
     let deleteError: any = null
     if (isAdmin) {
