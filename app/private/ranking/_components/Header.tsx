@@ -45,7 +45,7 @@ export function Header() {
           </Button>
           <div className="flex items-center gap-2">
             <Checkbox id="confirmClear" checked={confirmChecked} onCheckedChange={(v: boolean) => setConfirmChecked(Boolean(v))} />
-            <label htmlFor="confirmClear" className="text-sm">Confirmar</label>
+            <label htmlFor="confirmClear" className="text-sm">limpar</label>
             {confirmChecked && (
               <Button onClick={handleClearPeriod} disabled={clearing || loading} variant="destructive" size="sm">
                 {clearing ? 'Limpando...' : 'Limpar período'}
