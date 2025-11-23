@@ -19,7 +19,7 @@ export function ButtonPickerAppointment(){
         <input
             type="date"
             id="start"
-            className="border-2 px-2 py-1 rounded-md text-sm md:text-base"
+            className="border-2 px-2 py-1 rounded-md text-sm md:text-base w-full sm:w-auto"
             value={selectedDate}
             onChange={handleChangeDate}
         />

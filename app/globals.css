@@ -118,3 +118,83 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Reduce default button border thickness globally (keeps existing color) */
+[data-slot="button"] {
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Make images scale down on small screens */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Small-screen helpers: make form controls inside forms full-width for better touch targets */
+@media (max-width: 640px) {
+  form input,
+  form select,
+  form textarea,
+  form button {
+    width: 100%;
+  }
+  .md\:hidden { display: block; }
+}
+
+/* Responsive adjustments for cards and buttons */
+@media (max-width: 768px) {
+  /* Make cards more compact on small screens */
+  [data-slot="card"] {
+    padding: 1rem !important;
+    border-radius: 0.5rem;
+  }
+
+  [data-slot="card-header"],
+  [data-slot="card-content"],
+  [data-slot="card-footer"] {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  /* Stack actions and make them easier to tap */
+  [data-slot="card-action"] {
+    justify-self: stretch !important;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  /* Make card action buttons full width and larger touch targets (limit scope to card actions) */
+  [data-slot="card"] [data-slot="button"],
+  [data-slot="card-action"] [data-slot="button"] {
+    display: block;
+    width: 100%;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    height: 3rem !important;
+  }
+
+  /* Keep icon-only buttons compact (don't force full width) */
+  [data-slot="card"] [data-slot="button"][class*="size-9"],
+  [data-slot="card"] [data-slot="button"][class*="icon"],
+  [data-slot="card"] [data-slot="button"][class*="icon-sm"],
+  [data-slot="card"] [data-slot="button"][class*="icon-lg"],
+  [data-slot="card"] [data-slot="button"][class*="size-8"],
+  [data-slot="card"] [data-slot="button"][class*="size-10"],
+  [data-slot="card-action"] [data-slot="button"][class*="size-9"],
+  [data-slot="card-action"] [data-slot="button"][class*="icon"],
+  [data-slot="card-action"] [data-slot="button"][class*="icon-sm"],
+  [data-slot="card-action"] [data-slot="button"][class*="icon-lg"],
+  [data-slot="card-action"] [data-slot="button"][class*="size-8"],
+  [data-slot="card-action"] [data-slot="button"][class*="size-10"] {
+    width: auto;
+    display: inline-flex;
+    height: auto !important;
+  }
+
+  /* Reduce text size slightly on small screens for dense UIs */
+  body {
+    font-size: 0.95rem;
+  }
+}

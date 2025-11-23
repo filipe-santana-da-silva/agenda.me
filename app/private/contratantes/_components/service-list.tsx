@@ -51,7 +51,7 @@ export function ContractorList({ contractors }: ContractorListProps) {
       toast.error(response.error)
     } else {
       toast.success(response.data)
-      setContractorList(prev => prev.filter(c => c.id !== contractorId)) // ✅ atualiza em tempo real
+      setContractorList(prev => prev.filter(c => c.id !== contractorId)) 
     }
   }
 
@@ -92,7 +92,7 @@ export function ContractorList({ contractors }: ContractorListProps) {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xl md:text-2xl font-bold">Contratantes</CardTitle>
 
-              <div className="flex items-center w-full mx-24 border rounded-md px-3 py-2 bg-white">
+              <div className="flex items-center w-full max-w-xl mx-auto border rounded-md px-3 py-2 bg-white">
                 <Search className="text-muted-foreground w-5 h-5 mr-2" />
                 <input
                   type="text"

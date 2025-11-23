@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
-import { XIcon } from "lucide-react"
+import * as Lucide from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -72,8 +72,30 @@ function SheetContent({
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-          <XIcon className="size-4" />
+              <SheetPrimitive.Close
+                className="w-10 h-10 sm:w-8 sm:h-8 ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-3 right-3 sm:top-4 sm:right-4 rounded-md opacity-90 transition-opacity hover:opacity-100 focus:ring-4 focus:ring-offset-4 focus:outline-hidden disabled:pointer-events-none flex items-center justify-center p-2 sm:p-1"
+                style={{ color: "var(--color-foreground)" }}
+              >
+                {Lucide?.XIcon ? (
+                  <Lucide.XIcon className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
+                ) : Lucide?.X ? (
+                  <Lucide.X className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-5 h-5 sm:w-4 sm:h-4"
+                    aria-hidden="true"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                )}
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>
       </SheetPrimitive.Content>

@@ -116,25 +116,26 @@ export function SideBarDashboard({ children }: {children: React.ReactNode}){
                         <div className="flex items-center gap-4">
                             <SheetTrigger asChild>
                                 <Button variant="outline" size="icon" className="md:hidden" onClick={() => setIsCollapsed(false)}>
-                                    <List className="w-5 h-5"/>
+                                    <List className="w-5 h-5 ml-2"/>
                                 </Button>
                             </SheetTrigger>
                             <h1 className="text-base md:text-lg font-semibold">Menu Recreart</h1>
                         </div>
-                        <SheetContent id={mobileSheetId} side="right" className="sm:max-w-xs text-black">
+                        <SheetContent id={mobileSheetId} side="left" className="sm:max-w-xs text-black">
                             <SheetTitle className=" text-base text-black font-semibold">Recreart</SheetTitle>
                             <SheetDescription>Menu administrativo</SheetDescription>
                             <nav className="grid gap-2 text-base pt-5 ">
                                                                 {user?.role === 'ADMIN' ? (
                                                                     <>
                                                                         <SideBarLink href="/private/agenda" label="Agendamentos" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/notebook (1).png" alt="Ícone de agenda" width={24} height={24} className="w-6 h-6"/>}/>
-                                                                        <SideBarLink href="/private/recreadores" label="Recreadores" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/balloons.png" alt="Ícone de balão" width={24} height={24} className="w-6 h-6"/>}/>
-                                                                        <SideBarLink href="/private/contratantes" label="Contratantes" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/settings.png" alt="Ícone de engrenagem" width={24} height={24} className="w-6 h-6"/>}/>
+                                                                        <SideBarLink href="/private/recreadores" label="Recreadores" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/baloes.svg" alt="Ícone de balão" width={24} height={24} className="w-6 h-6"/>}/>
+                                                                        <SideBarLink href="/private/contratantes" label="Contratantes" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/contratantes.svg" alt="Ícone de engrenagem" width={24} height={24} className="w-6 h-6"/>}/>
                                                                         <SideBarLink href="/private/ranking" label="Ranking" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/ranking.png" alt="Ícone de medalha" width={24} height={24} className="w-6 h-6"/>}/>
                                                                         <SideBarLink href="/private/malas" label="Mala" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/baggage.png" alt="Ícone de mala" width={24} height={24} className="w-6 h-6"/>}/>
-                                                                        <SideBarLink href="/private/contratos" label="Contratos" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/contract.png" alt="Ícone de contrato" width={24} height={24} className="w-6 h-6"/>}/>
-                                                                        <SideBarLink href="/private/estoque" label="Estoque" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/inventory.png" alt="Ícone de estoque" width={24} height={24} className="w-6 h-6"/>}/>
-                                                                        <SideBarLink href="/private/profile" label="Meu perfil" pathname={pathname} isColapsed={isCollapsed} icon={<Settings className="w-6 h-6"/>}/>
+                                                                        <SideBarLink href="/private/contratos" label="Contratos" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/contrato.svg" alt="Ícone de contrato" width={24} height={24} className="w-6 h-6"/>}/>
+                                                                        <SideBarLink href="/private/estoque" label="Estoque" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/estoque.svg" alt="Ícone de estoque" width={24} height={24} className="w-6 h-6"/>}/>
+                                                                        <SideBarLink href="/private/profile" label="Meu perfil" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/settings (1).png" alt="Ícone de meu perfil" width={24} height={24} className="w-6 h-6"/>}/>
+                                                                        <SideBarLink href="/private/permissoes" label="Permissões" pathname={pathname} isColapsed={isCollapsed} icon={<Image src="/cloud-server.png" alt="Ícone de permissões" width={24} height={24} className="w-6 h-6"/>}/>
                                                                     </>
                                                                 ) : (
                                                                     <>

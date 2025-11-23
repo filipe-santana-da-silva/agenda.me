@@ -34,6 +34,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
     const formattedPrice = ap ? formatCurrancy((ap.service?.price ?? 0) / 100) : ''
 
   const [recreatorNames, setRecreatorNames] = useState<string[]>([])
+  const [requestedRecreatorNames, setRequestedRecreatorNames] = useState<string[]>([])
   const [responsibleName, setResponsibleName] = useState<string | null>(null)
   const [bagName, setBagName] = useState<string | null>(null)
   const [creatorDisplayName, setCreatorDisplayName] = useState<string | null>(ap?.created_by ?? null)
@@ -67,6 +68,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
     bagid: ap?.bagid ?? null,
     responsible_recreatorid: ap?.responsible_recreatorid ?? null,
     recreator_ids: Array.isArray(ap?.recreator_ids) ? ap?.recreator_ids : (ap?.recreator_ids ? [ap.recreator_ids] : []),
+    requested_recreator_ids: []
   })
 
   // lists for select controls
@@ -182,6 +184,30 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
         try {
           const { data: allRecreators } = await supabase.from('Recreator').select('id, name').order('name', { ascending: true })
           if (mounted && Array.isArray(allRecreators)) setRecreatorsList(allRecreators.map((r: any) => ({ id: String(r.id), name: r.name ?? String(r.id) })))
+          // if there are requested recreators stored in join table, fetch them
+          try {
+            if (ap) {
+              const { data: reqRows } = await supabase.from('AppointmentRequestedRecreator').select('recreator_id').eq('appointment_id', ap.id)
+              if (mounted && Array.isArray(reqRows)) {
+                const reqIds = reqRows.map((r: any) => String(r.recreator_id))
+                // set editable requested ids for edit controls
+                setEditable((p: any) => ({ ...p, requested_recreator_ids: reqIds }))
+                if (reqIds.length > 0) {
+                  const { data: reqNames } = await supabase.from('Recreator').select('id, name').in('id', reqIds)
+                  if (mounted && Array.isArray(reqNames)) {
+                    const map = new Map<string, string>()
+                    reqNames.forEach((r: any) => map.set(String(r.id), r.name ?? String(r.id)))
+                    const names = reqIds.map((id) => map.get(id) ?? id)
+                    setRequestedRecreatorNames(names)
+                  }
+                } else {
+                  setRequestedRecreatorNames([])
+                }
+              }
+            }
+          } catch (e) {
+            // ignore
+          }
         } catch (e) {
           // ignore
         }
@@ -247,6 +273,22 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
         toast.error('Falha ao salvar alterações')
         return
       }
+      // After updating appointment row, persist requested recreator relations
+      try {
+        // remove existing relations
+        const { error: delErr } = await supabase.from('AppointmentRequestedRecreator').delete().eq('appointment_id', ap.id)
+        if (delErr) console.error('Failed to delete old requested recreator relations', delErr)
+        // insert new relations from editable.requested_recreator_ids
+        const reqIds = Array.isArray(editable.requested_recreator_ids) ? editable.requested_recreator_ids : []
+        if (reqIds.length > 0) {
+          const rows = reqIds.map((rid: string) => ({ appointment_id: ap.id, recreator_id: rid }))
+          const { error: insErr } = await supabase.from('AppointmentRequestedRecreator').insert(rows)
+          if (insErr) console.error('Failed to insert requested recreator relations', insErr)
+        }
+      } catch (e) {
+        console.error('Error persisting requested recreators relations', e)
+      }
+
       toast.success('Alterações salvas')
       setEditingMode(false)
     } catch (e) {
@@ -435,38 +477,67 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                 </div>
 
                 <div>
-                  <p className="text-sm font-semibold mb-2">Recreadores presentes:</p>
-                  {editingMode ? (
-                    <div className="w-full border rounded px-2 py-2 h-40 overflow-auto">
-                      {recreatorsList.map((r) => {
-                        const id = String(r.id)
-                        const checked = Array.isArray(editable.recreator_ids) && editable.recreator_ids.includes(id)
-                        return (
-                          <div key={id} className="flex items-center gap-2 py-1">
-                            <input type="checkbox" checked={checked} onChange={() => {
-                              setEditable((p: any) => {
-                                const prev = Array.isArray(p.recreator_ids) ? [...p.recreator_ids] : []
-                                if (prev.includes(id)) return { ...p, recreator_ids: prev.filter((x) => x !== id) }
-                                return { ...p, recreator_ids: [...prev, id] }
-                              })
-                            }} />
-                            <span className="select-none">{r.name}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      {recreatorNames
-                        .filter((name, idx) => {
-                          // Filter out the responsible recreator to avoid duplication
-                          const id = Array.isArray(ap?.recreator_ids) ? ap.recreator_ids[idx] : undefined
-                          return String(id) !== String(ap?.responsible_recreatorid)
-                        })
-                        .join(', ') || '(nenhum)'}
-                    </div>
-                  )}
-                </div>
+                    <p className="text-sm font-semibold mb-2">Recreadores presentes:</p>
+                    {editingMode ? (
+                      <div className="w-full border rounded px-2 py-2 h-40 overflow-auto">
+                        {recreatorsList.map((r) => {
+                          const id = String(r.id)
+                          const checked = Array.isArray(editable.recreator_ids) && editable.recreator_ids.includes(id)
+                          return (
+                            <div key={id} className="flex items-center gap-2 py-1">
+                              <input type="checkbox" checked={checked} onChange={() => {
+                                setEditable((p: any) => {
+                                  const prev = Array.isArray(p.recreator_ids) ? [...p.recreator_ids] : []
+                                  if (prev.includes(id)) return { ...p, recreator_ids: prev.filter((x) => x !== id) }
+                                  return { ...p, recreator_ids: [...prev, id] }
+                                })
+                              }} />
+                              <span className="select-none">{r.name}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        {recreatorNames
+                          .filter((name, idx) => {
+                            // Filter out the responsible recreator to avoid duplication
+                            const id = Array.isArray(ap?.recreator_ids) ? ap.recreator_ids[idx] : undefined
+                            return String(id) !== String(ap?.responsible_recreatorid)
+                          })
+                          .join(', ') || '(nenhum)'}
+                      </div>
+                    )}
+                  </div>
+
+                  {/** requested recreators editing block */}
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Recreadores solicitados pela mãe:</p>
+                    {editingMode ? (
+                      <div className="w-full border rounded px-2 py-2 h-40 overflow-auto">
+                        {recreatorsList.map((r) => {
+                          const id = String(r.id)
+                          const checked = Array.isArray(editable.requested_recreator_ids) && editable.requested_recreator_ids.includes(id)
+                          return (
+                            <div key={`req-${id}`} className="flex items-center gap-2 py-1">
+                              <input type="checkbox" checked={checked} onChange={() => {
+                                setEditable((p: any) => {
+                                  const prev = Array.isArray(p.requested_recreator_ids) ? [...p.requested_recreator_ids] : []
+                                  if (prev.includes(id)) return { ...p, requested_recreator_ids: prev.filter((x) => x !== id) }
+                                  return { ...p, requested_recreator_ids: [...prev, id] }
+                                })
+                              }} />
+                              <span className="select-none">{r.name}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">{requestedRecreatorNames.join(', ') || '(nenhum)'}</div>
+                    )}
+                  </div>
+
+                
               </div>
 
               {/* Alerta de documentos obrigatórios */}

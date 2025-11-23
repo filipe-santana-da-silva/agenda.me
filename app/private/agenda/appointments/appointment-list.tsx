@@ -186,9 +186,9 @@ export function AppointmentsList({ times }: AppointmentListProps) {
       <Card className="w-full h-fit max-w-none">
         <CardHeader className="flex justify-between items-center pb-2">
           <CardTitle className="text-xl md:text-2xl font-bold">Agendamentos</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <ButtonPickerAppointment />
-            <Button onClick={() => router.push('/private/agenda/new')}>Novo agendamento</Button>
+            <Button className="w-full sm:w-auto" onClick={() => router.push('/private/agenda/new')}>Novo agendamento</Button>
           </div>
         </CardHeader>
         <CardContent>

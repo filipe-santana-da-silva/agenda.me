@@ -194,24 +194,26 @@ export default function GerenciarPermissoes() {
   }
 
   return (
-    <div className="w-full h-full p-6 grid grid-cols-1 gap-6">
+    <div className="w-full h-full px-2 py-4 sm:px-6 sm:py-8 grid grid-cols-1 gap-4">
       {/* Gerenciar permissões por usuário (CRUD) */}
-      <Card className="p-6">
+      <Card className="p-3 sm:p-6">
         <CardHeader>
-          <CardTitle className="text-xl font-bold mb-4">Gerenciar Permissões (por Usuário)</CardTitle>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <CardTitle className="text-lg sm:text-xl font-bold mb-4 text-center">Gerenciar Permissões (por Usuário)</CardTitle>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-4">
             <Input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="usuario@email.com"
+              className="w-full"
             />
             <Input
               type={createAuthAccount ? "password" : "text"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={createAuthAccount ? "Senha para criar conta (min 6 caracteres)" : "(Opcional) senha para criar conta"}
+              className="w-full"
             />
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <input
                 id="createAuth"
                 type="checkbox"
@@ -224,7 +226,7 @@ export default function GerenciarPermissoes() {
 
           <div className="mb-4">
             <label className="text-sm block mb-1">Papel </label>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <button type="button" onClick={() => setRoleName('ADMIN')} className="px-3 py-1 rounded bg-slate-100 text-sm">ADMIN</button>
               <button type="button" onClick={() => setRoleName('RECREADOR')} className="px-3 py-1 rounded bg-slate-100 text-sm">RECREADOR</button>
             </div>
@@ -243,27 +245,27 @@ export default function GerenciarPermissoes() {
           </div>
 
           <div className="mb-4">
-            <div className="flex items-center gap-2 mt-3">
-              <Button onClick={salvarUsuario} disabled={isSavingUser}>{isSavingUser ? 'Salvando...' : (editingEmail ? 'Salvar Alterações' : 'Criar Usuário')}</Button>
-              {editingEmail && <Button variant="ghost" onClick={() => { setEditingEmail(null); setEmail(''); setRoleName(''); }}>Cancelar</Button>}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3">
+              <Button onClick={salvarUsuario} disabled={isSavingUser} className="w-full sm:w-auto">{isSavingUser ? 'Salvando...' : (editingEmail ? 'Salvar Alterações' : 'Criar Usuário')}</Button>
+              {editingEmail && <Button variant="ghost" onClick={() => { setEditingEmail(null); setEmail(''); setRoleName(''); }} className="w-full sm:w-auto">Cancelar</Button>}
             </div>
           </div>
         </CardHeader>
 
         <CardContent>
-          <h2 className="text-lg font-semibold mb-2">Usuários Cadastrados</h2>
-            <div className="grid grid-cols-3 font-semibold text-sm text-muted-foreground mb-2">
+          <h2 className="text-base sm:text-lg font-semibold mb-2 text-center">Usuários Cadastrados</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 font-semibold text-sm text-muted-foreground mb-2">
               <span>E-MAIL</span>
               <span>PAPEL</span>
-              <span>AÇÕES</span>
+              <span className="hidden sm:block">AÇÕES</span>
             </div>
             {usuarios.map((u) => (
-              <div key={u.email} className="grid grid-cols-3 items-center py-2 border-b gap-2">
+              <div key={u.email} className="grid grid-cols-2 sm:grid-cols-3 items-center py-2 border-b gap-2">
                 <div className="truncate">{u.email}</div>
                 <div className="text-sm text-muted-foreground">{u.role || '-'}</div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleEditUser(u)}>Editar</Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleDeleteUser(u.email)}>Excluir</Button>
+                <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                  <Button size="sm" onClick={() => handleEditUser(u)} className="w-full sm:w-auto">Editar</Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleDeleteUser(u.email)} className="w-full sm:w-auto">Excluir</Button>
                 </div>
               </div>
             ))}

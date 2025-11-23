@@ -41,6 +41,7 @@ export default function NewAppointmentPage() {
   const [recreatorRequested, setRecreatorRequested] = useState(false)
   const [selectedRecreatorId, setSelectedRecreatorId] = useState<string | null>(null)
   const [selectedRecreatorIds, setSelectedRecreatorIds] = useState<string[]>([])
+  const [requestedRecreatorIds, setRequestedRecreatorIds] = useState<string[]>([])
 
   const [proofFile, setProofFile] = useState<File | null>(null)
   const [contractFile, setContractFile] = useState<File | null>(null)
@@ -178,12 +179,13 @@ export default function NewAppointmentPage() {
     const userEmail = sessionData?.session?.user?.email ?? null
     try {
       // basic validation
+      const selectedContractor = contractors.find((c) => String(c.id ?? c.contractorid) === String(contractorId));
       if (!date || !time) {
         alert("Escolha data e hora")
         setLoading(false)
         return
       }
-      if (!childname.trim()) {
+      if (selectedContractor?.type === 'FISICA' && !childname.trim()) {
         alert("Nome da criança é obrigatório")
         setLoading(false)
         return
@@ -200,6 +202,14 @@ export default function NewAppointmentPage() {
       }
       if (!phone.trim() || !eventaddress.trim()) {
         alert("Preencha telefone e endereço do evento")
+        setLoading(false)
+        return
+      }
+
+      // Se for pessoa física, exige nome da criança
+      const isJuridica = selectedContractor && (String(selectedContractor.documenttype).toUpperCase() === 'CNPJ');
+      if (!isJuridica && !childname.trim()) {
+        alert("Preencha o nome da criança")
         setLoading(false)
         return
       }
@@ -258,8 +268,7 @@ export default function NewAppointmentPage() {
       }
 
 
-  // find selected contractor to include contractorname (some schemas require it)
-  const selectedContractor = contractors.find((c) => String(c.id ?? c.contractorid) === String(contractorId))
+  // selectedContractor já definido acima
 
   // determine creator name to store:
   // Prefer the profile `User.name` (the name the user entered at login) when the user is authenticated.
@@ -368,6 +377,7 @@ export default function NewAppointmentPage() {
       if (contract_url) updates.contract_url = contract_url
       if (selectedRecreatorIds && selectedRecreatorIds.length > 0) updates.recreator_ids = selectedRecreatorIds
       if (recreatorRequested && selectedRecreatorId) updates.recreatorid = selectedRecreatorId
+      // requested_recreator_ids column removed in favor of join table
       if (selectedBagId) updates.bagid = selectedBagId
       if (responsibleRecreatorId) updates.responsible_recreatorid = responsibleRecreatorId
       // only set ownerpresent if true or false explicitly
@@ -387,40 +397,52 @@ export default function NewAppointmentPage() {
         console.debug('No optional fields to update for appointment', createdId)
       }
 
+      // Persist requested recreators in the join table (many-to-many)
+      try {
+        if (requestedRecreatorIds && requestedRecreatorIds.length > 0) {
+          const rows = requestedRecreatorIds.map((rid) => ({ appointment_id: createdId, recreator_id: rid }))
+          const { error: relError } = await supabase.from('AppointmentRequestedRecreator').insert(rows)
+          if (relError) console.error('Failed to insert requested recreators relations:', relError)
+        }
+      } catch (err) {
+        console.error('Error saving requested recreators relations:', err)
+      }
+
       // --- RANKING: award points to selected recreators at creation time ---
       try {
-        // New scoring rules (revised):
-        // - All recreators present in the event get 4 points base
-        // - If the appointment is out of city -> add 2 points (total 6 for all)
-        // - If a specific recreator was requested by the mother -> that recreator gets +2 additional points
-        const POINTS_BASE = 4
-        const POINTS_OUT_OF_CITY_BONUS = 2
-        const POINTS_REQUESTED_BONUS = 2
+        // New scoring rules requested:
+        // - 1 point for every recreator present in the appointment (selectedRecreatorIds)
+        // - If out of city -> everyone present gets +1 (but responsible gets no additional points)
+        // - Each recreator requested by the mother gets +1 (but responsible gets no additional points)
+        const POINTS_BASE = 1
+        const POINTS_OUT_OF_CITY_BONUS = 1
+        const POINTS_REQUESTED_BONUS = 1
 
-        // Build a set of target recreator ids to award points to.
+        // Build the set of present recreator ids (selectedRecreatorIds)
         const chosenRecreatorIds = new Set<string>()
         if (Array.isArray(selectedRecreatorIds) && selectedRecreatorIds.length > 0) {
-          selectedRecreatorIds.forEach((id) => chosenRecreatorIds.add(id))
+          selectedRecreatorIds.forEach((id) => chosenRecreatorIds.add(String(id)))
         }
 
-        // If mother requested a specific recreator, ensure they're included
-        if (recreatorRequested && selectedRecreatorId) {
-          chosenRecreatorIds.add(selectedRecreatorId)
+        // It's possible the responsible recreator is considered separately; ensure we do not accidentally
+        // grant them bonus points. We'll still award base points only if they also appear in the present list.
+        const responsibleId = responsibleRecreatorId ? String(responsibleRecreatorId) : null
+
+        const reqSet = new Set<string>()
+        if (Array.isArray(requestedRecreatorIds) && requestedRecreatorIds.length > 0) {
+          requestedRecreatorIds.forEach((id) => reqSet.add(String(id)))
         }
 
         const ids = Array.from(chosenRecreatorIds)
         if (ids.length > 0) {
           const rows = ids.map((rid) => {
-            // Base 4 points for all recreators present
             let points = POINTS_BASE
 
-            // Add 2 points if event is out of city
-            if (outofcity) points += POINTS_OUT_OF_CITY_BONUS
+            // Add out-of-city bonus to everyone except the responsible recreator
+            if (outofcity && String(rid) !== responsibleId) points += POINTS_OUT_OF_CITY_BONUS
 
-            // Add 2 points if this specific recreator was requested by mother
-            if (recreatorRequested && selectedRecreatorId && String(rid) === String(selectedRecreatorId)) {
-              points += POINTS_REQUESTED_BONUS
-            }
+            // Add requested-by-mother bonus if this recreator was requested (and is not the responsible)
+            if (reqSet.has(String(rid)) && String(rid) !== responsibleId) points += POINTS_REQUESTED_BONUS
 
             return {
               recreatorid: rid,
@@ -453,9 +475,9 @@ export default function NewAppointmentPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-2xl mx-auto w-full">
       <Toaster />
-      <h1 className="text-2xl font-bold mb-4">Novo Agendamento</h1>
+      <h1 className="text-2xl font-bold mb-4 text-center">Novo Agendamento</h1>
 
       {validationError && (
         <Alert variant="destructive" className="mb-4">
@@ -468,14 +490,33 @@ export default function NewAppointmentPage() {
       <Card>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Data</Label>
-                <Input name="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1" />
+                <Input name="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 " />
               </div>
               <div>
                 <Label>Hora</Label>
-                <Input name="time" type="time" step={1800} value={time} onChange={(e) => setTime(e.target.value)} className="mt-1 w-36" />
+                <div className="relative mt-1">
+                  <select
+                    name="time"
+                    value={time}
+                    onChange={e => setTime(e.target.value)}
+                    className="w-full appearance-none bg-white border-2 rounded-lg px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus transition-all shadow-sm"
+                    required
+                  >
+                    <option value="" className="text-gray-400">Selecione o horário</option>
+                    {Array.from({ length: 24 * 2 }).map((_, i) => {
+                      const hour = Math.floor(i / 2)
+                      const minute = i % 2 === 0 ? "00" : "30"
+                      const value = `${hour.toString().padStart(2, "0")}:${minute}`
+                      return <option key={value} value={value} className="text-amber-900 font-bold">{value}</option>
+                    })}
+                  </select>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-amber-400">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -484,10 +525,10 @@ export default function NewAppointmentPage() {
               <Input value={eventName} onChange={(e) => setEventName(e.target.value)} className="mt-1" placeholder="Ex: Festa de aniversário" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Duração (horas)</Label>
-                <Input name="durationhours" type="number" min={1} value={String(durationhours)} onChange={(e) => setDurationHours(Number(e.target.value))} className="mt-1 w-36" />
+                <Input name="durationhours" type="number" min={1} value={String(durationhours)} onChange={(e) => setDurationHours(Number(e.target.value))} className="mt-1 w-full" />
               </div>
             </div>
 
@@ -504,7 +545,7 @@ export default function NewAppointmentPage() {
                 }}
                 defaultValue={responsibleRecreatorId ?? ""}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full" >
                   <SelectValue placeholder="-- escolha --" />
                 </SelectTrigger>
                 <SelectContent>
@@ -530,7 +571,7 @@ export default function NewAppointmentPage() {
                 }}
                 defaultValue={contractorId ?? ""}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full" >
                   <SelectValue placeholder="-- escolha --" />
                 </SelectTrigger>
                 <SelectContent>
@@ -543,26 +584,40 @@ export default function NewAppointmentPage() {
               </Select>
             </div>
 
-            <div>
-              <Label>Nome da criança</Label>
-              <Input value={childname} onChange={(e) => setChildname(e.target.value)} className="mt-1" />
-            </div>
+            {(() => {
+              const selectedContractor = contractors.find(c => String(c.id ?? c.contractorid) === String(contractorId));
+              // Pessoa jurídica se documenttype for 'CNPJ'
+              const isJuridica = selectedContractor && (String(selectedContractor.documenttype).toUpperCase() === 'CNPJ');
+              if (isJuridica) return null;
+              return (
+                <div>
+                  <Label>Nome da criança</Label>
+                  <Input value={childname} onChange={(e) => setChildname(e.target.value)} className="mt-1 w-full" />
+                </div>
+              );
+            })()}
 
             <div>
               <Label>Faixa etária da criança</Label>
-              <Input value={childagegroup} onChange={(e) => setChildagegroup(e.target.value)} className="mt-1" placeholder="Ex: 3-5 anos" />
+              <Input value={childagegroup} onChange={(e) => setChildagegroup(e.target.value)} className="mt-1 w-full" placeholder="Ex: 3-5 anos" />
             </div>
 
             <div>
               <Label>Recreadores do evento</Label>
-              <div className="mt-1 w-full border rounded px-2 py-2 h-40 overflow-auto">
+              <div className="mt-1 w-full border rounded px-2 py-2 h-40 overflow-auto bg-white">
                 {recreators.map((r) => {
                   const id = String(r.id ?? r.recreatorid)
                   const checked = selectedRecreatorIds.includes(id)
                   return (
-                    <div key={id} className="flex items-center gap-2 py-1">
-                      <Checkbox checked={checked} onCheckedChange={() => toggleRecreatorSelection(id)} />
-                      <span className="select-none">{r.name}</span>
+                    <div key={id} className="flex flex-row justify-evenly w-4 items-center gap-2 py-1">
+                      <Checkbox checked={checked} onCheckedChange={() => {
+                        setSelectedRecreatorIds((prev) =>
+                          checked
+                            ? prev.filter((rid) => rid !== id)
+                            : [...prev, id]
+                        );
+                      }} className="shrink-0 w-4" />
+                      <span className="select-none w-full">{r.name}</span>
                     </div>
                   )
                 })}
@@ -572,22 +627,22 @@ export default function NewAppointmentPage() {
 
             <div>
               <Label>Telefone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1" />
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1 w-full" />
             </div>
 
             <div>
               <Label>Endereço do evento</Label>
-              <Textarea value={eventaddress} onChange={(e) => setEventaddress(e.target.value)} className="mt-1" />
+              <Textarea value={eventaddress} onChange={(e) => setEventaddress(e.target.value)} className="mt-1 w-full" />
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Checkbox id="outofcity" checked={outofcity} onCheckedChange={(v: boolean) => setOutOfCity(Boolean(v))} />
-                <Label htmlFor="outofcity" className="text-sm">Fora da cidade</Label>
+            <div className="flex flex-row justify-evenly mr-28 sm:flex-row gap-4 items-center w-auto">
+              <div className="flex items-center gap-2 w-4 mr-28">
+                <Checkbox id="outofcity" checked={outofcity} onCheckedChange={(v: boolean) => setOutOfCity(Boolean(v))} className="shrink-0" />
+                <Label htmlFor="outofcity" className="text-sm whitespace-nowrap">Fora da cidade</Label>
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox id="ownerpresent" checked={ownerPresent} onCheckedChange={(v: boolean) => setOwnerPresent(Boolean(v))} />
-                <Label htmlFor="ownerpresent" className="text-sm">Dono presente no evento?</Label>
+              <div className="flex items-center gap-2 w-4 mr-10">
+                <Checkbox id="ownerpresent" checked={ownerPresent} onCheckedChange={(v: boolean) => setOwnerPresent(Boolean(v))} className="shrink-0" />
+                <Label htmlFor="ownerpresent" className="text-sm whitespace-nowrap">Dono presente no evento?</Label>
               </div>
             </div>
 
@@ -597,7 +652,7 @@ export default function NewAppointmentPage() {
                 onValueChange={(v) => setSelectedBagId(v || null)}
                 defaultValue={selectedBagId ?? ""}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full" >
                   <SelectValue placeholder="-- escolha --" />
                 </SelectTrigger>
                 <SelectContent>
@@ -610,9 +665,9 @@ export default function NewAppointmentPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 w-full">
               <Label>Comprovante (arquivo)</Label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
                 <input
                   ref={proofInputRef}
                   type="file"
@@ -620,14 +675,14 @@ export default function NewAppointmentPage() {
                   className="hidden"
                   onChange={(e) => { setProofFile(e.target.files?.[0] ?? null); setShowProofError(false) }}
                 />
-                <Button type="button" variant="outline" onClick={() => proofInputRef.current?.click()}>
+                <Button type="button" variant="outline" onClick={() => proofInputRef.current?.click()} className="w-full sm:w-auto">
                   Selecionar arquivo
                 </Button>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground w-full sm:w-auto">
                   {proofFile ? proofFile.name : <span className="italic">Nenhum arquivo selecionado</span>}
                 </div>
                 {showProofError && (
-                  <div className="text-sm text-red-600">Comprovante obrigatório</div>
+                  <div className="text-sm text-red-600 w-full sm:w-auto">Comprovante obrigatório</div>
                 )}
               </div>
             </div>
@@ -636,14 +691,14 @@ export default function NewAppointmentPage() {
             {isAuthenticated === false && (
               <div>
                 <Label>Seu nome</Label>
-                <Input value={creatorName} onChange={(e) => setCreatorName(e.target.value)} className="mt-1" placeholder="Seu nome completo" />
+                <Input value={creatorName} onChange={(e) => setCreatorName(e.target.value)} className="mt-1 w-full" placeholder="Seu nome completo" />
                 <div className="text-xs text-muted-foreground mt-1">Informe seu nome para registrar quem criou este agendamento.</div>
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-2 w-full">
               <Label>Contrato (PDF)</Label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
                 <input
                   ref={contractInputRef}
                   type="file"
@@ -651,52 +706,53 @@ export default function NewAppointmentPage() {
                   className="hidden"
                   onChange={(e) => { setContractFile(e.target.files?.[0] ?? null); setShowContractError(false) }}
                 />
-                <Button type="button" variant="outline" onClick={() => contractInputRef.current?.click()}>
+                <Button type="button" variant="outline" onClick={() => contractInputRef.current?.click()} className="w-full sm:w-auto">
                   Selecionar PDF
                 </Button>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground w-full sm:w-auto">
                   {contractFile ? contractFile.name : <span className="italic">Nenhum arquivo selecionado</span>}
                 </div>
                 {showContractError && (
-                  <div className="text-sm text-red-600">Contrato obrigatório</div>
+                  <div className="text-sm text-red-600 w-full sm:w-auto">Contrato obrigatório</div>
                 )}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Checkbox checked={recreatorRequested} onCheckedChange={(v: boolean) => setRecreatorRequested(Boolean(v))} />
-                <Label className="text-sm">Possui recreador solicitado pela mãe?</Label>
+            <div className="space-y-2 w-full">
+              <div className="flex items-center gap-2 w-4 sm:w-auto">
+                <Checkbox checked={recreatorRequested} onCheckedChange={(v: boolean) => setRecreatorRequested(Boolean(v))} className="shrink-0" />
+                <Label className="text-sm whitespace-nowrap">Possui recreador solicitado pela mãe?</Label>
               </div>
-                {recreatorRequested && (
-                <Select
-                  onValueChange={(v) => {
-                    const val = v || null
-                    setSelectedRecreatorId(val)
-                    const found = recreators.find((x) => String(x.id ?? x.recreatorid) === val)
-                    if (found) {
-                      setPhone(found.phone ?? "")
-                    }
-                  }}
-                  defaultValue={selectedRecreatorId ?? ""}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="-- escolha --" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {recreators.map((r) => (
-                      <SelectItem key={r.id ?? r.recreatorid} value={String(r.id ?? r.recreatorid)}>
-                        {r.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {recreatorRequested && (
+                <div className="mt-2 border rounded px-2 py-2 bg-white">
+                  <Label className="block mb-2 text-sm">Selecione os recreadores solicitados:</Label>
+                  {recreators.map((r) => {
+                    const id = String(r.id ?? r.recreatorid);
+                    const checked = requestedRecreatorIds.includes(id);
+                    return (
+                      <div key={id} className="flex items-center gap-2 py-1">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => {
+                            setRequestedRecreatorIds((prev) =>
+                              checked
+                                ? prev.filter((rid) => rid !== id)
+                                : [...prev, id]
+                            );
+                          }}
+                          className="shrink-0 w-4"
+                        />
+                        <span className="select-none w-full">{r.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
-            <div className="pt-4 flex gap-2">
-              <Button type="submit" disabled={loading}>{loading ? "Criando..." : "Criar Agendamento"}</Button>
-              <Button variant="ghost" onClick={() => router.back()} className="">Cancelar</Button>
+            <div className="pt-4 flex flex-col sm:flex-row gap-2 w-full">
+              <Button type="submit" disabled={loading} className="w-full sm:w-auto">{loading ? "Criando..." : "Criar Agendamento"}</Button>
+              <Button variant="ghost" onClick={() => router.back()} className="w-full sm:w-auto">Cancelar</Button>
             </div>
           </form>
         </CardContent>

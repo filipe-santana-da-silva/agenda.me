@@ -276,26 +276,28 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
               <CardTitle className="text-lg font-bold text-amber-900">Mala {number}</CardTitle>
               <Badge variant="secondary" className="text-xs bg-amber-700 text-white">{items.length} itens</Badge>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setOpen(!open)}
-                className="text-amber-800 hover:bg-amber-200"
-              >
-                {open ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDeleteBag}
-                className="text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="w-5 h-5" />
-              </Button>
-            </div>
           </div>
         </CardHeader>
+        <div className="flex justify-between items-start gap-2 px-2 pt-2">
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setOpen(!open)}
+              className="text-amber-800 hover:bg-amber-200"
+            >
+              {open ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDeleteBag}
+              className="text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
 
         {open && (
           <CardContent className="space-y-4 pt-4">
@@ -304,30 +306,42 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
                 items.map((item, index) => (
                   <div key={index}>
                     {editingItemIndex === index ? (
-                      <div className="flex items-center gap-2 p-2 rounded-md bg-blue-50 border border-blue-200">
+                      <div className="flex flex-col sm:flex-row gap-2 p-2 rounded-md bg-blue-50 border border-blue-200">
                         <span className="text-sm font-medium text-amber-900 flex-1">{item.name}</span>
                         <Input
                           type="number"
                           min={1}
                           value={editingQuantity}
                           onChange={(e) => setEditingQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-16 h-8"
+                          className="w-full sm:w-16 h-8"
                         />
-                        <Button size="sm" onClick={handleSaveEditItem} className="bg-green-600 hover:bg-green-700 text-white">Salvar</Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingItemIndex(null)}>Cancelar</Button>
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                          <Button size="sm" onClick={handleSaveEditItem} className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto">Salvar</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingItemIndex(null)} className="w-full sm:w-auto">Cancelar</Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between p-2 rounded-md bg-amber-50 border border-amber-200">
                         <span className="text-sm font-medium text-amber-900">{item.name}</span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 justify-start sm:justify-end">
                           <Badge variant="outline" className="bg-amber-600 text-white border-amber-700">
                             x{item.quantity}
                           </Badge>
-                          <Button size="sm" variant="ghost" onClick={() => handleEditItem(index)} className="text-blue-600 hover:bg-blue-50 p-1">
-                            <Edit2 className="w-4 h-4" />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditItem(index)}
+                            className="text-blue-600 hover:bg-blue-50 p-1 w-7 h-7 min-w-0 min-h-0 sm:w-9 sm:h-9"
+                          >
+                            <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDeleteItem(index)} className="text-red-600 hover:bg-red-50 p-1">
-                            <Trash2 className="w-4 h-4" />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteItem(index)}
+                            className="text-red-600 hover:bg-red-50 p-1 w-7 h-7 min-w-0 min-h-0 sm:w-9 sm:h-9"
+                          >
+                            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                           </Button>
                         </div>
                       </div>
@@ -340,11 +354,13 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
             </div>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="w-full text-amber-800 border-amber-300 hover:bg-amber-100 font-medium">
-                  + Adicionar item
-                </Button>
-              </DialogTrigger>
+              <div className="flex justify-center sm:justify-start">
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-auto text-amber-800 border-amber-300 hover:bg-amber-100 font-medium">
+                    + Adicionar item
+                  </Button>
+                </DialogTrigger>
+              </div>
             </Dialog>
           </CardContent>
         )}
