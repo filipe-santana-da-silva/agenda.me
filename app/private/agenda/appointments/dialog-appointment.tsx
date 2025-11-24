@@ -90,6 +90,8 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
       ownerpresent: ap?.ownerpresent ?? false,
       durationhours: ap?.durationhours ?? 1,
       created_by: ap?.created_by ?? null,
+      recreator_ids: Array.isArray(ap?.recreator_ids) ? ap?.recreator_ids : (ap?.recreator_ids ? [ap.recreator_ids] : []),
+      requested_recreator_ids: [],
     }))
   }, [ap])
 
@@ -287,6 +289,79 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
         }
       } catch (e) {
         console.error('Error persisting requested recreators relations', e)
+      }
+
+      // Recalculate ranking points for this appointment based on updated present recreators
+      try {
+        // Always remove existing ranking rows for this appointment and re-insert per current rules
+        const responsibleId = editable.responsible_recreatorid ?? ap.responsible_recreatorid ?? null
+
+        // present recreators from editable state
+        const presentIds: string[] = Array.isArray(editable.recreator_ids) ? editable.recreator_ids.map(String) : []
+        const reqIds: string[] = Array.isArray(editable.requested_recreator_ids) ? editable.requested_recreator_ids.map(String) : []
+
+        try {
+          // Use server endpoint to delete old rows and insert new ones with service role
+          // fetch organizer flags to exclude organizers from scoring
+          const { data: recs, error: recErr } = await supabase.from('Recreator').select('id, organizer').in('id', presentIds)
+          if (recErr) {
+            console.warn('Failed to fetch recreator organizer flags', recErr)
+          }
+
+          const organizerSet = new Set<string>()
+          if (Array.isArray(recs)) recs.forEach((r: any) => { if (r.organizer) organizerSet.add(String(r.id)) })
+
+          const POINTS_BASE = 1
+          const POINTS_OUT_OF_CITY_BONUS = 1
+          const POINTS_REQUESTED_BONUS = 1
+
+          const rows = presentIds
+            .filter((id) => !organizerSet.has(String(id)))
+            .map((rid) => {
+              let points = POINTS_BASE
+              if (Boolean(editable.outofcity) && String(rid) !== String(responsibleId)) points += POINTS_OUT_OF_CITY_BONUS
+              if (reqIds.includes(String(rid)) && String(rid) !== String(responsibleId)) points += POINTS_REQUESTED_BONUS
+              return {
+                recreatorid: rid,
+                appointmentid: ap.id,
+                pointsawarded: points,
+                createdat: new Date().toISOString(),
+              }
+            })
+
+          if (rows.length > 0) {
+            try {
+              const res = await fetch('/api/appointments/ranking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deleteAppointmentId: ap.id, rows }),
+              })
+              const json = await res.json()
+              if (!res.ok) {
+                console.warn('Failed to insert ranking rows after edit (server):', json)
+              } else {
+                console.debug('Inserted ranking rows after edit (server)', ap.id, json.inserted ?? 0)
+              }
+            } catch (err) {
+              console.error('Failed to call ranking endpoint after edit', err)
+            }
+          } else {
+            // still delete old rows if there are none to insert
+            try {
+              await fetch('/api/appointments/ranking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deleteAppointmentId: ap.id, rows: [] }),
+              })
+            } catch (err) {
+              console.error('Failed to call ranking delete endpoint after edit', err)
+            }
+          }
+        } catch (e) {
+          console.error('Error while recalculating ranking on edit:', e)
+        }
+      } catch (e) {
+        console.error('Error while recalculating ranking on edit:', e)
       }
 
       toast.success('Alterações salvas')
@@ -695,7 +770,28 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
           {editingMode && (
             <>
               <Button onClick={handleSaveEdits}>Salvar alterações</Button>
-              <Button variant="ghost" onClick={() => { setEditingMode(false); setEditable((p: any) => ({ ...p, eventname: ap?.eventname ?? null, childname: ap?.childname ?? null })) }}>Cancelar</Button>
+              <Button variant="ghost" onClick={() => {
+                // restore editable state from appointment snapshot
+                setEditingMode(false);
+                setEditable(() => ({
+                  eventname: ap?.eventname ?? null,
+                  childname: ap?.childname ?? null,
+                  childagegroup: ap?.childagegroup ?? null,
+                  phone: ap?.phone ?? null,
+                  email: ap?.email ?? null,
+                  eventaddress: ap?.eventaddress ?? null,
+                  address: ap?.address ?? null,
+                  outofcity: ap?.outofcity ?? false,
+                  ownerpresent: ap?.ownerpresent ?? false,
+                  durationhours: ap?.durationhours ?? 1,
+                  created_by: ap?.created_by ?? null,
+                  requestedbymother: typeof ap?.requestedbymother !== 'undefined' ? ap.requestedbymother : false,
+                  bagid: ap?.bagid ?? null,
+                  responsible_recreatorid: ap?.responsible_recreatorid ?? null,
+                  recreator_ids: Array.isArray(ap?.recreator_ids) ? ap?.recreator_ids : (ap?.recreator_ids ? [ap.recreator_ids] : []),
+                  requested_recreator_ids: [],
+                }))
+              }}>Cancelar</Button>
             </>
           )}
         </div>

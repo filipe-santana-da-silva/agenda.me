@@ -21,6 +21,7 @@ const formSchema = z.object({
   uniformSize: z.string().optional(),
   notes: z.string().optional(),
   availabledays: z.array(z.string()).optional(), // ✅ compatível com jsonb
+  organizer: z.boolean().optional(),
 })
 
 type FormSchema = z.infer<typeof formSchema>
@@ -70,6 +71,7 @@ export async function createRecreator(formData: FormSchema) {
         rg: formData.rg,
         cpf: formData.cpf,
         phone: formData.phone,
+        organizer: formData.organizer ?? false,
         pixKey: formData.pixKey ?? null,
         uniformSize: formData.uniformSize ?? null,
         address: formData.address,

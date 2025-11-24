@@ -34,58 +34,44 @@ export const useRankingStore = create<RankingStore>((set, get) => ({
   setLoading: (value) => set({ loading: value }),
 
   handleSearch: async () => {
-    const supabase = createClient()
     set({ loading: true })
-
     const { startDate, endDate } = get()
 
-    // Convert dates to ISO format with proper timezone handling
-    // Start of startDate (00:00:00 UTC)
-    const startDateTime = new Date(`${startDate}T00:00:00Z`).toISOString()
-    // End of endDate (23:59:59 UTC)
-    const endDateTime = new Date(`${endDate}T23:59:59.999Z`).toISOString()
-
-    // debug info for troubleshooting
+    // debug
     // eslint-disable-next-line no-console
-    console.debug('[ranking] fetch with range', { startDate, endDate, startDateTime, endDateTime })
+    console.debug('[ranking] aggregate request', { startDate, endDate })
 
-    let { data, error } = await supabase
-      .from('RankingEventDetail')
-      .select('pointsawarded, recreatorid, recreator:recreatorid (name)')
-      .gte('createdat', startDateTime)
-      .lte('createdat', endDateTime)
-      .order('createdat', { ascending: false })
+    try {
+      const resp = await fetch('/api/ranking/aggregate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ startDate: startDate, endDate: endDate }),
+      })
 
-    // debug info for troubleshooting - will appear in browser console
-    // eslint-disable-next-line no-console
-    console.debug('[ranking] fetch result', { dataLength: data?.length ?? 0, error, data })
+      if (!resp.ok) {
+        const e = await resp.json().catch(() => ({ error: 'unknown' }))
+        // eslint-disable-next-line no-console
+        console.error('[ranking] aggregate api error', e)
+        set({ rankings: [], loading: false })
+        return
+      }
 
-    if (!data || error) {
+      const json = await resp.json()
+      const rows: Array<any> = Array.isArray(json?.data) ? json.data : []
+
+      const entries: RankingEntry[] = rows.map((r) => ({ recreatorid: String(r.recreatorid), name: r.name ?? String(r.recreatorid), points: Number(r.points) || 0 }))
+
+      // sort descending
+      entries.sort((a, b) => b.points - a.points)
+
+      set({ rankings: entries, loading: false })
+      return
+    } catch (err) {
       // eslint-disable-next-line no-console
-      console.error('[ranking] fetch failed or returned no data', { error, startDate, endDate })
+      console.error('[ranking] aggregate fetch failed', err)
       set({ rankings: [], loading: false })
       return
     }
-
-    const grouped = (data as any[]).reduce((acc, curr) => {
-      const id = curr.recreatorid
-      const name = Array.isArray(curr.recreator)
-        ? curr.recreator[0]?.name
-        : curr.recreator?.name
-
-      if (!acc[id]) {
-        acc[id] = { recreatorid: id, name, points: 0 }
-      }
-
-      acc[id].points += curr.pointsawarded
-      return acc
-    }, {} as Record<string, RankingEntry>)
-
-    const sorted: RankingEntry[] = Object.values(grouped as Record<string, RankingEntry>)
-      .sort((a, b) => b.points - a.points)
-
-    // write results back into the store and finish loading
-    set({ rankings: sorted, loading: false })
   },
 
   clearRankingPeriod: async () => {

@@ -418,6 +418,9 @@ export default function NewAppointmentPage() {
         const POINTS_OUT_OF_CITY_BONUS = 1
         const POINTS_REQUESTED_BONUS = 1
 
+        // Debugging: log selected/requested recreators and flags
+        console.debug('RANKING: selectedRecreatorIds', selectedRecreatorIds, 'requestedRecreatorIds', requestedRecreatorIds, 'outofcity', outofcity, 'responsibleRecreatorId', responsibleRecreatorId)
+
         // Build the set of present recreator ids (selectedRecreatorIds)
         const chosenRecreatorIds = new Set<string>()
         if (Array.isArray(selectedRecreatorIds) && selectedRecreatorIds.length > 0) {
@@ -433,7 +436,11 @@ export default function NewAppointmentPage() {
           requestedRecreatorIds.forEach((id) => reqSet.add(String(id)))
         }
 
-        const ids = Array.from(chosenRecreatorIds)
+        // Exclude recreators marked as organizer from scoring entirely
+        const ids = Array.from(chosenRecreatorIds).filter((rid) => {
+          const found = recreators.find((r) => String(r.id ?? r.recreatorid) === String(rid))
+          return !(found && (found as any).organizer === true)
+        })
         if (ids.length > 0) {
           const rows = ids.map((rid) => {
             let points = POINTS_BASE
@@ -452,12 +459,26 @@ export default function NewAppointmentPage() {
             }
           })
 
-          // batch insert into RankingEventDetail (RLS must allow insert from authenticated users)
-          const { error: rankError } = await supabase.from('RankingEventDetail').insert(rows)
-          if (rankError) {
-            console.warn('Failed to insert ranking rows for appointment', createdId, rankError)
-          } else {
-            console.debug('Inserted ranking rows for appointment', createdId, rows.length, rows)
+          // Debugging: show rows we will insert
+          console.debug('RANKING: prepared rows for insert', { createdId, rows })
+
+          // send rows to server endpoint that uses the service role key to insert (avoids RLS issues)
+          try {
+            const res = await fetch('/api/appointments/ranking', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ rows }),
+            })
+            const json = await res.json()
+            if (!res.ok) {
+              console.error('Failed to insert ranking rows (server):', json)
+              toast.error('Não foi possível registrar pontos (ver console). ' + (json?.error ?? ''))
+            } else {
+              console.debug('Inserted ranking rows for appointment (server)', createdId, json.inserted ?? 0, rows)
+            }
+          } catch (err) {
+            console.error('Failed to call ranking endpoint', err)
+            toast.error('Erro ao registrar pontos (ver console).')
           }
         }
       } catch (e) {
@@ -641,8 +662,7 @@ export default function NewAppointmentPage() {
                 <Label htmlFor="outofcity" className="text-sm whitespace-nowrap">Fora da cidade</Label>
               </div>
               <div className="flex items-center gap-2 w-4 mr-10">
-                <Checkbox id="ownerpresent" checked={ownerPresent} onCheckedChange={(v: boolean) => setOwnerPresent(Boolean(v))} className="shrink-0" />
-                <Label htmlFor="ownerpresent" className="text-sm whitespace-nowrap">Dono presente no evento?</Label>
+               
               </div>
             </div>
 

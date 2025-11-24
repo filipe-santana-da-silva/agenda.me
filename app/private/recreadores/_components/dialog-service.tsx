@@ -21,6 +21,8 @@ import {
 
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 
 import { useDialogRecreatorForm, DialogRecreatorFormData } from './dialog-recreator-form'
@@ -133,12 +135,16 @@ export function DialogService({
             <FormItem>
               <FormLabel>Tamanho do uniforme</FormLabel>
               <FormControl>
-                <select {...field} className="w-full border rounded px-3 py-2">
-                  <option value="">-- selecione --</option>
-                  {['PP','P','M','G','GG'].map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                <Select onValueChange={(v) => field.onChange(v || '')} defaultValue={field.value ?? ''}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="-- selecione --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['PP','P','M','G','GG'].map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -156,6 +162,18 @@ export function DialogService({
             <FormItem>
               <FormLabel>Observação</FormLabel>
               <FormControl><Input {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+
+          <FormField control={form.control} name="organizer" render={({ field }) => (
+            <FormItem>
+              <div className="flex items-center gap-2">
+                <FormControl>
+                  <Checkbox checked={Boolean(field.value)} onCheckedChange={(v) => field.onChange(Boolean(v))} />
+                </FormControl>
+                <FormLabel className="m-0">Organizador</FormLabel>
+              </div>
               <FormMessage />
             </FormItem>
           )} />

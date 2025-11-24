@@ -21,6 +21,7 @@ const formSchema = z.object({
   uniformSize: z.string().optional(),
   notes: z.string().optional(),
   availabledays: z.array(z.string()).optional(), 
+  organizer: z.boolean().optional(),
 })
 
 type FormSchema = z.infer<typeof formSchema>
@@ -68,6 +69,7 @@ export async function updateRecreator(formData: FormSchema) {
         rg: formData.rg,
         cpf: formData.cpf,
         phone: formData.phone,
+        organizer: formData.organizer ?? false,
         pixKey: formData.pixKey ?? null,
         uniformSize: formData.uniformSize ?? null,
         address: formData.address,

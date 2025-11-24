@@ -5,6 +5,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
 import { Recreator } from './services-list'
 
 interface ViewRecreatorModalProps {
@@ -26,6 +27,12 @@ export function ViewRecreatorModal({ recreador }: ViewRecreatorModalProps) {
 
       <div className="space-y-2 text-sm">
         <p><strong>Nome:</strong> {recreador.name}</p>
+        <div className="flex items-center gap-2">
+          <strong>Organizador:</strong>
+          <Badge variant={recreador.organizer ? 'secondary' : 'outline'}>
+            {recreador.organizer ? 'Sim' : 'Não'}
+          </Badge>
+        </div>
         <div>
           <strong>Habilidades:</strong>
           <div className="mt-1 space-y-1">

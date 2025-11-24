@@ -21,7 +21,8 @@ const formSchema = z.object({
   pixKey: z.string().optional(),
   uniformSize: z.enum(['PP','P','M','G','GG'] as const).optional(),
   notes: z.string().optional(),
-  availabledays: z.array(z.string()).optional()
+  availabledays: z.array(z.string()).optional(),
+  organizer: z.boolean().optional(),
 })
 
 // ✅ Tipo inferido corretamente
@@ -51,6 +52,7 @@ export function useDialogRecreatorForm({ initialValues }: UseDialogRecreatorForm
       uniformSize: undefined,
       notes: '',
       availabledays: [],
+      organizer: false,
     },
   })
 }
