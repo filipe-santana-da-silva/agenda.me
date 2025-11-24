@@ -595,8 +595,8 @@ export default function NewAppointmentPage() {
               <Textarea value={eventaddress} onChange={(e) => setEventaddress(e.target.value)} className="mt-1 w-full" />
             </div>
 
-            <div className="flex flex-row justify-evenly mr-28 sm:flex-row gap-4 items-center w-auto">
-              <div className="flex items-center gap-2 w-4 mr-28">
+            <div className="flex flex-row justify-between mr-28 sm:flex-row gap-4 items-center w-auto">
+              <div className="flex items-center gap-2 w-4 mr-2">
                 <Checkbox id="outofcity" checked={outofcity} onCheckedChange={(v: boolean) => setOutOfCity(Boolean(v))} className="shrink-0" />
                 <Label htmlFor="outofcity" className="text-sm whitespace-nowrap">Fora da cidade</Label>
               </div>

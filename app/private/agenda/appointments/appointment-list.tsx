@@ -139,8 +139,38 @@ export function AppointmentsList({ times }: AppointmentListProps) {
     if (!data) return map
 
     for (const appointment of data) {
-      const durationHours = Number(appointment.durationhours) || (appointment.service?.duration ? (Number(appointment.service.duration) / 60) : 1)
+      // Map only by appointment start time so multiple appointments that start
+      // in the same slot stack under that slot. We do not duplicate the same
+      // appointment across subsequent 30min slots here.
+      const normalizedTime = (appointment.time || '').slice(0,5)
+      const startIndex = times.indexOf(normalizedTime)
+      if (startIndex !== -1) {
+        const key = times[startIndex]
+        if (!map[key]) map[key] = []
+        map[key].push(appointment)
+      }
+    }
+    return map
+  }, [data, times])
 
+  // coverageMap marks every slot that is occupied by an appointment's duration
+  // so we can visually indicate occupied slots even when the appointment
+  // doesn't start in that slot.
+  const coverageMap = useMemo(() => {
+    const map: Record<string, AppointmentWithService[]> = {}
+    if (!data) return map
+
+    // Iterate appointments sorted by start index so coverage order is stable
+    const sorted = [...data].sort((a, b) => {
+      const ta = (a.time || '').slice(0,5)
+      const tb = (b.time || '').slice(0,5)
+      const ia = times.indexOf(ta)
+      const ib = times.indexOf(tb)
+      return ia - ib
+    })
+
+    for (const appointment of sorted) {
+      const durationHours = Number(appointment.durationhours) || (appointment.service?.duration ? (Number(appointment.service.duration) / 60) : 1)
       const requiredSlot = Math.max(1, Math.ceil((durationHours || 0) * 2))
       const normalizedTime = (appointment.time || '').slice(0,5)
       const startIndex = times.indexOf(normalizedTime)
@@ -155,6 +185,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
         }
       }
     }
+
     return map
   }, [data, times])
 
@@ -223,93 +254,106 @@ export function AppointmentsList({ times }: AppointmentListProps) {
               times.map((slot, index) => {
                   const occupants = occupantMap[slot] ?? []
                   const hasOccupants = occupants.length > 0
+                  // Do not use a single slot background color. We'll color rows per-appointment instead.
                   const representative = occupants[0]
-                  const bgColor = hasOccupants
-                    ? COLORS[appointmentColors[representative.id] ?? -1] ?? 'transparent'
-                    : COLORS[availableColors[slot] ?? -1] ?? 'transparent'
 
                   return (
                     <div
                       key={slot + index}
                       className="w-full flex items-center py-2 border-t last:border-b relative"
-                      style={{ backgroundColor: bgColor }}
                     >
                       <div className="min-w-16 text-sm font-semibold ml-4">{slot}</div>
                       
                       <div className="absolute left-3 bottom-1 text-xs text-muted-foreground">
                         {representative?.created_by ? `Criado por: ${String(representative.created_by)}` : ''}
                       </div>
-                      {hasOccupants ? (
-                        <div className="grow text-sm flex flex-col">
-                          {occupants.map((occ, occIndex) => {
+                      <div className="grow text-sm flex flex-col space-y-2">
+                        {hasOccupants ? (
+                          // If there are starters in this slot, render them stacked and
+                          // do NOT mix in continued appointments that started earlier.
+                          occupants.map((occ, occIndex) => {
                             const isFirstSlot = occ.time === slot
+                            const anyOcc: any = occ as any
+                            const responsibleId = anyOcc.responsible_recreatorid || anyOcc.responsibleRecreatorId || anyOcc.responsible_recreator_id || anyOcc.recreatorid || null
+                            const resolvedFromMap = responsibleId ? (recreatorNameMap[String(responsibleId)] ?? null) : null
+                            const fallbackName = anyOcc.responsible_recreatorname || anyOcc.responsibleRecreatorName || anyOcc.responsible_recreator_name || anyOcc.recreatorname || anyOcc.recreator_name || null
+                            const responsibleName = resolvedFromMap || fallbackName
+
                             return (
-                              <div key={occ.id + '-' + occIndex} className="flex justify-between items-center py-1">
-                                <div className="flex items-center gap-2 font-semibold">
-                                  {occ.contractorname}
-                                  {isFirstSlot && (
-                                    <>
-                                      {
-                                        (() => {
-                                          const anyOcc: any = occ as any
-                                          const responsibleId = anyOcc.responsible_recreatorid || anyOcc.responsibleRecreatorId || anyOcc.responsible_recreator_id || anyOcc.recreatorid || null
-                                          const resolvedFromMap = responsibleId ? (recreatorNameMap[String(responsibleId)] ?? null) : null
-                                          const fallbackName = anyOcc.responsible_recreatorname || anyOcc.responsibleRecreatorName || anyOcc.responsible_recreator_name || anyOcc.recreatorname || anyOcc.recreator_name || null
-                                          const responsibleName = resolvedFromMap || fallbackName
-                                          return (
-                                            <div className="flex items-center gap-2">
-                                              <div className="text-sm text-gray-500 ">{occ.phone}</div>
-                                              {responsibleName ? <div className="text-sm text-gray-500">- {String(responsibleName)}</div> : null}
-                                            </div>
-                                          )
-                                        })()
-                                      }
-                                    </>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                               
-                                  {isFirstSlot && (
-                                    <>
-                                    <DialogTrigger asChild>
+                              <div
+                                key={occ.id + '-' + occIndex}
+                                className="w-full py-2 px-3 border-b last:border-b-0"
+                                style={{ backgroundColor: (appointmentColors[occ.id] !== undefined) ? (COLORS[appointmentColors[occ.id]] ?? 'transparent') : 'transparent' }}
+                              >
+                                <div className="flex justify-between items-center w-full">
+                                  <div className="flex flex-col">
+                                    <div className="font-semibold text-amber-900">{occ.contractorname}</div>
+                                    <div className="text-sm text-gray-600 mt-0.5">
+                                      {occ.phone}{responsibleName ? ` — ${String(responsibleName)}` : ''}
+                                      {occ.eventname ? <span className="text-sm text-gray-500 ml-2">{occ.eventname}</span> : null}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    {isFirstSlot && (
+                                      <>
+                                        <DialogTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setDetailAppointment(occ)}
+                                          >
+                                            <Eye className="w-4 h-4" />
+                                          </Button>
+                                        </DialogTrigger>
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          onClick={() => setDetailAppointment(occ)}
+                                          onClick={() => cycleColor(appointmentColors, setAppointmentColors, occ.id)}
+                                          title="Alterar cor"
                                         >
-                                          <Eye className="w-4 h-4" />
+                                          <Palette className="w-6 h-6" />
                                         </Button>
-                                      </DialogTrigger>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => cycleColor(appointmentColors, setAppointmentColors, occ.id)}
-                                        title="Alterar cor"
-                                      >
-                                        <Palette className="w-8 h-8" />
-                                      </Button>
-                                     
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => {
-                                        setToDeleteAppointment(occ)
-                                        setConfirmOpen(true)
-                                      }}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                    </>
-                                    
-                                  )}
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => {
+                                            setToDeleteAppointment(occ)
+                                            setConfirmOpen(true)
+                                          }}
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             )
-                          })}
-                        </div>
-                      ) : (
-                        <div className="grow text-sm text-gray-500">Disponível</div>
-                      )}
+                          })
+                        ) : (
+                       
+                          (() => {
+                            const covered = coverageMap[slot] ?? []
+                            if (covered.length === 0) return <div className="text-sm text-gray-500">Disponível</div>
+                            return (
+                              <div className="flex flex-col space-y-1">
+                                {covered.map((c) => (
+                                  <div key={`cov-${c.id}`} className="w-full py-2 px-3 border-b last:border-b-0" style={{ backgroundColor: (appointmentColors[c.id] !== undefined) ? (COLORS[appointmentColors[c.id]] ?? 'transparent') : 'transparent' }}>
+                                    <div className="flex justify-between items-center w-full">
+                                      <div className="flex flex-col">
+                                        <div className="font-semibold text-amber-900">{c.contractorname} <span className="text-xs text-gray-500">(em andamento)</span></div>
+                                        <div className="text-sm text-gray-600 mt-0.5">{c.phone}</div>
+                                      </div>
+                                      <div style={{ width: 28, height: 28, borderRadius: 6, backgroundColor: (appointmentColors[c.id] !== undefined) ? (COLORS[appointmentColors[c.id]] ?? 'transparent') : 'transparent' }} />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )
+                          })()
+                        )}
+                      </div>
                     </div>
                   )
                 })
