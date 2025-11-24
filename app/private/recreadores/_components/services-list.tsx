@@ -29,6 +29,7 @@ import { ViewRecreatorModal } from './ViewRecreatorModal'
 export interface Recreator {
   id: string
   name: string
+  organizer?: boolean
   // New skills object containing level (0-5) for each specialty
   skills?: {
     recreacao: number
