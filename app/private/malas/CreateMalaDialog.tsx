@@ -30,8 +30,6 @@ export function CreateMalaDialog({ onCreated }: Props) {
     
     const nextNumber = (existingBags?.[0]?.number ?? 0) + 1
 
-    // The DB table `Bag` may not have a `name` column in some schemas.
-    // Insert only the `number` column which is required by the schema.
     const { error } = await supabase
       .from('Bag')
       .insert({ number: nextNumber })

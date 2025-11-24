@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { ChevronDown, ChevronUp, Trash2, Edit2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Trash2, Edit2, RotateCw } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Props {
   bagId: string
@@ -25,6 +26,9 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
   const [stockItems, setStockItems] = useState<{ id: string; name: string; quantity?: number }[]>([])
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null)
   const [editingQuantity, setEditingQuantity] = useState(1)
+  const [returnIndex, setReturnIndex] = useState<number | null>(null)
+  const [returnAmount, setReturnAmount] = useState<number>(1)
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -62,7 +66,10 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
       console.error('Erro ao buscar StockItems:', error.message)
       return
     }
-    if (data) setStockItems(data)
+    if (data) {
+      const safe = data.map((d: any) => ({ ...d, quantity: Math.max(0, d.quantity ?? 0) }))
+      setStockItems(safe)
+    }
   }
 
   async function handleAddItem() {
@@ -70,7 +77,15 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
 
     // find selected stock item quantity
     const stock = stockItems.find((s) => s.id === selectedItem)
-    const qtyToAdd = Math.max(1, Math.min(quantity, stock?.quantity ?? quantity))
+    const available = stock?.quantity ?? 0
+
+    // Do not allow adding if nothing is available
+    if (available <= 0) {
+      alert(`Quantidade insuficiente. Disponível: ${available}`)
+      return
+    }
+
+    const qtyToAdd = Math.max(1, Math.min(quantity, available))
 
     try {
       const { error: addError } = await supabase
@@ -157,6 +172,162 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
     }
   }
 
+  async function handleReturnItem(index: number) {
+    const item = items[index]
+    if (!confirm(`Deseja devolver ${item.name} (x${item.quantity}) para o estoque?`)) return
+
+    try {
+      // Ensure we have the stockItemId. If missing, try to resolve by name/quantity.
+      let stockItemId = item.stockItemId
+      if (!stockItemId) {
+        const { data: bagEntries, error: fetchError } = await supabase
+          .from('_BagItems')
+          .select('stockItemId, quantity, stockItem:stockItemId (name)')
+          .eq('bagId', bagId)
+
+        if (fetchError) throw fetchError
+
+        const match = (bagEntries || []).find((b: any) => b.stockItem?.name === item.name && b.quantity === item.quantity)
+        if (!match) {
+          alert('Não foi possível localizar o item no banco de dados para devolver ao estoque.')
+          return
+        }
+
+        stockItemId = match.stockItemId
+      }
+
+      // Return quantity to stock: fetch current stock then update
+      const { data: stockData, error: stockFetchError } = await supabase
+        .from('StockItem')
+        .select('quantity')
+        .eq('id', stockItemId)
+        .limit(1)
+
+      if (stockFetchError) throw stockFetchError
+
+      const currentStock = (stockData && stockData[0] && stockData[0].quantity) ?? 0
+      const newStockQty = currentStock + item.quantity
+
+      const { error: updateError } = await supabase
+        .from('StockItem')
+        .update({ quantity: newStockQty })
+        .eq('id', stockItemId)
+
+      if (updateError) throw updateError
+
+      // Delete the bag item
+      const { error: deleteError } = await supabase
+        .from('_BagItems')
+        .delete()
+        .eq('bagId', bagId)
+        .eq('stockItemId', stockItemId)
+
+      if (deleteError) throw deleteError
+
+      fetchItems()
+      onAdded?.()
+      try {
+        toast.success(`Devolvido ${item.quantity} ${item.quantity > 1 ? 'itens' : 'item'} para o estoque`)
+      } catch (e) {
+        // swallow toast errors
+      }
+    } catch (err: any) {
+      console.error('Erro ao devolver item ao estoque:', err.message || err)
+      alert('Erro ao devolver item ao estoque: ' + (err.message || 'Tente novamente'))
+    }
+  }
+
+  async function handleConfirmPartialReturn(index: number) {
+    const item = items[index]
+    const amount = Math.max(1, Math.min(returnAmount, item.quantity))
+    if (!confirm(`Confirmar devolução de ${amount} de ${item.name} para o estoque?`)) return
+
+    try {
+      // Resolve stockItemId if missing
+      let stockItemId = item.stockItemId
+      if (!stockItemId) {
+        const { data: bagEntries, error: fetchError } = await supabase
+          .from('_BagItems')
+          .select('stockItemId, quantity, stockItem:stockItemId (name)')
+          .eq('bagId', bagId)
+
+        if (fetchError) throw fetchError
+
+        const match = (bagEntries || []).find((b: any) => b.stockItem?.name === item.name)
+        if (!match) {
+          alert('Não foi possível localizar o item no banco de dados para devolver ao estoque.')
+          return
+        }
+
+        stockItemId = match.stockItemId
+      }
+
+      // Update stock
+      const { data: stockData, error: stockFetchError } = await supabase
+        .from('StockItem')
+        .select('quantity')
+        .eq('id', stockItemId)
+        .limit(1)
+
+      if (stockFetchError) throw stockFetchError
+
+      const currentStock = (stockData && stockData[0] && stockData[0].quantity) ?? 0
+      const newStockQty = currentStock + amount
+
+      const { error: updateError } = await supabase
+        .from('StockItem')
+        .update({ quantity: newStockQty })
+        .eq('id', stockItemId)
+
+      if (updateError) throw updateError
+
+      // Update bag item quantity (subtract amount). If becomes <=0, delete it.
+      const { data: bagEntries, error: bagFetchError } = await supabase
+        .from('_BagItems')
+        .select('quantity')
+        .eq('bagId', bagId)
+        .eq('stockItemId', stockItemId)
+        .limit(1)
+
+      if (bagFetchError) throw bagFetchError
+
+      const bagQty = (bagEntries && bagEntries[0] && bagEntries[0].quantity) ?? item.quantity
+      const newBagQty = bagQty - amount
+
+      if (newBagQty > 0) {
+        const { error: updateBagError } = await supabase
+          .from('_BagItems')
+          .update({ quantity: newBagQty })
+          .eq('bagId', bagId)
+          .eq('stockItemId', stockItemId)
+
+        if (updateBagError) throw updateBagError
+      } else {
+        const { error: deleteError } = await supabase
+          .from('_BagItems')
+          .delete()
+          .eq('bagId', bagId)
+          .eq('stockItemId', stockItemId)
+
+        if (deleteError) throw deleteError
+      }
+
+      setReturnIndex(null)
+      setReturnAmount(1)
+      setReturnDialogOpen(false)
+      fetchItems()
+      onAdded?.()
+      try {
+        toast.success(`Devolvido ${amount} ${amount > 1 ? 'itens' : 'item'} para o estoque`)
+      } catch (e) {
+        // ignore
+      }
+    } catch (err: any) {
+      console.error('Erro ao devolver parcialmente item ao estoque:', err.message || err)
+      alert('Erro ao devolver item ao estoque: ' + (err.message || 'Tente novamente'))
+    }
+  }
+
   async function handleEditItem(index: number) {
     const item = items[index]
     setEditingItemIndex(index)
@@ -177,6 +348,23 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
         return
       }
 
+      // Read current stock first so we can validate before applying updates
+      const { data: stockData, error: stockFetchError } = await supabase
+        .from('StockItem')
+        .select('quantity')
+        .eq('id', stockItemId)
+        .limit(1)
+
+      if (stockFetchError) throw stockFetchError
+
+      const currentStock = (stockData && stockData[0] && stockData[0].quantity) ?? 0
+
+      // If increasing the bag quantity, ensure there's enough stock available
+      if (quantityDiff > 0 && currentStock < quantityDiff) {
+        alert(`Quantidade insuficiente em estoque. Disponível: ${currentStock}`)
+        return
+      }
+
       // Update bag item quantity by composite key
       const { error: updateError } = await supabase
         .from('_BagItems')
@@ -187,15 +375,6 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
       if (updateError) throw updateError
 
       // Update stock (subtract if increasing, add if decreasing)
-      const { data: stockData, error: stockFetchError } = await supabase
-        .from('StockItem')
-        .select('quantity')
-        .eq('id', stockItemId)
-        .limit(1)
-
-      if (stockFetchError) throw stockFetchError
-
-      const currentStock = (stockData && stockData[0] && stockData[0].quantity) ?? 0
       const newStockQty = currentStock - quantityDiff
 
       const { error: stockUpdateError } = await supabase
@@ -269,7 +448,7 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
 
   return (
     <>
-      <Card className="border-2 border-amber-800 shadow-md hover:shadow-lg transition-shadow bg-linear-to-br from-amber-50 to-orange-50">
+      <Card className="border-2 border-amber-800 shadow-md hover:shadow-lg transform transition-all duration-200 hover:scale-[1.01] motion-reduce:transform-none bg-linear-to-br from-amber-50 to-orange-50">
         <CardHeader className="pb-3 bg-amber-100 border-b border-amber-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -327,6 +506,21 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
                           <Badge variant="outline" className="bg-amber-600 text-white border-amber-700">
                             x{item.quantity}
                           </Badge>
+                          <div className="flex items-center">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setReturnIndex(index)
+                                setReturnAmount(1)
+                                setReturnDialogOpen(true)
+                              }}
+                              className="text-amber-800 hover:bg-amber-100 p-1 w-7 h-7 min-w-0 min-h-0 sm:w-9 sm:h-9"
+                              aria-label={`Iniciar devolução parcial de ${item.name}`}
+                            >
+                              <RotateCw className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </Button>
+                          </div>
                           <Button
                             size="sm"
                             variant="ghost"
@@ -368,8 +562,12 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
 
       {/* Modal for adding item */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogTitle>Adicionar item à mala</DialogTitle>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Adicionar item à mala</DialogTitle>
+            <DialogDescription>Escolha um item e a quantidade para adicionar. Contagens iniciam em 1 aqui.</DialogDescription>
+          </DialogHeader>
+
           <div className="pt-2 space-y-4">
             <div>
               <Label className="text-sm">Item</Label>
@@ -379,7 +577,7 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
               }} className="w-full border rounded px-3 py-2 mt-1">
                 <option value="">Selecione um item</option>
                 {stockItems.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name} (disponível: {item.quantity})</option>
+                  <option key={item.id} value={item.id}>{item.name} (disponível: {Math.max(0, item.quantity ?? 0)})</option>
                 ))}
               </select>
             </div>
@@ -390,12 +588,12 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
                 id="quantity"
                 type="number"
                 min={1}
-                max={selectedItem ? stockItems.find((s) => s.id === selectedItem)?.quantity : undefined}
+                max={selectedItem ? Math.max(0, stockItems.find((s) => s.id === selectedItem)?.quantity ?? 0) : undefined}
                 value={quantity}
                 onChange={(e) => {
                   const raw = parseInt(e.target.value) || 1
                   const stock = stockItems.find((s) => s.id === selectedItem)
-                  const max = stock?.quantity ?? raw
+                  const max = Math.max(0, stock?.quantity ?? raw)
                   const v = Math.max(1, Math.min(max, raw))
                   setQuantity(v)
                 }}
@@ -403,16 +601,60 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
                 disabled={!selectedItem}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {selectedItem ? `Máximo disponível: ${stockItems.find(s => s.id === selectedItem)?.quantity ?? '-'}` : 'Selecione um item para habilitar a quantidade'}
+                {selectedItem ? `Máximo disponível: ${Math.max(0, stockItems.find(s => s.id === selectedItem)?.quantity ?? 0)}` : 'Selecione um item para habilitar a quantidade'}
               </p>
             </div>
           </div>
 
-          <div className="mt-4 flex gap-2">
-            <Button onClick={handleAddItem} className="flex-1" disabled={!selectedItem || quantity <= 0}>Adicionar</Button>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAddItem} className="ml-2" disabled={!selectedItem || quantity <= 0}>Adicionar</Button>
+          </DialogFooter>
         </DialogContent>
+      </Dialog>
+
+      {/* Modal for partial return (responsive) */}
+      <Dialog open={returnDialogOpen} onOpenChange={(v) => {
+        setReturnDialogOpen(!!v)
+        if (!v) setReturnIndex(null)
+      }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Devolver item ao estoque</DialogTitle>
+              <DialogDescription>Selecione quantos itens deseja devolver para o estoque.</DialogDescription>
+            </DialogHeader>
+
+            <div className="pt-2 space-y-4">
+              <div>
+                <Label className="text-sm">Item</Label>
+                <div className="mt-1 text-amber-900 font-medium">{returnIndex !== null ? items[returnIndex]?.name : ''}</div>
+              </div>
+
+              <div>
+                <Label className="text-sm">Quantidade</Label>
+                <select
+                  value={String(returnAmount)}
+                  onChange={(e) => setReturnAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full border rounded px-3 py-2 mt-1"
+                >
+                  {Array.from({ length: returnIndex !== null ? items[returnIndex].quantity : 1 }).map((_, i) => {
+                    const v = i + 1
+                    return <option key={v} value={String(v)}>{v}</option>
+                  })}
+                </select>
+              </div>
+            </div>
+
+            <DialogFooter className="mt-4">
+              <Button
+                onClick={() => { if (returnIndex !== null) handleConfirmPartialReturn(returnIndex) }}
+                className="flex-1 bg-amber-600 text-white"
+              >
+                Devolver
+              </Button>
+              <Button variant="ghost" onClick={() => { setReturnDialogOpen(false); setReturnIndex(null) }}>Cancelar</Button>
+            </DialogFooter>
+          </DialogContent>
       </Dialog>
     </>
   )

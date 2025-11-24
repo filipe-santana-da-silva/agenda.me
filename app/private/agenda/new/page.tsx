@@ -58,20 +58,16 @@ export default function NewAppointmentPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // load contractors and recreators for selects
     let mounted = true
     async function load() {
       const supabase = createClient()
       try {
-        // Request full rows and normalize client-side to tolerate different column names
         const [cres, rres, bres] = await Promise.all([
           supabase.from("Contractor").select('*').order("createdat", { ascending: false }),
           supabase.from("Recreator").select('*').order("createdat", { ascending: false }),
           supabase.from("Bag").select('id, number').order('number', { ascending: true }),
         ])
 
-        // cres and rres are PostgrestResponse objects
-        // normalize into { id, name, phone, email }
         const normalize = (rows: any[] | null | undefined) => {
           if (!rows) return []
           return rows.map((r: any) => {
@@ -85,7 +81,6 @@ export default function NewAppointmentPage() {
 
         if (!mounted) return
         if ((cres as any).error) {
-          // eslint-disable-next-line no-console
           console.error('Erro ao buscar contratantes:', (cres as any).error)
           setContractors([])
         } else {
@@ -93,15 +88,12 @@ export default function NewAppointmentPage() {
         }
 
         if ((rres as any).error) {
-          // eslint-disable-next-line no-console
           console.error('Erro ao buscar recreadores:', (rres as any).error)
           setRecreators([])
         } else {
           setRecreators(normalize((rres as any).data))
         }
-        // bags
         if ((bres as any).error) {
-          // eslint-disable-next-line no-console
           console.error('Erro ao buscar malas:', (bres as any).error)
           setBags([])
         } else {
@@ -109,7 +101,6 @@ export default function NewAppointmentPage() {
           setBags(bagRows.map((b: any) => ({ ...b, id: String(b.id), name: `Mala ${b.number}` })))
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error("Erro ao buscar lists para selects:", err)
         setContractors([])
         setRecreators([])
@@ -121,7 +112,6 @@ export default function NewAppointmentPage() {
     }
   }, [])
 
-  // detect auth state to conditionally show creator name input
   useEffect(() => {
     let mounted = true
     async function checkSession() {
@@ -139,18 +129,13 @@ export default function NewAppointmentPage() {
     return () => { mounted = false }
   }, [])
 
-  // whenever a contractor is selected, auto-fill contact fields (phone)
   useEffect(() => {
     if (!contractorId) return
     const found = contractors.find((c) => String(c.id ?? c.contractorid) === String(contractorId))
     if (found) {
-      // always update phone reactively when contractor changes
       setPhone(found.phone ?? "")
 
-      // if event address is empty, prefill from contractor address when available
       if (!eventaddress && found.address) setEventaddress(found.address)
-
-      // always update the child name reactively from contractor data when available
       const candidate = (found as any).childname || (found as any).childName || (found as any).child_name || (found as any).child || null
       if (candidate) setChildname(String(candidate))
     }
@@ -178,7 +163,6 @@ export default function NewAppointmentPage() {
     const userId = sessionData?.session?.user?.id ?? null
     const userEmail = sessionData?.session?.user?.email ?? null
     try {
-      // basic validation
       const selectedContractor = contractors.find((c) => String(c.id ?? c.contractorid) === String(contractorId));
       if (!date || !time) {
         alert("Escolha data e hora")
@@ -214,14 +198,12 @@ export default function NewAppointmentPage() {
         return
       }
 
-      // when user is not authenticated, require creator name
       if (!userId && !creatorName.trim()) {
         alert('Informe seu nome para registrar quem criou o agendamento')
         setLoading(false)
         return
       }
 
-      // require attachments (comprovante e contrato)
       if (!proofFile || !contractFile) {
         if (!proofFile) setShowProofError(true)
         if (!contractFile) setShowContractError(true)
@@ -233,7 +215,6 @@ export default function NewAppointmentPage() {
       }
 
       const localDate = new Date(`${date}T${time}`)
-      // enforce closed 30-minute boundary (minutes === 00 or 30)
       if (![0, 30].includes(localDate.getMinutes())) {
         alert("Escolha horário em intervalos de 30 minutos (ex: 15:00 ou 15:30)")
         setLoading(false)
@@ -267,13 +248,6 @@ export default function NewAppointmentPage() {
         }
       }
 
-
-  // selectedContractor já definido acima
-
-  // determine creator name to store:
-  // Prefer the profile `User.name` (the name the user entered at login) when the user is authenticated.
-  // If that's not available, fall back to session metadata (full_name/name) or email.
-  // If unauthenticated, use the explicit `creatorName` input.
   let creatorFromSession: string | null = null
 
   if (userId) {
@@ -283,7 +257,6 @@ export default function NewAppointmentPage() {
         creatorFromSession = (profile as any).name
       }
     } catch (e) {
-      // ignore profile read errors
     }
   }
 
@@ -301,10 +274,8 @@ export default function NewAppointmentPage() {
         childagegroup,
         contractorid: contractorId,
         contractorname: selectedContractor?.name ?? null,
-        // some schemas still require `address` (legacy). Prefer contractor address, fallback to eventaddress.
         address: selectedContractor?.address ?? eventaddress ?? null,
         phone,
-        // Appointment.email is NOT NULL in some schemas: prefer contractor email, then authenticated user email, else empty string
         email: selectedContractor?.email ?? userEmail ?? "",
         eventaddress,
         outofcity,
@@ -312,18 +283,14 @@ export default function NewAppointmentPage() {
         bagid: selectedBagId,
         responsible_recreatorid: responsibleRecreatorId,
         userid: userId,
-        // creator name if provided (saved to appointment.created_by)
         created_by: creatorForDb,
       }
 
-      // optional fields - include if available
       if (proof_url) payloadAny.proof_url = proof_url
       if (contract_url) payloadAny.contract_url = contract_url
-      // include recreators selection (multi) and single requested recreator
   if (selectedRecreatorIds && selectedRecreatorIds.length > 0) payloadAny.recreator_ids = selectedRecreatorIds
   if (recreatorRequested && selectedRecreatorId) payloadAny.recreatorid = selectedRecreatorId
 
-      // Insert appointment base record first (avoid schema issues when optional columns differ).
     const basePayload: any = {
       appointmentdate,
       eventname: eventName || null,
@@ -340,14 +307,8 @@ export default function NewAppointmentPage() {
         ownerpresent: ownerPresent,
         userid: userId,
         created_by: creatorForDb,
-        // color_index: will be set based on owner/recreator defaults below
       }
 
-      // Determine default color index according to rules:
-      // - if recreator requested by mother AND owner present -> index 0
-      // - else if recreator requested by mother -> index 2 (3rd color)
-      // - else if owner present -> index 1 (2nd color)
-      // - else -> no default color (store null -> white)
       let defaultColorIndex: number | null = null
       const hasRequestedRecreator = Boolean(recreatorRequested && selectedRecreatorId)
       if (hasRequestedRecreator && ownerPresent) defaultColorIndex = 0
@@ -357,10 +318,8 @@ export default function NewAppointmentPage() {
 
       if (defaultColorIndex !== null) basePayload.color_index = defaultColorIndex
 
-      // Create the appointment and request a single returned row to get a stable shape
       const { data: insertData, error: insertError } = await supabase.from('Appointment').insert(basePayload).select('id').single()
       if (insertError) {
-        // If insert fails, surface the error
         console.error('Appointment insert error:', insertError)
         throw insertError
       }
@@ -371,24 +330,19 @@ export default function NewAppointmentPage() {
         throw new Error('Failed to determine created appointment id')
       }
 
-      // If there are optional fields (proof_url, contract_url, recreators, bag, responsible), update the row
       const updates: any = {}
       if (proof_url) updates.proof_url = proof_url
       if (contract_url) updates.contract_url = contract_url
       if (selectedRecreatorIds && selectedRecreatorIds.length > 0) updates.recreator_ids = selectedRecreatorIds
       if (recreatorRequested && selectedRecreatorId) updates.recreatorid = selectedRecreatorId
-      // requested_recreator_ids column removed in favor of join table
       if (selectedBagId) updates.bagid = selectedBagId
       if (responsibleRecreatorId) updates.responsible_recreatorid = responsibleRecreatorId
-      // only set ownerpresent if true or false explicitly
       if (typeof ownerPresent !== 'undefined') updates.ownerpresent = ownerPresent
 
       if (Object.keys(updates).length > 0) {
         console.debug('Updating appointment', createdId, 'with optional fields', updates)
-        // request the updated row back so we can inspect written columns immediately
   const { data: updatedRow, error: updateError } = await supabase.from('Appointment').update(updates).eq('id', createdId).select('id, proof_url, contract_url, recreator_ids, bagid, color_index').single()
         if (updateError) {
-          // Log but don't block navigation — the appointment exists; user can edit later
           console.error('Failed to update appointment optional fields:', updateError)
         } else {
           console.debug('Updated appointment optional fields successfully ->', updatedRow)
@@ -397,7 +351,6 @@ export default function NewAppointmentPage() {
         console.debug('No optional fields to update for appointment', createdId)
       }
 
-      // Persist requested recreators in the join table (many-to-many)
       try {
         if (requestedRecreatorIds && requestedRecreatorIds.length > 0) {
           const rows = requestedRecreatorIds.map((rid) => ({ appointment_id: createdId, recreator_id: rid }))
@@ -408,27 +361,18 @@ export default function NewAppointmentPage() {
         console.error('Error saving requested recreators relations:', err)
       }
 
-      // --- RANKING: award points to selected recreators at creation time ---
       try {
-        // New scoring rules requested:
-        // - 1 point for every recreator present in the appointment (selectedRecreatorIds)
-        // - If out of city -> everyone present gets +1 (but responsible gets no additional points)
-        // - Each recreator requested by the mother gets +1 (but responsible gets no additional points)
         const POINTS_BASE = 1
         const POINTS_OUT_OF_CITY_BONUS = 1
         const POINTS_REQUESTED_BONUS = 1
 
-        // Debugging: log selected/requested recreators and flags
         console.debug('RANKING: selectedRecreatorIds', selectedRecreatorIds, 'requestedRecreatorIds', requestedRecreatorIds, 'outofcity', outofcity, 'responsibleRecreatorId', responsibleRecreatorId)
 
-        // Build the set of present recreator ids (selectedRecreatorIds)
         const chosenRecreatorIds = new Set<string>()
         if (Array.isArray(selectedRecreatorIds) && selectedRecreatorIds.length > 0) {
           selectedRecreatorIds.forEach((id) => chosenRecreatorIds.add(String(id)))
         }
 
-        // It's possible the responsible recreator is considered separately; ensure we do not accidentally
-        // grant them bonus points. We'll still award base points only if they also appear in the present list.
         const responsibleId = responsibleRecreatorId ? String(responsibleRecreatorId) : null
 
         const reqSet = new Set<string>()
@@ -436,7 +380,6 @@ export default function NewAppointmentPage() {
           requestedRecreatorIds.forEach((id) => reqSet.add(String(id)))
         }
 
-        // Exclude recreators marked as organizer from scoring entirely
         const ids = Array.from(chosenRecreatorIds).filter((rid) => {
           const found = recreators.find((r) => String(r.id ?? r.recreatorid) === String(rid))
           return !(found && (found as any).organizer === true)
@@ -445,10 +388,8 @@ export default function NewAppointmentPage() {
           const rows = ids.map((rid) => {
             let points = POINTS_BASE
 
-            // Add out-of-city bonus to everyone except the responsible recreator
             if (outofcity && String(rid) !== responsibleId) points += POINTS_OUT_OF_CITY_BONUS
 
-            // Add requested-by-mother bonus if this recreator was requested (and is not the responsible)
             if (reqSet.has(String(rid)) && String(rid) !== responsibleId) points += POINTS_REQUESTED_BONUS
 
             return {
@@ -459,10 +400,9 @@ export default function NewAppointmentPage() {
             }
           })
 
-          // Debugging: show rows we will insert
+         
           console.debug('RANKING: prepared rows for insert', { createdId, rows })
 
-          // send rows to server endpoint that uses the service role key to insert (avoids RLS issues)
           try {
             const res = await fetch('/api/appointments/ranking', {
               method: 'POST',
@@ -487,7 +427,6 @@ export default function NewAppointmentPage() {
 
       router.push('/private/agenda')
     } catch (err: any) {
-      // eslint-disable-next-line no-console
       console.error("Erro ao criar agendamento:", err)
       alert("Erro ao criar agendamento. Veja console para detalhes.")
     } finally {
@@ -707,7 +646,6 @@ export default function NewAppointmentPage() {
               </div>
             </div>
 
-            {/* Creator name input only visible when user is not authenticated */}
             {isAuthenticated === false && (
               <div>
                 <Label>Seu nome</Label>

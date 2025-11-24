@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { createClient } from '@/utils/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,13 +38,13 @@ export type AppointmentWithService = {
   phone: string
   email: string
   name: string
-  time: string // calculado no backend ou derivado
+  time: string 
   service: {
     duration: number
     name: string
     price: number
   }
-  // optional normalized fields (may be null)
+
   proof_url?: string | null
   contract_url?: string | null
   eventname?: string | null
@@ -53,7 +54,7 @@ export type AppointmentWithService = {
   responsible_recreatorid?: string | null
   ownerpresent?: boolean
   eventaddress?: string | null
-  // additional fields captured at creation
+  
   childagegroup?: string | null
   address?: string | null
   outofcity?: boolean | null
@@ -80,7 +81,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
   const [appointmentColors, setAppointmentColors] = useState<Record<string, number>>({})
   const [availableColors, setAvailableColors] = useState<Record<string, number>>({})
 
-  // (initialization moved below after data is loaded)
+  
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['get-appointments', date],
@@ -95,28 +96,51 @@ export function AppointmentsList({ times }: AppointmentListProps) {
     refetchInterval: 30000,
   })
 
-  // initialize appointmentColors from server data when available
-  // populate with the stored color_index for each appointment (if present)
+  const { data: recreators, isLoading: recreatorsLoading } = useQuery({
+    queryKey: ['recreators-map'],
+    queryFn: async () => {
+      try {
+        const supabase = createClient()
+        const { data: rows, error } = await supabase.from('Recreator').select('id, name')
+        if (error) throw error
+        return rows ?? []
+      } catch (e) {
+        console.error('Failed to load recreators for name map', e)
+        return []
+      }
+    },
+    staleTime: 60_000,
+  })
+
+  const recreatorNameMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    if (!recreators) return map
+    for (const r of recreators as any[]) {
+      if (r && r.id) map[String(r.id)] = r.name ?? ''
+    }
+    return map
+  }, [recreators])
+
   useMemo(() => {
     if (!data) return
-    // only initialize once when appointmentColors is empty
+   
     if (Object.keys(appointmentColors).length > 0) return
     const map: Record<string, number> = {}
     for (const a of data) {
       if (typeof a.color_index === 'number') map[String(a.id)] = a.color_index
     }
     if (Object.keys(map).length > 0) setAppointmentColors(map)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [data])
 
-  // Map each time slot to an array of appointments (allow multiple appointments per slot)
+  
   const occupantMap = useMemo(() => {
     const map: Record<string, AppointmentWithService[]> = {}
     if (!data) return map
 
     for (const appointment of data) {
       const durationHours = Number(appointment.durationhours) || (appointment.service?.duration ? (Number(appointment.service.duration) / 60) : 1)
-      // convert duration (hours) to number of 30-minute slots
+
       const requiredSlot = Math.max(1, Math.ceil((durationHours || 0) * 2))
       const normalizedTime = (appointment.time || '').slice(0,5)
       const startIndex = times.indexOf(normalizedTime)
@@ -140,7 +164,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
       toast.error(response.error)
       return
     }
-    // Invalidate the date-scoped appointments query so the list refreshes correctly
+   
     queryClient.invalidateQueries({ queryKey: ['get-appointments', date] })
     await refetch()
     toast.success(response.data)
@@ -154,9 +178,9 @@ export function AppointmentsList({ times }: AppointmentListProps) {
   }
 
   async function cycleColor(map: Record<string, number>, setMap: React.Dispatch<React.SetStateAction<Record<string, number>>>, key: string) {
-    // compute next index
+   
     const next = (map[key] ?? -1) + 1 >= COLORS.length ? 0 : (map[key] ?? -1) + 1
-    // optimistically update UI
+    
     setMap(prev => ({ ...prev, [key]: next }))
 
     try {
@@ -168,7 +192,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
       const jb = await res.json()
       if (!res.ok || jb?.error) {
         console.error('Failed to persist appointment color_index', jb?.error ?? jb)
-        // revert optimistic update
+      
         setMap(prev => ({ ...prev, [key]: map[key] ?? -1 }))
         toast.error('Falha ao salvar cor do agendamento')
       } else {
@@ -211,13 +235,12 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                       style={{ backgroundColor: bgColor }}
                     >
                       <div className="min-w-16 text-sm font-semibold ml-4">{slot}</div>
-                      {/* creator name (bottom-left) for the representative appointment in this slot */}
+                      
                       <div className="absolute left-3 bottom-1 text-xs text-muted-foreground">
                         {representative?.created_by ? `Criado por: ${String(representative.created_by)}` : ''}
                       </div>
                       {hasOccupants ? (
                         <div className="grow text-sm flex flex-col">
-                          {/* Render each appointment occupying this slot as a compact row */}
                           {occupants.map((occ, occIndex) => {
                             const isFirstSlot = occ.time === slot
                             return (
@@ -226,8 +249,21 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                                   {occ.contractorname}
                                   {isFirstSlot && (
                                     <>
-                                      <div className="text-sm text-gray-500 mr-2">{occ.phone}</div>
-                                      
+                                      {
+                                        (() => {
+                                          const anyOcc: any = occ as any
+                                          const responsibleId = anyOcc.responsible_recreatorid || anyOcc.responsibleRecreatorId || anyOcc.responsible_recreator_id || anyOcc.recreatorid || null
+                                          const resolvedFromMap = responsibleId ? (recreatorNameMap[String(responsibleId)] ?? null) : null
+                                          const fallbackName = anyOcc.responsible_recreatorname || anyOcc.responsibleRecreatorName || anyOcc.responsible_recreator_name || anyOcc.recreatorname || anyOcc.recreator_name || null
+                                          const responsibleName = resolvedFromMap || fallbackName
+                                          return (
+                                            <div className="flex items-center gap-2">
+                                              <div className="text-sm text-gray-500 ">{occ.phone}</div>
+                                              {responsibleName ? <div className="text-sm text-gray-500">- {String(responsibleName)}</div> : null}
+                                            </div>
+                                          )
+                                        })()
+                                      }
                                     </>
                                   )}
                                 </div>
@@ -283,7 +319,6 @@ export function AppointmentsList({ times }: AppointmentListProps) {
       </Card>
       <DialogAppointment appointment={detailAppointment} startEditing={startEditing} />
 
-      {/* Confirmation dialog for deleting an appointment */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>

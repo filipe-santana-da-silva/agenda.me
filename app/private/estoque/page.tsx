@@ -50,9 +50,12 @@ export default function EstoquePage() {
   }
 
   async function handleSaveQuantity(id: string) {
+    // Prevent negative quantities and ensure integer
+    const newQty = Math.max(0, Math.floor(editedQuantity || 0))
+
     const { error } = await supabase
       .from('StockItem')
-      .update({ quantity: editedQuantity })
+      .update({ quantity: newQty })
       .eq('id', id)
 
     if (!error) {
@@ -97,7 +100,8 @@ export default function EstoquePage() {
           type="number"
           placeholder="QUANTIDADE"
           value={quantity}
-          onChange={(e) => setQuantity(Number(e.target.value))}
+          min={0}
+          onChange={(e) => setQuantity(Math.max(0, Number(e.target.value) || 0))}
           className="border rounded px-3 py-2 w-full"
         />
       </div>
@@ -128,7 +132,8 @@ export default function EstoquePage() {
                     <input
                       type="number"
                       value={editedQuantity}
-                      onChange={(e) => setEditedQuantity(Number(e.target.value))}
+                      min={0}
+                      onChange={(e) => setEditedQuantity(Math.max(0, Number(e.target.value) || 0))}
                       className="border rounded px-2 py-1 w-20"
                     />
                     <button
