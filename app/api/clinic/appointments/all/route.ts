@@ -11,50 +11,56 @@ export async function GET(request: Request) {
 
     // Get date range (default to current month)
     const referenceDate = dateParam ? parseISO(dateParam) : new Date()
-    const monthStart = format(startOfMonth(referenceDate), "yyyy-MM-dd") + " 00:00:00"
+    const monthStart = format(startOfMonth(referenceDate), "yyyy-MM-dd")
     const monthEndDate = endOfMonth(referenceDate)
-    const nextDay = format(addDays(monthEndDate, 1), "yyyy-MM-dd")
-    const monthEnd = nextDay + " 00:00:00"
+    const monthEnd = format(monthEndDate, "yyyy-MM-dd")
 
-    console.log('Date filter - monthStart:', monthStart, 'monthEnd:', monthEnd)
+    console.log('Fetching appointments for month:', monthStart, 'to', monthEnd)
 
-    // First, try fetching ALL appointments to check if any exist
-    const { data: allData, error: allError } = await supabase
-      .from('Appointment')
-      .select('id, appointmentdate', { count: 'exact' })
-      .limit(5)
-      .order('appointmentdate', { ascending: false })
-
-    console.log('All appointments sample:', allData, 'Error:', allError)
-
-    // Now query with date filter
+    // Fetch ALL appointments and filter in-memory
     const { data, error } = await supabase
       .from('Appointment')
-      .select('*', { count: 'exact' })
-      .gte('appointmentdate', monthStart)
-      .lt('appointmentdate', monthEnd)
+      .select('*')
       .order('appointmentdate', { ascending: true })
 
     if (error) {
-      console.error('Error fetching all appointments:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-      })
+      console.error('Error fetching all appointments:', error)
       return NextResponse.json(
-        { error: error.message || 'Database error', details: error.details },
+        { error: error.message || 'Database error' },
         { status: 500 }
       )
     }
 
-    console.log('Found', data?.length || 0, 'appointments from', monthStart, 'to', monthEnd)
-    if (data && data.length > 0) {
-      console.log('First appointment:', data[0])
+    // Filter appointments for the given month
+    const filtered = (data || []).filter((a: any) => {
+      if (!a.appointmentdate) return false
+      const appointmentStr = String(a.appointmentdate)
+      const dateOnly = appointmentStr.substring(0, 10) // Get YYYY-MM-DD part
+      return dateOnly >= monthStart && dateOnly <= monthEnd
+    })
+
+    console.log('Total appointments in DB:', data?.length || 0, 'Filtered for month:', filtered.length)
+
+    if (error) {
+      console.error('Error fetching all appointments:', error)
+      return NextResponse.json(
+        { error: error.message || 'Database error' },
+        { status: 500 }
+      )
     }
 
+    // Filter appointments for the given month
+    const filtered = (data || []).filter((a: any) => {
+      if (!a.appointmentdate) return false
+      const appointmentStr = String(a.appointmentdate)
+      const dateOnly = appointmentStr.substring(0, 10) // Get YYYY-MM-DD part
+      return dateOnly >= monthStart && dateOnly <= monthEnd
+    })
+
+    console.log('Total appointments in DB:', data?.length || 0, 'Filtered for month:', filtered.length)
+
     // Map appointments to the shape expected by the UI
-    const mapped = (data || []).map((a: any) => {
+    const mapped = (filtered || []).map((a: any) => {
       // appointmentdate is stored as "YYYY-MM-DD HH:mm:ss" in local timezone
       // Extract date and time without timezone conversion
       const appointmentStr = String(a.appointmentdate || '')
