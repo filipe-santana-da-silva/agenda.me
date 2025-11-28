@@ -46,7 +46,7 @@ export function SideBarDashboard({ children }: {children: React.ReactNode}){
                         <Image src={logoImg} alt="Logo da recreart" className="w-18 h-18" priority quality={100}/>
                     )}
                 </div>
-                <Button className="bg-gray-100 hover:bg-gray-50 text-zinc-900 self-end" onClick={() => setIsCollapsed(!isCollapsed)} aria-controls={collapsibleId}>
+                <Button className="bg-gray-100 hover:bg-gray-50 text-zinc-900 self-end" onClick={() => setIsCollapsed(!isCollapsed)} aria-controls={collapsibleId} suppressHydrationWarning>
                     {!isCollapsed ? <ChevronLeft className="w-12 h-12"/> : <ChevronRight className="w-12 h-12"/>}
                 </Button>
 
