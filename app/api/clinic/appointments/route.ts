@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
-import { formatISO, parseISO, addDays, format } from 'date-fns'
+import { format } from 'date-fns'
 
 export async function GET(request: Request) {
   try {
@@ -15,15 +15,11 @@ export async function GET(request: Request) {
 
     // Query appointments where appointmentdate is within the given day
     // Since appointmentdate is stored as "YYYY-MM-DD HH:mm:ss" in local timezone
-    const dayStart = `${date} 00:00:00`
-    const nextDay = format(addDays(parseISO(date), 1), "yyyy-MM-dd")
-    const dayEnd = `${nextDay} 00:00:00`
-
+    // We fetch all and filter in-memory because the database filtering doesn't work
+    // reliably with "timestamp without time zone" type
     const { data, error } = await supabase
       .from('Appointment')
       .select('*')
-      .gte('appointmentdate', dayStart)
-      .lt('appointmentdate', dayEnd)
       .order('appointmentdate', { ascending: true })
 
     if (error) {
@@ -31,8 +27,15 @@ export async function GET(request: Request) {
       return NextResponse.json([], { status: 500 })
     }
 
+    // Filter appointments in-memory by date
+    const filtered = (data || []).filter((a: any) => {
+      const appointmentStr = String(a.appointmentdate)
+      const dateOnly = appointmentStr.substring(0, 10) // "YYYY-MM-DD"
+      return dateOnly === date
+    })
+
     // Map appointments to the shape expected by the UI
-    const mapped = (data || []).map((a: any) => {
+    const mapped = (filtered || []).map((a: any) => {
       const dt = new Date(a.appointmentdate)
       return {
         id: a.id,
