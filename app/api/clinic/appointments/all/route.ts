@@ -41,24 +41,6 @@ export async function GET(request: Request) {
 
     console.log('Total appointments in DB:', data?.length || 0, 'Filtered for month:', filtered.length)
 
-    if (error) {
-      console.error('Error fetching all appointments:', error)
-      return NextResponse.json(
-        { error: error.message || 'Database error' },
-        { status: 500 }
-      )
-    }
-
-    // Filter appointments for the given month
-    const filtered = (data || []).filter((a: any) => {
-      if (!a.appointmentdate) return false
-      const appointmentStr = String(a.appointmentdate)
-      const dateOnly = appointmentStr.substring(0, 10) // Get YYYY-MM-DD part
-      return dateOnly >= monthStart && dateOnly <= monthEnd
-    })
-
-    console.log('Total appointments in DB:', data?.length || 0, 'Filtered for month:', filtered.length)
-
     // Map appointments to the shape expected by the UI
     const mapped = (filtered || []).map((a: any) => {
       // appointmentdate is stored as "YYYY-MM-DD HH:mm:ss" in local timezone
