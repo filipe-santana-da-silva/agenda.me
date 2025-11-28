@@ -1,18 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
-
-if (!SUPABASE_URL) console.warn('SUPABASE_URL not set')
-if (!SERVICE_ROLE_KEY) console.warn('SUPABASE_SERVICE_ROLE_KEY not set. This endpoint requires the service role key to run properly.')
+import { createClient } from '@/utils/supabase/server'
 
 export async function POST(request: Request) {
   try {
-    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: 'server not configured' }, { status: 500 })
-    }
-
     const body = await request.json()
     const id = String(body.id ?? '')
     const colorIndex = body.color_index
@@ -20,11 +10,38 @@ export async function POST(request: Request) {
     if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
     if (typeof colorIndex !== 'number') return NextResponse.json({ error: 'missing color_index' }, { status: 400 })
 
-    const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-      auth: { persistSession: false },
-    })
+    const supabase = await createClient()
 
-    const { data, error } = await supabaseAdmin.from('Appointment').update({ color_index: colorIndex }).eq('id', id).select('id, color_index').single()
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (!user || userError) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verify the appointment belongs to the user (RLS will also enforce this)
+    const { data: appointment, error: fetchError } = await supabase
+      .from('Appointment')
+      .select('id, userid')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !appointment) {
+      console.error('Appointment not found:', fetchError)
+      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 })
+    }
+
+    // Verify ownership (RLS will enforce this, but we verify for clarity)
+    if (appointment.userid !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // Update with authenticated client - RLS enforces row-level security
+    const { data, error } = await supabase
+      .from('Appointment')
+      .update({ color_index: colorIndex })
+      .eq('id', id)
+      .select('id, color_index')
+      .single()
 
     if (error) {
       console.error('Failed to update appointment color_index:', error)
@@ -37,5 +54,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: err?.message ?? String(err) }, { status: 500 })
   }
 }
-
-export const runtime = 'nodejs'

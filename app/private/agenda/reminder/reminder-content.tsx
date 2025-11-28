@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from "react"
+import dynamic from "next/dynamic"
 
 // Lightweight local Reminder type to avoid depending on generated prisma types
 // The app only uses `id` and `description` here, but we include a couple of
@@ -19,7 +20,11 @@ import { deleteReminder } from "../_actions/delete-reminder"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
-import { Reminderlist } from "./reminder-list"
+
+const Reminderlist = dynamic(() => import("./reminder-list").then(mod => mod.Reminderlist), {
+  ssr: false,
+  loading: () => <div className="p-2 text-sm text-muted-foreground">Carregando lembretes...</div>
+})
 
 interface ReminderListProps {
     reminder: ReminderItem[]
@@ -42,7 +47,8 @@ export function ReminderList({ reminder } : ReminderListProps){
             return
         }
         toast.success(response.data);
-        router.refresh();
+        // Force hard refresh to update reminders list
+        setTimeout(() => window.location.reload(), 500);
     }
     return(
         <div className="flex flex-col gap-3">

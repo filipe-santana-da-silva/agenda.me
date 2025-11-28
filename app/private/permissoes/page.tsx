@@ -17,8 +17,8 @@ export default function GerenciarPermissoes() {
   // store roleName for POST/PUT since admin endpoint accepts roleName
   const [roleName, setRoleName] = useState("")
   const [password, setPassword] = useState("")
-  // by default create an authentication account when creating a new user
-  const [createAuthAccount, setCreateAuthAccount] = useState(true)
+  // always create an authentication account when creating a new user
+  const createAuthAccount = true
   // roleName state stores selected role for RBAC
   const [editingEmail, setEditingEmail] = useState<string | null>(null)
   const [isSavingUser, setIsSavingUser] = useState(false)
@@ -140,7 +140,6 @@ export default function GerenciarPermissoes() {
       alert(editingEmail ? 'Usuário atualizado.' : 'Usuário criado com sucesso.')
   setEmail('')
   setPassword('')
-  setCreateAuthAccount(false)
   // nothing to clear for per-page permissions
       setEditingEmail(null)
       // refresh users from server
@@ -162,7 +161,6 @@ export default function GerenciarPermissoes() {
     setRoleName(u.role ?? '')
     try {
       // nothing else to load for editing besides roleName
-      setCreateAuthAccount(false)
     } catch (e) {
       console.error('handleEditUser unexpected', e)
       alert('Erro inesperado ao carregar permissões do papel do usuário')
@@ -195,7 +193,6 @@ export default function GerenciarPermissoes() {
 
   return (
     <div className="w-full h-full px-2 py-4 sm:px-6 sm:py-8 grid grid-cols-1 gap-4">
-      {/* Gerenciar permissões por usuário (CRUD) */}
       <Card className="p-3 sm:p-6">
         <CardHeader>
           <CardTitle className="text-lg sm:text-xl font-bold mb-4 text-center">Gerenciar Permissões (por Usuário)</CardTitle>
@@ -207,21 +204,12 @@ export default function GerenciarPermissoes() {
               className="w-full"
             />
             <Input
-              type={createAuthAccount ? "password" : "text"}
+              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={createAuthAccount ? "Senha para criar conta (min 6 caracteres)" : "(Opcional) senha para criar conta"}
+              placeholder="Senha para criar conta (min 6 caracteres)"
               className="w-full"
             />
-            <div className="flex items-center gap-2 sm:gap-3">
-              <input
-                id="createAuth"
-                type="checkbox"
-                checked={createAuthAccount}
-                onChange={(e) => setCreateAuthAccount(e.target.checked)}
-              />
-              <label htmlFor="createAuth" className="text-sm">Criar conta de autenticação (Supabase)</label>
-            </div>
           </div>
 
           <div className="mb-4">

@@ -1,32 +1,69 @@
-import { Appointment } from './appointments/appointment'
-import { Reminders } from './reminder/reminder'
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
 
-export default async function Agenda() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
+import { AgendaContentWrapper } from './_components/agenda-wrapper'
+import { ReminderList } from './reminder/reminder-content'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/utils/supabase/client'
 
-  if (error) {
-    console.error('Erro ao buscar usuário:', error.message)
+export default function Agenda() {
+  const [userId, setUserId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [reminders, setReminders] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const supabase = createClient()
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser()
+
+        if (error) {
+          console.error('Erro ao buscar usuário:', error.message)
+        }
+
+        const currentUserId = user?.id ?? null
+        setUserId(currentUserId)
+
+        // Fetch reminders if user exists
+        if (currentUserId) {
+          try {
+            const { data, error: remindersError } = await supabase
+              .from('Reminder')
+              .select('*')
+              .eq('userid', currentUserId)
+              .order('reminderdate', { ascending: true })
+
+            if (!remindersError) {
+              setReminders(data || [])
+            }
+          } catch (err) {
+            console.error('Error fetching reminders:', err)
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching user:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchUser()
+  }, [])
+
+  if (isLoading) {
+    return <p>Carregando...</p>
   }
 
-  const userId = user?.id ?? null
-
   if (!userId) {
-    // Keep behavior simple: show a friendly message when unauthenticated.
-    // Alternatively, you could redirect('/login') if you prefer automatic redirect.
     return <p>Usuário não autenticado.</p>
   }
 
   return (
     <div className="space-y-6">
-      <Appointment userId={userId} />
-      {/* Reminders placed directly under the appointments list */}
-      <Reminders userId={userId} />
+      <AgendaContentWrapper />
+      <ReminderList reminder={reminders} />
     </div>
   )
 }

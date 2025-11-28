@@ -18,15 +18,30 @@ export function Reminderlist({ closeDialog } : ReminderContentProps){
     const router = useRouter();
 
     async function onSubmit( formData: ReminderFormData){
-        const response = await createReminder({ description: formData.description})
-        
-        if(response.error){
-            toast.error(response.error)
-            return;
+        try {
+            const response = await createReminder({ description: formData.description})
+            
+            if(!response) {
+                toast.error('Resposta vazia do servidor')
+                return;
+            }
+
+            if(response.error){
+                toast.error(response.error)
+                return;
+            }
+
+            if(response.data) {
+                toast.success(response.data)
+                form.reset()
+                closeDialog();
+                // Force hard refresh to update reminders list
+                setTimeout(() => window.location.reload(), 500);
+            }
+        } catch (err) {
+            console.error('Error creating reminder:', err)
+            toast.error('Erro inesperado ao criar lembrete')
         }
-        toast.success(response.data)
-        router.refresh();
-        closeDialog();
     }
     return(
         <div className="grid gap-4 py-4">

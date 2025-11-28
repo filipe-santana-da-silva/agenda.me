@@ -77,7 +77,7 @@ export function SideBarDashboard({ children }: {children: React.ReactNode}){
                 )}
 
                 <Collapsible open={!isCollapsed}>
-                    <CollapsibleContent id={collapsibleId}>
+                    <CollapsibleContent id={collapsibleId} suppressHydrationWarning>
                             <nav className="flex flex-col gap-1 overflow-hidden">
                                 <span className="text-sm text-gray-400 font-medium mt-1 uppercase">Painel</span>
                                 {/* Use the already-declared `user` from the top of the component to avoid calling hooks inside render */}
@@ -115,13 +115,13 @@ export function SideBarDashboard({ children }: {children: React.ReactNode}){
                     <Sheet>
                         <div className="flex items-center gap-4">
                             <SheetTrigger asChild>
-                                <Button variant="outline" size="icon" className="md:hidden" onClick={() => setIsCollapsed(false)}>
+                                <Button variant="outline" size="icon" className="md:hidden" onClick={() => setIsCollapsed(false)} suppressHydrationWarning>
                                     <List className="w-5 h-5 ml-2"/>
                                 </Button>
                             </SheetTrigger>
                             <h1 className="text-base md:text-lg font-semibold">Menu Recreart</h1>
                         </div>
-                        <SheetContent id={mobileSheetId} side="left" className="sm:max-w-xs text-black">
+                        <SheetContent id={mobileSheetId} side="left" className="sm:max-w-xs text-black" suppressHydrationWarning>
                             <SheetTitle className=" text-base text-black font-semibold">Recreart</SheetTitle>
                             <SheetDescription>Menu administrativo</SheetDescription>
                             <nav className="grid gap-2 text-base pt-5 ">

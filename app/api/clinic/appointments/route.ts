@@ -36,6 +36,7 @@ export async function GET(request: Request) {
         id: a.id,
         appointmentdate: a.appointmentdate,
         durationhours: a.durationhours,
+          recreatorscount: a.recreatorscount ?? null,
         childname: a.childname,
         contractorname: a.contractorname,
         phone: a.phone,
@@ -63,6 +64,9 @@ export async function GET(request: Request) {
   created_by: a.created_by ?? a.creator_name ?? a.creatorname ?? a.createdby ?? null,
         createdat: a.createdat,
         updatedat: a.updatedat,
+        // payment fields (stored as integer cents in DB)
+        valor_pago: a.valor_pago ?? a.valor_pago_cents ?? null,
+        valor_a_pagar: a.valor_a_pagar ?? a.valor_a_pagar_cents ?? null,
         // derived fields
         time: format(dt, 'HH:mm'),
         name: a.childname || a.contractorname || '',

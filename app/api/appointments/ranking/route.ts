@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createClient as createServerClient } from '@/utils/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
@@ -17,6 +18,29 @@ export async function POST(request: Request) {
     const rows: any[] = Array.isArray(body.rows) ? body.rows : []
     const deleteAppointmentId: string | undefined = body.deleteAppointmentId
 
+    // Get authenticated user from server
+    const serverSupabase = await createServerClient()
+    const { data: { user }, error: userError } = await serverSupabase.auth.getUser()
+    
+    if (!user || userError) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // If deleting ranking for an appointment, verify user owns it
+    if (deleteAppointmentId) {
+      const { data: appointment, error: checkError } = await serverSupabase
+        .from('Appointment')
+        .select('id, userid')
+        .eq('id', deleteAppointmentId)
+        .single()
+
+      if (checkError || !appointment || appointment.userid !== user.id) {
+        console.error('User does not own appointment:', deleteAppointmentId)
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      }
+    }
+
+    // Use admin client for RankingEventDetail operations (required for system operations)
     const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     })

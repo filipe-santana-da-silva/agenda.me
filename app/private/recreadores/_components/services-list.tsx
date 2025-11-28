@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import {
   Dialog,
   DialogContent,
@@ -21,10 +22,14 @@ import { Button } from '@/components/ui/button'
 import { Pencil, Plus, X, Eye, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { DialogService } from './dialog-service'
 import { deleteRecreator } from '../_actions/delete-recreator'
 import { DialogRecreatorFormData } from './dialog-recreator-form'
 import { ViewRecreatorModal } from './ViewRecreatorModal'
+
+const DialogService = dynamic(() => import('./dialog-service').then(mod => mod.DialogService), { 
+  ssr: false,
+  loading: () => <div className="p-2 text-sm text-muted-foreground">Carregando...</div> 
+})
 
 export interface Recreator {
   id: string
@@ -160,6 +165,9 @@ export function RecreatorList({ recreadores }: RecreatorListProps) {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-h-[80vh] overflow-auto">
+                <DialogHeader>
+                  <DialogTitle className="sr-only">Adicionar Recreador</DialogTitle>
+                </DialogHeader>
                 <DialogService
                   closeModal={() => setIsDialogOpen(false)}
                   recreadorId={undefined}
@@ -212,6 +220,9 @@ export function RecreatorList({ recreadores }: RecreatorListProps) {
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-h-[80vh] overflow-auto">
+                        <DialogHeader>
+                          <DialogTitle className="sr-only">Visualizar Recreador</DialogTitle>
+                        </DialogHeader>
                         <ViewRecreatorModal recreador={recreator} onClose={() => {}} />
                       </DialogContent>
                     </Dialog>
@@ -222,14 +233,17 @@ export function RecreatorList({ recreadores }: RecreatorListProps) {
 
                     <Dialog open={!!editingRecreator} onOpenChange={() => setEditingRecreator(null)}>
                       <DialogContent className="max-h-[80vh] overflow-auto">
-                          {editingRecreator && (
-                            <DialogService
-                              closeModal={() => setEditingRecreator(null)}
-                              recreadorId={editingRecreator.id}
-                              initialValues={safeInitialValues}
-                            />
-                          )}
-                        </DialogContent>
+                        <DialogHeader>
+                          <DialogTitle className="sr-only">Editar Recreador</DialogTitle>
+                        </DialogHeader>
+                        {editingRecreator && (
+                          <DialogService
+                            closeModal={() => setEditingRecreator(null)}
+                            recreadorId={editingRecreator.id}
+                            initialValues={safeInitialValues}
+                          />
+                        )}
+                      </DialogContent>
                     </Dialog>
 
                     <Button variant="ghost" size="icon" onClick={() => handleDelete(recreator.id)}>

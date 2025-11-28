@@ -1,11 +1,5 @@
-import { Content } from "./_components/Content"
-import { Header } from "./_components/Header"
+import { ContratoContent } from './_components/contrato-content'
 
 export default async function Contratos(){
-    return (
-        <div>
-            <Header/>
-            <Content/>
-        </div>   
-    )
+    return <ContratoContent />
 }

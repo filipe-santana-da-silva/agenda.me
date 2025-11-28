@@ -5,12 +5,12 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 
 const formSchema = z.object({
-  reminderId: z.string().min(1, 'O id do lembrete é obrigatório')
+  appointmentId: z.string().min(1, 'O id do agendamento é obrigatório')
 })
 
 type FormSchema = z.infer<typeof formSchema>
 
-export async function deleteReminder(formData: FormSchema) {
+export async function deleteAppointment(formData: FormSchema) {
   try {
     const supabase = await createClient()
     const schema = formSchema.safeParse(formData)
@@ -30,30 +30,28 @@ export async function deleteReminder(formData: FormSchema) {
       }
     }
 
-    console.log('Deletando lembrete com id:', formData.reminderId)
-    const { data, error: deleteError } = await supabase
-      .from('Reminder')
+    const { error: deleteError } = await supabase
+      .from('Appointment')
       .delete()
-      .eq('id', formData.reminderId)
+      .eq('id', schema.data.appointmentId)
       .eq('userid', userData.user.id)
-      .select()
 
     if (deleteError) {
       console.error('Delete error:', deleteError)
       return {
-        error: `Erro ao deletar: ${deleteError.message}`
+        error: 'Erro ao deletar agendamento'
       }
     }
 
     revalidatePath('/private/agenda')
 
     return {
-      data: 'Lembrete deletado com sucesso!'
+      data: 'Agendamento deletado com sucesso'
     }
-  } catch (err) {
-    console.error('Unexpected error deleting reminder:', err)
+  } catch (error) {
+    console.error('Unexpected error:', error)
     return {
-      error: `Erro inesperado: ${err instanceof Error ? err.message : 'Não foi possível deletar'}`
+      error: 'Erro ao deletar agendamento'
     }
   }
 }

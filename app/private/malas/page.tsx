@@ -1,14 +1,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/utils/supabase/client'
-import { MalaCard } from './malacard'
-import { CreateMalaDialog } from './CreateMalaDialog'
+
+const MalaCard = dynamic(() => import('./malacard').then(mod => mod.MalaCard), { 
+  ssr: false,
+  loading: () => <div className="p-2 text-sm text-muted-foreground">Carregando...</div> 
+})
+
+const CreateMalaDialog = dynamic(() => import('./CreateMalaDialog').then(mod => mod.CreateMalaDialog), { 
+  ssr: false,
+  loading: () => <div className="p-2 text-sm text-muted-foreground">Carregando...</div> 
+})
 
 
 interface Bag {
   id: string
   number: number
+  name?: string
 }
 
 export default function MalasPage() {
@@ -23,7 +33,7 @@ export default function MalasPage() {
     const supabase = createClient()
     const { data, error } = await supabase
       .from('Bag')
-      .select('id, number')
+      .select('id, number, name')
       .order('number', { ascending: true })
 
     if (data && !error) {
@@ -45,7 +55,7 @@ export default function MalasPage() {
       ) : (
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {bags.map((bag) => (
-            <MalaCard key={bag.id} bagId={bag.id} number={bag.number} />
+            <MalaCard key={bag.id} bagId={bag.id} number={bag.number} name={bag.name} />
           ))}
         </div>
       )}

@@ -17,6 +17,11 @@ export function CreateMalaDialog({ onCreated }: Props) {
   const [loading, setLoading] = useState(false)
 
   async function handleCreate() {
+    if (!name.trim()) {
+      alert('Por favor, informe um nome para a mala')
+      return
+    }
+
     setLoading(true)
 
     const supabase = createClient()
@@ -32,7 +37,7 @@ export function CreateMalaDialog({ onCreated }: Props) {
 
     const { error } = await supabase
       .from('Bag')
-      .insert({ number: nextNumber })
+      .insert({ number: nextNumber, name: name.trim() })
 
     if (!error) {
       setOpen(false)
@@ -40,6 +45,7 @@ export function CreateMalaDialog({ onCreated }: Props) {
       onCreated?.()
     } else {
       console.error('Erro ao criar mala:', error)
+      alert('Erro ao criar mala: ' + error.message)
     }
 
     setLoading(false)

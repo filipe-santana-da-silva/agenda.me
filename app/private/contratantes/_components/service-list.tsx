@@ -1,14 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Pencil, Plus, X, Eye, Search } from 'lucide-react'
 import { toast } from 'sonner'
-import { DialogService } from './dialog-service'
 import { deleteContractor } from '../_actions/delete-service'
 import { formatDocumentValue } from '@/utils/formartDocument'
+
+const DialogService = dynamic(() => import('./dialog-service').then(mod => mod.DialogService), { 
+  ssr: false,
+  loading: () => <div className="p-2 text-sm text-muted-foreground">Carregando...</div> 
+})
 
 export interface Contractor {
   id: string

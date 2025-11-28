@@ -14,6 +14,7 @@ import { createClient } from '@/utils/supabase/client'
 import { uploadFileToBucket } from '@/utils/supabase/storage'
 import { UploadCloud } from 'lucide-react'
 import { toast } from 'sonner'
+ 
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -34,7 +35,9 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
     const formattedPrice = ap ? formatCurrancy((ap.service?.price ?? 0) / 100) : ''
 
   const [recreatorNames, setRecreatorNames] = useState<string[]>([])
+  const [recreatorIds, setRecreatorIds] = useState<string[]>([])
   const [requestedRecreatorNames, setRequestedRecreatorNames] = useState<string[]>([])
+  const [requestedRecreatorIds, setRequestedRecreatorIds] = useState<string[]>([])
   const [responsibleName, setResponsibleName] = useState<string | null>(null)
   const [bagName, setBagName] = useState<string | null>(null)
   const [creatorDisplayName, setCreatorDisplayName] = useState<string | null>(ap?.created_by ?? null)
@@ -63,6 +66,10 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
     outofcity: ap?.outofcity ?? false,
     ownerpresent: ap?.ownerpresent ?? false,
     durationhours: ap?.durationhours ?? 1,
+    recreatorscount: typeof ap?.recreatorscount === 'undefined' ? null : ap?.recreatorscount ?? null,
+    // currency fields stored as integer cents in DB; editable keeps string in reais for user input
+    valor_pago: typeof ap?.valor_pago === 'undefined' ? null : (ap?.valor_pago != null ? String(Number(ap.valor_pago) / 100) : null),
+    valor_a_pagar: typeof ap?.valor_a_pagar === 'undefined' ? null : (ap?.valor_a_pagar != null ? String(Number(ap.valor_a_pagar) / 100) : null),
     created_by: ap?.created_by ?? null,
     requestedbymother: typeof ap?.requestedbymother !== 'undefined' ? ap.requestedbymother : false,
     bagid: ap?.bagid ?? null,
@@ -89,6 +96,9 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
       outofcity: ap?.outofcity ?? false,
       ownerpresent: ap?.ownerpresent ?? false,
       durationhours: ap?.durationhours ?? 1,
+      recreatorscount: typeof ap?.recreatorscount === 'undefined' ? null : ap?.recreatorscount ?? null,
+      valor_pago: typeof ap?.valor_pago === 'undefined' ? null : (ap?.valor_pago != null ? String(Number(ap.valor_pago) / 100) : null),
+      valor_a_pagar: typeof ap?.valor_a_pagar === 'undefined' ? null : (ap?.valor_a_pagar != null ? String(Number(ap.valor_a_pagar) / 100) : null),
       created_by: ap?.created_by ?? null,
       recreator_ids: Array.isArray(ap?.recreator_ids) ? ap?.recreator_ids : (ap?.recreator_ids ? [ap.recreator_ids] : []),
       requested_recreator_ids: [],
@@ -105,10 +115,15 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
       try {
         const supabase = createClient()
         const ids: string[] = []
-        if (ap && ap.recreator_ids && Array.isArray(ap.recreator_ids)) {
-          for (const r of ap.recreator_ids) ids.push(String(r))
+        if (ap) {
+          if (Array.isArray(ap.recreator_ids)) {
+            for (const r of ap.recreator_ids) ids.push(String(r))
+          } else if (ap.recreator_ids) {
+            // single id stored as string -> normalize to array
+            ids.push(String(ap.recreator_ids))
+          }
+          if (ap.recreatorid) ids.push(String(ap.recreatorid))
         }
-        if (ap && ap.recreatorid) ids.push(String(ap.recreatorid))
 
         if (ids.length > 0) {
           const { data, error } = await supabase.from('Recreator').select('id, name').in('id', ids)
@@ -117,6 +132,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
             const map = new Map<string, string>()
             data.forEach((d: any) => map.set(String(d.id), d.name ?? String(d.id)))
             const names = ids.map((id) => map.get(String(id)) ?? id)
+            setRecreatorIds(ids)
             setRecreatorNames(names)
           }
         }
@@ -194,6 +210,8 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                 const reqIds = reqRows.map((r: any) => String(r.recreator_id))
                 // set editable requested ids for edit controls
                 setEditable((p: any) => ({ ...p, requested_recreator_ids: reqIds }))
+                // track requested ids separately so we can display them alongside present recreators
+                setRequestedRecreatorIds(reqIds)
                 if (reqIds.length > 0) {
                   const { data: reqNames } = await supabase.from('Recreator').select('id, name').in('id', reqIds)
                   if (mounted && Array.isArray(reqNames)) {
@@ -232,8 +250,8 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
   }, [appointment])
 
 
-  const isImage = (url?: string | null) => /\.(png|jpe?g|gif|webp)$/i.test(String(url ?? ''))
-  const isPdf = (url?: string | null) => /\.pdf$/i.test(String(url ?? ''))
+  const isImage = (url?: string | null) => /\.(png|jpe?g|gif|webp)(\?|#|$)/i.test(String(url ?? ''))
+  const isPdf = (url?: string | null) => /\.pdf(\?|#|$)/i.test(String(url ?? ''))
 
   // Save edited appointment fields
   async function handleSaveEdits() {
@@ -262,6 +280,9 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
       outofcity: Boolean(editable.outofcity),
       ownerpresent: Boolean(editable.ownerpresent),
       durationhours: Number(editable.durationhours) || 1,
+      recreatorscount: (editable.recreatorscount === null || editable.recreatorscount === '') ? null : Math.max(0, Number(editable.recreatorscount) || 0),
+      valor_pago: (editable.valor_pago === null || editable.valor_pago === '') ? null : Math.round(Number(editable.valor_pago) * 100),
+      valor_a_pagar: (editable.valor_a_pagar === null || editable.valor_a_pagar === '') ? null : Math.round(Number(editable.valor_a_pagar) * 100),
       created_by: editable.created_by ?? null,
       requestedbymother: Boolean(editable.requestedbymother),
       bagid: editable.bagid ?? null,
@@ -319,8 +340,8 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
             .filter((id) => !organizerSet.has(String(id)))
             .map((rid) => {
               let points = POINTS_BASE
-              if (Boolean(editable.outofcity) && String(rid) !== String(responsibleId)) points += POINTS_OUT_OF_CITY_BONUS
-              if (reqIds.includes(String(rid)) && String(rid) !== String(responsibleId)) points += POINTS_REQUESTED_BONUS
+              if (Boolean(editable.outofcity)) points += POINTS_OUT_OF_CITY_BONUS
+              if (reqIds.includes(String(rid))) points += POINTS_REQUESTED_BONUS
               return {
                 recreatorid: rid,
                 appointmentid: ap.id,
@@ -442,15 +463,20 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                 <span className="font-semibold">Telefone: </span> {ap.phone}
               </p>
 
-              {ap.childagegroup && (
-                  <div className="text-sm text-muted-foreground">
-                    {editingMode ? (
-                      <input className="border rounded px-2 py-1 text-sm" value={editable.childagegroup ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, childagegroup: e.target.value }))} />
-                    ) : (
-                      ap.childagegroup
-                    )}
+              {(ap.childagegroup || editingMode) && (
+                  <div>
+                    <p className="text-sm font-semibold">Faixa etária da criança*: </p>
+                    <div className="text-sm text-muted-foreground">
+                      {editingMode ? (
+                        <input className="border rounded px-2 py-1 text-sm" value={editable.childagegroup ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, childagegroup: e.target.value }))} />
+                      ) : (
+                        ap.childagegroup
+                      )}
+                    </div>
                   </div>
               )}
+
+              {/* recreators count was moved below responsible recreator for layout */}
 
               <p>
                 <span className="font-semibold">Email: </span>
@@ -503,16 +529,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                 </p>
               )}
 
-              {typeof ap.ownerpresent !== 'undefined' && (
-                <p>
-                  <span className="font-semibold">Dono presente: </span>
-                  {editingMode ? (
-                    <input type="checkbox" className="ml-2" checked={Boolean(editable.ownerpresent)} onChange={(e) => setEditable((p: any) => ({ ...p, ownerpresent: e.target.checked }))} />
-                  ) : (
-                    ap.ownerpresent ? ' Sim' : ' Não'
-                  )}
-                </p>
-              )}
+              {/* 'Dono presente' field removed from dialog as requested */}
 
               <p>
                 <span className="font-semibold">Mala: </span>
@@ -531,6 +548,26 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                   bagName ?? ''
                 )}
               </p>
+
+              {/* Valores: valor pago / valor a pagar (reais) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                <div>
+                  <p className="text-sm font-semibold mb-1">Valor pago:</p>
+                  {editingMode ? (
+                    <input type="number" step="0.01" min="0" className="border rounded px-2 py-1 ml-0 text-sm w-full" value={editable.valor_pago ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, valor_pago: e.target.value === '' ? null : e.target.value }))} />
+                  ) : (
+                    <div className="text-sm text-muted-foreground">{(typeof ap?.valor_pago === 'undefined' || ap?.valor_pago === null) ? '(nenhum)' : formatCurrancy((ap.valor_pago ?? 0) / 100)}</div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold mb-1">Valor a pagar:</p>
+                  {editingMode ? (
+                    <input type="number" step="0.01" min="0" className="border rounded px-2 py-1 ml-0 text-sm w-full" value={editable.valor_a_pagar ?? ''} onChange={(e) => setEditable((p: any) => ({ ...p, valor_a_pagar: e.target.value === '' ? null : e.target.value }))} />
+                  ) : (
+                    <div className="text-sm text-muted-foreground">{(typeof ap?.valor_a_pagar === 'undefined' || ap?.valor_a_pagar === null) ? '(nenhum)' : formatCurrancy((ap.valor_a_pagar ?? 0) / 100)}</div>
+                  )}
+                </div>
+              </div>
 
               <div className="space-y-3 pt-2">
                 <div>
@@ -551,13 +588,29 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                   )}
                 </div>
 
+                  {/* Quantidade de recreadores: placed directly under responsible recreator */}
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Quantidade de recreadores:</p>
+                    {editingMode ? (
+                      <input
+                        type="number"
+                        min="0"
+                        className="border rounded px-2 py-1 ml-0 text-sm w-28"
+                        value={editable.recreatorscount === null ? '' : String(editable.recreatorscount)}
+                        onChange={(e) => setEditable((p: any) => ({ ...p, recreatorscount: e.target.value === '' ? null : e.target.value }))}
+                      />
+                    ) : (
+                      <div className="text-sm text-muted-foreground">{(typeof ap?.recreatorscount === 'undefined' || ap?.recreatorscount === null) ? '(nenhum)' : String(ap.recreatorscount)}</div>
+                    )}
+                  </div>
+
                 <div>
                     <p className="text-sm font-semibold mb-2">Recreadores presentes:</p>
                     {editingMode ? (
                       <div className="w-full border rounded px-2 py-2 h-40 overflow-auto">
                         {recreatorsList.map((r) => {
                           const id = String(r.id)
-                          const checked = Array.isArray(editable.recreator_ids) && editable.recreator_ids.includes(id)
+                          const checked = (Array.isArray(editable.recreator_ids) && editable.recreator_ids.includes(id)) || (Array.isArray(editable.requested_recreator_ids) && editable.requested_recreator_ids.includes(id))
                           return (
                             <div key={id} className="flex items-center gap-2 py-1">
                               <input type="checkbox" checked={checked} onChange={() => {
@@ -574,13 +627,27 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                       </div>
                     ) : (
                       <div className="text-sm text-muted-foreground">
-                        {recreatorNames
-                          .filter((name, idx) => {
-                            // Filter out the responsible recreator to avoid duplication
-                            const id = Array.isArray(ap?.recreator_ids) ? ap.recreator_ids[idx] : undefined
-                            return String(id) !== String(ap?.responsible_recreatorid)
-                          })
-                          .join(', ') || '(nenhum)'}
+                        {(() => {
+                          const pairs: Array<{ id: string; name: string }> = []
+                          const seen = new Set<string>()
+                          for (let i = 0; i < recreatorIds.length; i++) {
+                            const id = recreatorIds[i]
+                            const name = recreatorNames[i] ?? id
+                            if (!seen.has(id)) {
+                              seen.add(id)
+                              pairs.push({ id, name })
+                            }
+                          }
+                          for (let i = 0; i < requestedRecreatorIds.length; i++) {
+                            const id = requestedRecreatorIds[i]
+                            const name = requestedRecreatorNames[i] ?? id
+                            if (!seen.has(id)) {
+                              seen.add(id)
+                              pairs.push({ id, name })
+                            }
+                          }
+                          return (pairs.map(p => p.name).join(', ') || '(nenhum)')
+                        })()}
                       </div>
                     )}
                   </div>
@@ -784,6 +851,9 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                   outofcity: ap?.outofcity ?? false,
                   ownerpresent: ap?.ownerpresent ?? false,
                   durationhours: ap?.durationhours ?? 1,
+                  recreatorscount: typeof ap?.recreatorscount === 'undefined' ? null : ap?.recreatorscount ?? null,
+                  valor_pago: typeof ap?.valor_pago === 'undefined' ? null : (ap?.valor_pago != null ? String(Number(ap.valor_pago) / 100) : null),
+                  valor_a_pagar: typeof ap?.valor_a_pagar === 'undefined' ? null : (ap?.valor_a_pagar != null ? String(Number(ap.valor_a_pagar) / 100) : null),
                   created_by: ap?.created_by ?? null,
                   requestedbymother: typeof ap?.requestedbymother !== 'undefined' ? ap.requestedbymother : false,
                   bagid: ap?.bagid ?? null,

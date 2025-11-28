@@ -14,10 +14,11 @@ import { toast } from 'sonner'
 interface Props {
   bagId: string
   number: number
+  name?: string
   onAdded?: () => void
 }
 
-export function MalaCard({ bagId, number, onAdded }: Props) {
+export function MalaCard({ bagId, number, name, onAdded }: Props) {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<{ name: string; quantity: number; stockItemId: string }[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -94,7 +95,6 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
 
       if (addError) throw addError
 
-      // Subtract from stock
       const newStockQty = (stock?.quantity ?? 0) - qtyToAdd
       const { error: updateError } = await supabase
         .from('StockItem')
@@ -118,7 +118,6 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
     if (!confirm(`Tem certeza que deseja remover ${item.name}?`)) return
 
     try {
-      // Ensure we have the stockItemId. If missing, try to resolve by name/quantity.
       let stockItemId = item.stockItemId
       if (!stockItemId) {
         const { data: bagEntries, error: fetchError } = await supabase
@@ -452,7 +451,7 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
         <CardHeader className="pb-3 bg-amber-100 border-b border-amber-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <CardTitle className="text-lg font-bold text-amber-900">Mala {number}</CardTitle>
+              <CardTitle className="text-lg font-bold text-amber-900">{name || number}</CardTitle>
               <Badge variant="secondary" className="text-xs bg-amber-700 text-white">{items.length} itens</Badge>
             </div>
           </div>
@@ -560,7 +559,6 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
         )}
       </Card>
 
-      {/* Modal for adding item */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -613,7 +611,6 @@ export function MalaCard({ bagId, number, onAdded }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Modal for partial return (responsive) */}
       <Dialog open={returnDialogOpen} onOpenChange={(v) => {
         setReturnDialogOpen(!!v)
         if (!v) setReturnIndex(null)

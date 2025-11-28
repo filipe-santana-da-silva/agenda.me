@@ -2,9 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { Suspense } from 'react'
-import { Header } from './_components/Header'
-import { Content } from './_components/Content'
+import { RankingContent } from './_components/ranking-content'
 
 export default async function RankingPage() {
   const supabase = createClient()
@@ -16,10 +14,5 @@ export default async function RankingPage() {
     redirect('/')
   }
 
-  return (
-    <Suspense fallback={<div className="p-4 text-muted-foreground">Carregando ranking...</div>}>
-      <Header />
-      <Content />
-    </Suspense>
-  )
+  return <RankingContent />
 }

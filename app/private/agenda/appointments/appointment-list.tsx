@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/utils/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -22,7 +23,11 @@ import {
   DialogClose,
 } from '@/components/ui/dialog'
 import { useRouter } from 'next/navigation'
-import { DialogAppointment } from './dialog-appointment'
+
+const DialogAppointment = dynamic(() => import('./dialog-appointment').then(mod => mod.DialogAppointment), { 
+  ssr: false,
+  loading: () => <div className="p-4 text-sm text-muted-foreground">Carregando detalhes...</div> 
+})
 import { ButtonPickerAppointment } from './button-date'
 
 interface AppointmentListProps {
@@ -56,6 +61,7 @@ export type AppointmentWithService = {
   eventaddress?: string | null
   
   childagegroup?: string | null
+  recreatorscount?: number | null
   address?: string | null
   outofcity?: boolean | null
   requestedbymother?: boolean | null
@@ -63,6 +69,9 @@ export type AppointmentWithService = {
   createdat?: string | null
   color_index?: number | null
   created_by?: string | null
+  // payment fields (stored as integer cents)
+  valor_pago?: number | null
+  valor_a_pagar?: number | null
 }
 
 
@@ -92,8 +101,8 @@ export function AppointmentsList({ times }: AppointmentListProps) {
       const json = await response.json()
       return response.ok ? (json as AppointmentWithService[]) : []
     },
-    staleTime: 20000,
-    refetchInterval: 30000,
+    staleTime: 60000,
+    refetchInterval: 120000,
   })
 
   const { data: recreators, isLoading: recreatorsLoading } = useQuery({
@@ -105,7 +114,48 @@ export function AppointmentsList({ times }: AppointmentListProps) {
         if (error) throw error
         return rows ?? []
       } catch (e) {
-        console.error('Failed to load recreators for name map', e)
+        // Improve error visibility: log known supabase error fields and full object
+        try {
+          // Some errors from supabase are plain objects without enumerable properties
+          const safe = JSON.stringify(e, Object.getOwnPropertyNames(e), 2)
+          console.error('Failed to load recreators for name map — full error:', safe)
+        } catch (err) {
+          console.error('Failed to load recreators for name map (could not stringify error):', e)
+        }
+        // Also log env vars that the client uses (sanitized) to help debugging
+        try {
+          console.debug('NEXT_PUBLIC_SUPABASE_URL present?', Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL))
+          console.debug('NEXT_PUBLIC_SUPABASE_ANON_KEY present?', Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY))
+        } catch (err) {
+          // ignore in browser
+        }
+
+        // If the error indicates an expired JWT, clear the local session and prompt re-login.
+        // This helps recovery when the refresh token expired or auth state is invalid.
+        try {
+          const supabase = createClient()
+          const msg = String((e as any)?.message || '').toLowerCase()
+          if ((e as any)?.code === 'PGRST303' || msg.includes('jwt expired') || msg.includes('token expired')) {
+            console.warn('Detected expired JWT/session for Supabase — signing out local session and reloading.')
+            try {
+              await supabase.auth.signOut()
+            } catch (signOutErr) {
+              console.warn('supabase.auth.signOut() failed:', signOutErr)
+            }
+            try {
+              // Notify the user and reload so they'll be prompted to re-authenticate.
+              // `toast` is available in this module.
+              toast.error('Sessão expirada. Por favor, faça login novamente.')
+            } catch (tErr) {
+              // ignore toast failures
+            }
+            // reload page to clear any in-memory state and trigger auth flow
+            try { window.location.reload() } catch (rErr) { /* ignore */ }
+          }
+        } catch (err) {
+          // ignore
+        }
+
         return []
       }
     },
