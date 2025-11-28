@@ -301,8 +301,8 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
         // remove existing relations
         const { error: delErr } = await supabase.from('AppointmentRequestedRecreator').delete().eq('appointment_id', ap.id)
         if (delErr) console.error('Failed to delete old requested recreator relations', delErr)
-        // insert new relations from editable.requested_recreator_ids
-        const reqIds = Array.isArray(editable.requested_recreator_ids) ? editable.requested_recreator_ids : []
+        // insert new relations from editable.requested_recreator_ids only if requestedbymother is true
+        const reqIds = (editable.requestedbymother && Array.isArray(editable.requested_recreator_ids)) ? editable.requested_recreator_ids : []
         if (reqIds.length > 0) {
           const rows = reqIds.map((rid: string) => ({ appointment_id: ap.id, recreator_id: rid }))
           const { error: insErr } = await supabase.from('AppointmentRequestedRecreator').insert(rows)
@@ -319,7 +319,8 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
 
         // present recreators from editable state
         const presentIds: string[] = Array.isArray(editable.recreator_ids) ? editable.recreator_ids.map(String) : []
-        const reqIds: string[] = Array.isArray(editable.requested_recreator_ids) ? editable.requested_recreator_ids.map(String) : []
+        // Only include requested recreators if requestedbymother is true
+        const reqIds: string[] = (editable.requestedbymother && Array.isArray(editable.requested_recreator_ids)) ? editable.requested_recreator_ids.map(String) : []
 
         try {
           // Use server endpoint to delete old rows and insert new ones with service role
@@ -522,7 +523,15 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                 <p>
                   <span className="font-semibold">Recreador solicitado pela mãe: </span>
                   {editingMode ? (
-                    <input type="checkbox" className="ml-2" checked={Boolean(editable.requestedbymother)} onChange={(e) => setEditable((p: any) => ({ ...p, requestedbymother: e.target.checked }))} />
+                    <input type="checkbox" className="ml-2" checked={Boolean(editable.requestedbymother)} onChange={(e) => {
+                      const newValue = e.target.checked
+                      setEditable((p: any) => ({
+                        ...p,
+                        requestedbymother: newValue,
+                        // Clear requested recreators if unchecking
+                        requested_recreator_ids: newValue ? p.requested_recreator_ids : []
+                      }))
+                    }} />
                   ) : (
                     ap.requestedbymother ? ' Sim' : ' Não'
                   )}
@@ -655,27 +664,33 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                   {/** requested recreators editing block */}
                   <div>
                     <p className="text-sm font-semibold mb-2">Recreadores solicitados pela mãe:</p>
-                    {editingMode ? (
-                      <div className="w-full border rounded px-2 py-2 h-40 overflow-auto">
-                        {recreatorsList.map((r) => {
-                          const id = String(r.id)
-                          const checked = Array.isArray(editable.requested_recreator_ids) && editable.requested_recreator_ids.includes(id)
-                          return (
-                            <div key={`req-${id}`} className="flex items-center gap-2 py-1">
-                              <input type="checkbox" checked={checked} onChange={() => {
-                                setEditable((p: any) => {
-                                  const prev = Array.isArray(p.requested_recreator_ids) ? [...p.requested_recreator_ids] : []
-                                  if (prev.includes(id)) return { ...p, requested_recreator_ids: prev.filter((x) => x !== id) }
-                                  return { ...p, requested_recreator_ids: [...prev, id] }
-                                })
-                              }} />
-                              <span className="select-none">{r.name}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
+                    {editable.requestedbymother ? (
+                      editingMode ? (
+                        <div className="w-full border rounded px-2 py-2 h-40 overflow-auto">
+                          {recreatorsList.map((r) => {
+                            const id = String(r.id)
+                            const checked = Array.isArray(editable.requested_recreator_ids) && editable.requested_recreator_ids.includes(id)
+                            return (
+                              <div key={`req-${id}`} className="flex items-center gap-2 py-1">
+                                <input type="checkbox" checked={checked} onChange={() => {
+                                  setEditable((p: any) => {
+                                    const prev = Array.isArray(p.requested_recreator_ids) ? [...p.requested_recreator_ids] : []
+                                    if (prev.includes(id)) return { ...p, requested_recreator_ids: prev.filter((x) => x !== id) }
+                                    return { ...p, requested_recreator_ids: [...prev, id] }
+                                  })
+                                }} />
+                                <span className="select-none">{r.name}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">{requestedRecreatorNames.join(', ') || '(nenhum)'}</div>
+                      )
                     ) : (
-                      <div className="text-sm text-muted-foreground">{requestedRecreatorNames.join(', ') || '(nenhum)'}</div>
+                      <div className="text-sm italic text-gray-400">
+                        (Ative "Solicitado pela mãe" para adicionar recreadores solicitados)
+                      </div>
                     )}
                   </div>
 

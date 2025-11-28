@@ -214,22 +214,16 @@ export default function GerenciarPermissoes() {
 
           <div className="mb-4">
             <label className="text-sm block mb-1">Papel </label>
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <button type="button" onClick={() => setRoleName('ADMIN')} className="px-3 py-1 rounded bg-slate-100 text-sm">ADMIN</button>
-              <button type="button" onClick={() => setRoleName('RECREADOR')} className="px-3 py-1 rounded bg-slate-100 text-sm">RECREADOR</button>
-            </div>
-            <input
-              list="rolesList"
+            <select
               value={roleName}
               onChange={(e) => setRoleName(e.target.value)}
-              placeholder="Por exemplo: ADMIN, RECREADOR"
               className="border rounded px-3 py-2 text-sm w-full"
-            />
-            <datalist id="rolesList">
+            >
+              <option value="">Selecione um papel</option>
               {roles.map((role) => (
-                <option key={role.id} value={role.name} />
+                <option key={role.id} value={role.name}>{role.name}</option>
               ))}
-            </datalist>
+            </select>
           </div>
 
           <div className="mb-4">

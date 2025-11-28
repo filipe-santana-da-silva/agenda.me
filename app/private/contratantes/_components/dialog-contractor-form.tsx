@@ -28,6 +28,27 @@ const formSchema = z
         })
       }
     }
+    
+    // Validate document based on type
+    if (data.documenttype && data.documentvalue) {
+      const digitsOnly = data.documentvalue.replace(/\D/g, '')
+      
+      if (data.documenttype === 'CPF' && digitsOnly.length !== 11) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'CPF deve conter exatamente 11 dígitos',
+          path: ['documentvalue'],
+        })
+      }
+      
+      if (data.documenttype === 'RG' && (digitsOnly.length < 7 || digitsOnly.length > 9)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'RG deve conter de 7 a 9 dígitos',
+          path: ['documentvalue'],
+        })
+      }
+    }
   })
 
 

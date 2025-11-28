@@ -228,7 +228,8 @@ export default function NewAppointmentPage() {
         return
       }
 
-      const appointmentdate = format(localDate, "yyyy-MM-dd HH:mm:ss")
+      // Format the date in local timezone without converting (the date picker already gives us the local date)
+      const appointmentdate = `${date} ${time}:00`
 
       const bucket = "appointments"
       let proof_url: string | null = null
@@ -441,39 +442,63 @@ export default function NewAppointmentPage() {
           <CardContent className="p-4 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-              <div>
-                <Label className="text-sm font-medium">Data*</Label>
-                <Input name="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-2 text-base" />
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Hora*</Label>
-                <div className="relative mt-2">
-                  <select
-                    name="time"
-                    value={time}
-                    onChange={e => setTime(e.target.value)}
-                    className="w-full appearance-none bg-white border-2 rounded-lg px-4 py-3 text-base font-semibold focus:outline-none focus:ring-2 transition-all shadow-sm"
-                    required
-                  >
-                    <option value="" className="text-gray-400">Selecione o horário</option>
-                    {(() => {
-                      const items: ReactElement[] = []
-                      for (let hour = 0; hour <= 23; hour++) {
-                        for (const minute of ["00", "30"]) {
-                          if (hour === 23 && minute === "30") continue
-                          const value = `${String(hour).padStart(2, "0")}:${minute}`
-                          items.push(<option key={value} value={value} className="text-amber-900 font-bold">{value}</option>)
-                        }
-                      }
-                      return items
-                    })()}
-                  </select>
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-amber-400">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  </span>
-                </div>
-              </div>
-            </div>
+  <div>
+    <Label className="text-sm font-medium">Data*</Label>
+    <Input
+      name="date"
+      type="date"
+      value={date}
+      onChange={(e) => setDate(e.target.value)}
+      className="mt-2 h-12 px-4 text-base border-2 rounded-lg"
+    />
+  </div>
+
+  <div>
+    <Label className="text-sm font-medium">Hora*</Label>
+    <div className="relative mt-2">
+      <select
+        name="time"
+        value={time}
+        onChange={e => setTime(e.target.value)}
+        className="h-12 w-full px-4 text-base border-2 rounded-lg font-medium appearance-none focus:outline-none focus:ring-2 transition-all shadow-sm"
+        required
+      >
+        <option value="" className="text-gray-400">Selecione o horário</option>
+        {(() => {
+          const items: ReactElement[] = []
+          for (let hour = 0; hour <= 23; hour++) {
+            for (const minute of ["00", "30"]) {
+              if (hour === 23 && minute === "30") continue
+              const value = `${String(hour).padStart(2, "0")}:${minute}`
+              items.push(
+                <option key={value} value={value} className="text-amber-900 font-bold">
+                  {value}
+                </option>
+              )
+            }
+          }
+          return items
+        })()}
+      </select>
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-amber-400">
+        <svg
+          width="24"
+          height="24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="feather feather-clock"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      </span>
+    </div>
+  </div>
+</div>
+
 
             <div>
               <Label className="text-sm font-medium">Nome do evento</Label>
@@ -664,7 +689,7 @@ export default function NewAppointmentPage() {
                 <input
                   ref={proofInputRef}
                   type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,.img"
                   className="hidden"
                   onChange={(e) => { setProofFile(e.target.files?.[0] ?? null); setShowProofError(false) }}
                 />

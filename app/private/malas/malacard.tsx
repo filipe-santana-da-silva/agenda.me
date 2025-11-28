@@ -30,6 +30,8 @@ export function MalaCard({ bagId, number, name, onAdded }: Props) {
   const [returnIndex, setReturnIndex] = useState<number | null>(null)
   const [returnAmount, setReturnAmount] = useState<number>(1)
   const [returnDialogOpen, setReturnDialogOpen] = useState(false)
+  const [editingBagName, setEditingBagName] = useState(false)
+  const [bagName, setBagName] = useState(name || '')
   const supabase = createClient()
 
   useEffect(() => {
@@ -445,16 +447,64 @@ export function MalaCard({ bagId, number, name, onAdded }: Props) {
     }
   }
 
+  async function handleSaveBagName() {
+    if (!bagName.trim()) {
+      alert('O nome da mala não pode estar vazio')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('Bag')
+        .update({ name: bagName.trim() })
+        .eq('id', bagId)
+
+      if (error) throw error
+
+      setEditingBagName(false)
+      toast.success('Nome da mala atualizado com sucesso!')
+      onAdded?.()
+    } catch (err: any) {
+      console.error('Erro ao salvar nome da mala:', err.message || err)
+      toast.error('Erro ao salvar nome da mala: ' + (err.message || 'Tente novamente'))
+    }
+  }
+
   return (
     <>
       <Card className="border-2 border-amber-800 shadow-md hover:shadow-lg transform transition-all duration-200 hover:scale-[1.01] motion-reduce:transform-none bg-linear-to-br from-amber-50 to-orange-50">
         <CardHeader className="pb-3 bg-amber-100 border-b border-amber-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-lg font-bold text-amber-900">{name || number}</CardTitle>
-              <Badge variant="secondary" className="text-xs bg-amber-700 text-white">{items.length} itens</Badge>
+          {editingBagName ? (
+            <div className="flex flex-col gap-2">
+              <Input
+                value={bagName}
+                onChange={(e) => setBagName(e.target.value)}
+                placeholder="Nome da mala"
+                className="text-base font-bold"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleSaveBagName} className="bg-green-600 hover:bg-green-700 text-white">Salvar</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setEditingBagName(false); setBagName(name || '') }}>Cancelar</Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-lg font-bold text-amber-900">{bagName || number}</CardTitle>
+                <Badge variant="secondary" className="text-xs bg-amber-700 text-white">{items.length} itens</Badge>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditingBagName(true)}
+                className="text-amber-800 hover:bg-amber-200 p-2 h-auto"
+                title="Editar nome da mala"
+              >
+                <Edit2 className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <div className="flex justify-between items-start gap-2 px-2 pt-2">
           <div className="flex gap-2">

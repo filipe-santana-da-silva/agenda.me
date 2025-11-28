@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
-import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns'
+import { format, startOfMonth, endOfMonth, parseISO, addDays } from 'date-fns'
 
 export async function GET(request: Request) {
   try {
@@ -11,8 +11,10 @@ export async function GET(request: Request) {
 
     // Get date range (default to current month)
     const referenceDate = dateParam ? parseISO(dateParam) : new Date()
-    const monthStart = format(startOfMonth(referenceDate), "yyyy-MM-dd'T'00:00:00")
-    const monthEnd = format(endOfMonth(referenceDate), "yyyy-MM-dd'T'23:59:59")
+    const monthStart = format(startOfMonth(referenceDate), "yyyy-MM-dd") + " 00:00:00"
+    const monthEndDate = endOfMonth(referenceDate)
+    const nextDay = format(addDays(monthEndDate, 1), "yyyy-MM-dd")
+    const monthEnd = nextDay + " 00:00:00"
 
     console.log('Fetching appointments from', monthStart, 'to', monthEnd)
 
@@ -21,7 +23,7 @@ export async function GET(request: Request) {
       .from('Appointment')
       .select('*', { count: 'exact' })
       .gte('appointmentdate', monthStart)
-      .lte('appointmentdate', monthEnd)
+      .lt('appointmentdate', monthEnd)
       .order('appointmentdate', { ascending: true })
 
     if (error) {
@@ -40,14 +42,15 @@ export async function GET(request: Request) {
 
     // Map appointments to the shape expected by the UI
     const mapped = (data || []).map((a: any) => {
-      const dt = new Date(a.appointmentdate)
-      const dateStr = format(dt, 'yyyy-MM-dd')
-      const timeStr = format(dt, 'HH:mm')
-
+      // appointmentdate is stored as "YYYY-MM-DD HH:mm:ss" in local timezone
+      // Extract date and time without timezone conversion
+      const appointmentStr = String(a.appointmentdate || '')
+      const [dateStr, timeStr] = appointmentStr.split(' ')
+      
       return {
         id: a.id,
-        appointmentdate: dateStr,
-        time: timeStr,
+        appointmentdate: dateStr || '',
+        time: (timeStr || '').substring(0, 5), // Get HH:mm
         durationhours: a.durationhours,
         recreatorscount: a.recreatorscount ?? null,
         childname: a.childname,

@@ -23,6 +23,30 @@ const formSchema = z.object({
   notes: z.string().optional(),
   availabledays: z.array(z.string()).optional(),
   organizer: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+  // Validate CPF format
+  if (data.cpf) {
+    const cpfDigits = data.cpf.replace(/\D/g, '')
+    if (cpfDigits.length !== 11) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'CPF deve conter exatamente 11 dígitos',
+        path: ['cpf'],
+      })
+    }
+  }
+  
+  // Validate RG format (7-9 digits)
+  if (data.rg) {
+    const rgDigits = data.rg.replace(/\D/g, '')
+    if (rgDigits.length < 7 || rgDigits.length > 9) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'RG deve conter de 7 a 9 dígitos',
+        path: ['rg'],
+      })
+    }
+  }
 })
 
 // ✅ Tipo inferido corretamente

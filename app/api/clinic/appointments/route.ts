@@ -14,8 +14,10 @@ export async function GET(request: Request) {
     const supabase = await createClient()
 
     // Query appointments where appointmentdate is within the given day
-    const dayStart = `${date}T00:00:00`
-    const dayEnd = format(addDays(parseISO(date), 1), "yyyy-MM-dd'T'00:00:00")
+    // Since appointmentdate is stored as "YYYY-MM-DD HH:mm:ss" in local timezone
+    const dayStart = `${date} 00:00:00`
+    const nextDay = format(addDays(parseISO(date), 1), "yyyy-MM-dd")
+    const dayEnd = `${nextDay} 00:00:00`
 
     const { data, error } = await supabase
       .from('Appointment')

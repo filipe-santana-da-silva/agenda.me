@@ -159,6 +159,7 @@ export function ContractorList({ contractors }: ContractorListProps) {
               setEditingContractor(null)
             }}
           >
+            <DialogTitle className="sr-only">Adicionar ou Editar Contratante</DialogTitle>
             <DialogService
               closeModal={() => {
                 setIsDialogOpen(false)
