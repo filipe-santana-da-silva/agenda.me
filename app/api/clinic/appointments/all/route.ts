@@ -7,17 +7,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const dateParam = url.searchParams.get('date')
 
-    // Use service role for this endpoint to bypass RLS
     const supabase = await createClient()
-    
-    // Check if user is authenticated first
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     // Get date range (default to current month)
     const referenceDate = dateParam ? parseISO(dateParam) : new Date()
@@ -26,9 +16,18 @@ export async function GET(request: Request) {
     const nextDay = format(addDays(monthEndDate, 1), "yyyy-MM-dd")
     const monthEnd = nextDay + " 00:00:00"
 
-    console.log('Fetching appointments from', monthStart, 'to', monthEnd)
+    console.log('Date filter - monthStart:', monthStart, 'monthEnd:', monthEnd)
 
-    // Try a simple query first to see if DB is accessible
+    // First, try fetching ALL appointments to check if any exist
+    const { data: allData, error: allError } = await supabase
+      .from('Appointment')
+      .select('id, appointmentdate', { count: 'exact' })
+      .limit(5)
+      .order('appointmentdate', { ascending: false })
+
+    console.log('All appointments sample:', allData, 'Error:', allError)
+
+    // Now query with date filter
     const { data, error } = await supabase
       .from('Appointment')
       .select('*', { count: 'exact' })
@@ -41,14 +40,18 @@ export async function GET(request: Request) {
         code: error.code,
         message: error.message,
         details: error.details,
+        hint: error.hint,
       })
       return NextResponse.json(
-        { error: error.message || 'Database error' },
+        { error: error.message || 'Database error', details: error.details },
         { status: 500 }
       )
     }
 
-    console.log('Found', data?.length || 0, 'appointments')
+    console.log('Found', data?.length || 0, 'appointments from', monthStart, 'to', monthEnd)
+    if (data && data.length > 0) {
+      console.log('First appointment:', data[0])
+    }
 
     // Map appointments to the shape expected by the UI
     const mapped = (data || []).map((a: any) => {
