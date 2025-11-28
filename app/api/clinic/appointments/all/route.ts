@@ -7,7 +7,17 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const dateParam = url.searchParams.get('date')
 
+    // Use service role for this endpoint to bypass RLS
     const supabase = await createClient()
+    
+    // Check if user is authenticated first
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
 
     // Get date range (default to current month)
     const referenceDate = dateParam ? parseISO(dateParam) : new Date()

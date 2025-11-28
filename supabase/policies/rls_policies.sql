@@ -8,14 +8,16 @@ CREATE POLICY "Users can view their appointments or admin sees all"
   ON public."Appointment"
   FOR SELECT
   USING (
-    auth.uid() IN (
-      SELECT auth.uid() FROM auth.users
-      JOIN public.user_permission ON user_permission.email = auth.users.email
-      WHERE user_permission.role_id IN (
-        SELECT id FROM public.role WHERE name = 'ADMIN'
-      )
+    -- Check if user is admin
+    EXISTS (
+      SELECT 1 FROM public.user_permission up
+      JOIN public.role r ON r.id = up.role_id
+      WHERE up.email = auth.jwt()->>'email'
+      AND r.name = 'ADMIN'
     )
+    -- OR user owns the appointment
     OR userid = auth.uid()
+    -- OR user created the appointment
     OR created_by = auth.jwt()->>'email'
   );
 
@@ -25,12 +27,11 @@ CREATE POLICY "Users can create appointments"
   FOR INSERT
   WITH CHECK (
     userid = auth.uid()
-    OR auth.uid() IN (
-      SELECT auth.uid() FROM auth.users
-      JOIN public.user_permission ON user_permission.email = auth.users.email
-      WHERE user_permission.role_id IN (
-        SELECT id FROM public.role WHERE name = 'ADMIN'
-      )
+    OR EXISTS (
+      SELECT 1 FROM public.user_permission up
+      JOIN public.role r ON r.id = up.role_id
+      WHERE up.email = auth.jwt()->>'email'
+      AND r.name = 'ADMIN'
     )
   );
 
@@ -40,22 +41,20 @@ CREATE POLICY "Users can update their own appointments"
   FOR UPDATE
   USING (
     userid = auth.uid()
-    OR auth.uid() IN (
-      SELECT auth.uid() FROM auth.users
-      JOIN public.user_permission ON user_permission.email = auth.users.email
-      WHERE user_permission.role_id IN (
-        SELECT id FROM public.role WHERE name = 'ADMIN'
-      )
+    OR EXISTS (
+      SELECT 1 FROM public.user_permission up
+      JOIN public.role r ON r.id = up.role_id
+      WHERE up.email = auth.jwt()->>'email'
+      AND r.name = 'ADMIN'
     )
   )
   WITH CHECK (
     userid = auth.uid()
-    OR auth.uid() IN (
-      SELECT auth.uid() FROM auth.users
-      JOIN public.user_permission ON user_permission.email = auth.users.email
-      WHERE user_permission.role_id IN (
-        SELECT id FROM public.role WHERE name = 'ADMIN'
-      )
+    OR EXISTS (
+      SELECT 1 FROM public.user_permission up
+      JOIN public.role r ON r.id = up.role_id
+      WHERE up.email = auth.jwt()->>'email'
+      AND r.name = 'ADMIN'
     )
   );
 
@@ -65,12 +64,11 @@ CREATE POLICY "Users can delete their own appointments"
   FOR DELETE
   USING (
     userid = auth.uid()
-    OR auth.uid() IN (
-      SELECT auth.uid() FROM auth.users
-      JOIN public.user_permission ON user_permission.email = auth.users.email
-      WHERE user_permission.role_id IN (
-        SELECT id FROM public.role WHERE name = 'ADMIN'
-      )
+    OR EXISTS (
+      SELECT 1 FROM public.user_permission up
+      JOIN public.role r ON r.id = up.role_id
+      WHERE up.email = auth.jwt()->>'email'
+      AND r.name = 'ADMIN'
     )
   );
 
@@ -111,12 +109,11 @@ CREATE POLICY "Users can view ranking for their appointments or admin sees all"
   ON public."RankingEventDetail"
   FOR SELECT
   USING (
-    auth.uid() IN (
-      SELECT auth.uid() FROM auth.users
-      JOIN public.user_permission ON user_permission.email = auth.users.email
-      WHERE user_permission.role_id IN (
-        SELECT id FROM public.role WHERE name = 'ADMIN'
-      )
+    EXISTS (
+      SELECT 1 FROM public.user_permission up
+      JOIN public.role r ON r.id = up.role_id
+      WHERE up.email = auth.jwt()->>'email'
+      AND r.name = 'ADMIN'
     )
     OR appointmentid IN (
       SELECT id FROM public."Appointment" WHERE userid = auth.uid()
@@ -141,12 +138,11 @@ CREATE POLICY "Users can view requested recreators for their appointments"
     appointment_id IN (
       SELECT id FROM public."Appointment" WHERE userid = auth.uid()
     )
-    OR auth.uid() IN (
-      SELECT auth.uid() FROM auth.users
-      JOIN public.user_permission ON user_permission.email = auth.users.email
-      WHERE user_permission.role_id IN (
-        SELECT id FROM public.role WHERE name = 'ADMIN'
-      )
+    OR EXISTS (
+      SELECT 1 FROM public.user_permission up
+      JOIN public.role r ON r.id = up.role_id
+      WHERE up.email = auth.jwt()->>'email'
+      AND r.name = 'ADMIN'
     )
   );
 
@@ -157,12 +153,11 @@ CREATE POLICY "Users can insert requested recreators for their appointments"
     appointment_id IN (
       SELECT id FROM public."Appointment" WHERE userid = auth.uid()
     )
-    OR auth.uid() IN (
-      SELECT auth.uid() FROM auth.users
-      JOIN public.user_permission ON user_permission.email = auth.users.email
-      WHERE user_permission.role_id IN (
-        SELECT id FROM public.role WHERE name = 'ADMIN'
-      )
+    OR EXISTS (
+      SELECT 1 FROM public.user_permission up
+      JOIN public.role r ON r.id = up.role_id
+      WHERE up.email = auth.jwt()->>'email'
+      AND r.name = 'ADMIN'
     )
   );
 
@@ -173,11 +168,10 @@ CREATE POLICY "Users can delete requested recreators for their appointments"
     appointment_id IN (
       SELECT id FROM public."Appointment" WHERE userid = auth.uid()
     )
-    OR auth.uid() IN (
-      SELECT auth.uid() FROM auth.users
-      JOIN public.user_permission ON user_permission.email = auth.users.email
-      WHERE user_permission.role_id IN (
-        SELECT id FROM public.role WHERE name = 'ADMIN'
-      )
+    OR EXISTS (
+      SELECT 1 FROM public.user_permission up
+      JOIN public.role r ON r.id = up.role_id
+      WHERE up.email = auth.jwt()->>'email'
+      AND r.name = 'ADMIN'
     )
   );
