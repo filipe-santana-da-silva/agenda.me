@@ -1,0 +1,22 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping keep-alive endpoint
+        env:
+          KEEP_ALIVE_URL: ${{ secrets.KEEP_ALIVE_URL }}
+        run: |
+          if [ -z "$KEEP_ALIVE_URL" ]; then
+            echo "ERROR: KEEP_ALIVE_URL secret not set"
+            exit 1
+          fi
+          echo "Pinging $KEEP_ALIVE_URL"
+          curl -fsS "$KEEP_ALIVE_URL" || (echo "Request failed" && exit 1)
