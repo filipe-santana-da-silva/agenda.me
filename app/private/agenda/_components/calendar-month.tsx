@@ -32,6 +32,9 @@ interface CalendarMonthProps {
   onAppointmentClick?: (appointmentId: string) => void
   selectedDate: string
   onViewChange?: (view: 'month' | 'week' | 'day') => void
+  onRangeChange?: (start: string, end: string) => void
+  currentMonth?: string
+  onCurrentMonthChange?: (iso: string) => void
 }
 
 const COLORS = ['#B794F3', '#F2F27C', '#F3DD94', '#ED7E7E']
@@ -43,33 +46,51 @@ export function CalendarMonth({
   onAppointmentClick,
   selectedDate,
   onViewChange,
+  onRangeChange,
+  currentMonth,
+  onCurrentMonthChange,
 }: CalendarMonthProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate || new Date()))
-
-  // Sync currentMonth with selectedDate only when selectedDate comes from parent prop change
-  // This allows local navigation with arrows without affecting parent state
-  useEffect(() => {
+  // Support controlled (parent passes `currentMonth` ISO string) or uncontrolled mode
+  const [internalMonth, setInternalMonth] = useState<Date>(() => {
     try {
-      const newDate = parseISO(selectedDate)
-      // Only update if the month actually changed from parent
-      if (format(currentMonth, 'yyyy-MM') !== format(newDate, 'yyyy-MM')) {
-        setCurrentMonth(newDate)
-      }
+      return parseISO(selectedDate)
     } catch (e) {
-      // If selectedDate is invalid, keep currentMonth as is
+      return new Date()
     }
-  }, [selectedDate])
+  })
+
+  // effectiveMonthDate will be used for rendering. If parent provided `currentMonth`, prefer it.
+  const effectiveMonthDate = (() => {
+    if (currentMonth) {
+      try {
+        return parseISO(currentMonth)
+      } catch (e) {
+        return internalMonth
+      }
+    }
+    return internalMonth
+  })()
 
   // Get all days to display (including previous/next month days)
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
+  const monthStart = startOfMonth(effectiveMonthDate)
+  const monthEnd = endOfMonth(effectiveMonthDate)
   const calendarStart = startOfWeek(monthStart)
   const calendarEnd = endOfWeek(monthEnd)
 
-  const days = eachDayOfInterval({
-    start: calendarStart,
-    end: calendarEnd,
-  })
+  // Notify parent about visible range so it can fetch appointments for the full grid
+  useEffect(() => {
+    if (onRangeChange) {
+      try {
+        const startStr = format(calendarStart, 'yyyy-MM-dd')
+        const endStr = format(calendarEnd, 'yyyy-MM-dd')
+        onRangeChange(startStr, endStr)
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [calendarStart, calendarEnd, onRangeChange])
+
+  const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
 
   // Map appointments by date
   const appointmentsByDate = useMemo(() => {
@@ -83,13 +104,21 @@ export function CalendarMonth({
   }, [appointments])
 
   const handlePrevMonth = () => {
-    const prevMonth = subMonths(currentMonth, 1)
-    setCurrentMonth(prevMonth)
+    const prev = subMonths(effectiveMonthDate, 1)
+    if (onCurrentMonthChange) {
+      onCurrentMonthChange(format(startOfMonth(prev), 'yyyy-MM-dd'))
+    } else {
+      setInternalMonth(prev)
+    }
   }
 
   const handleNextMonth = () => {
-    const nextMonth = addMonths(currentMonth, 1)
-    setCurrentMonth(nextMonth)
+    const next = addMonths(effectiveMonthDate, 1)
+    if (onCurrentMonthChange) {
+      onCurrentMonthChange(format(startOfMonth(next), 'yyyy-MM-dd'))
+    } else {
+      setInternalMonth(next)
+    }
   }
 
   return (
@@ -97,7 +126,7 @@ export function CalendarMonth({
       <Card className="w-full max-w-full flex-1 flex flex-col">
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <CardTitle className="truncate">{format(currentMonth, 'MMMM yyyy', { locale: ptBR })}</CardTitle>
+            <CardTitle className="truncate">{format(effectiveMonthDate, 'MMMM yyyy', { locale: ptBR })}</CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -108,7 +137,11 @@ export function CalendarMonth({
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setCurrentMonth(new Date())}
+                onClick={() => {
+                  const todayStart = format(startOfMonth(new Date()), 'yyyy-MM-dd')
+                  if (onCurrentMonthChange) onCurrentMonthChange(todayStart)
+                  else setInternalMonth(new Date())
+                }}
                 className="px-2 py-1 text-xs sm:px-3 sm:text-sm whitespace-nowrap flex items-center gap-2"
               >
                 <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -142,7 +175,7 @@ export function CalendarMonth({
           <div className="grid grid-cols-1 sm:grid-cols-7 gap-1 bg-muted/30 p-1 rounded-lg">
             {days.map((day, idx) => {
               const dateStr = format(day, 'yyyy-MM-dd')
-              const isCurrentMonth = isSameMonth(day, currentMonth)
+              const isCurrentMonth = isSameMonth(day, effectiveMonthDate)
               const isSelected = isSameDay(day, new Date(selectedDate))
               const dayAppointments = appointmentsByDate[dateStr] || []
 

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/utils/supabase/client'
-import { format } from 'date-fns'
+import { format, startOfMonth } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -77,6 +77,10 @@ export function CalendarContent() {
   const queryClient = useQueryClient()
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  // control the currently displayed month to avoid CalendarMonth mounting with today's date
+  const [currentMonth, setCurrentMonth] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [visibleStart, setVisibleStart] = useState<string | null>(null)
+  const [visibleEnd, setVisibleEnd] = useState<string | null>(null)
   const [detailAppointment, setDetailAppointment] = useState<AppointmentData | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -86,11 +90,17 @@ export function CalendarContent() {
 
   // Fetch all appointments for the month - include selectedDate in queryKey to refetch when month changes
   const { data: allAppointments = [], isLoading, refetch, isError, error } = useQuery({
-    queryKey: ['all-appointments', selectedDate],
+    queryKey: ['all-appointments', visibleStart, visibleEnd, selectedDate],
     queryFn: async () => {
       try {
-        // Pass the selected date so API returns appointments for that month
-        const response = await fetch(`/api/clinic/appointments/all?date=${selectedDate}`)
+        // If we have a visible range, request appointments for that full interval
+        let url = '/api/clinic/appointments/all'
+        if (visibleStart && visibleEnd) {
+          url += `?start=${visibleStart}&end=${visibleEnd}`
+        } else {
+          url += `?date=${selectedDate}`
+        }
+        const response = await fetch(url)
         if (!response.ok) {
           const errorText = await response.text()
           console.error('Failed to fetch appointments. Status:', response.status, 'Error:', errorText)
@@ -133,8 +143,8 @@ export function CalendarContent() {
           return newSet
         })
         
-        // Invalidate the specific query for this month
-        queryClient.invalidateQueries({ queryKey: ['all-appointments', selectedDate] })
+        // Invalidate the specific query for the currently visible range
+        queryClient.invalidateQueries({ queryKey: ['all-appointments', visibleStart, visibleEnd, selectedDate] })
         await refetch()
       } catch (error) {
         console.error('Error updating color:', error)
@@ -168,8 +178,8 @@ export function CalendarContent() {
 
     setConfirmOpen(false)
     setToDeleteAppointment(null)
-    // Invalidate the specific query for this month
-    queryClient.invalidateQueries({ queryKey: ['all-appointments', selectedDate] })
+    // Invalidate the specific query for the currently visible range
+    queryClient.invalidateQueries({ queryKey: ['all-appointments', visibleStart, visibleEnd, selectedDate] })
     await refetch()
     toast.success(response.data)
   }, [toDeleteAppointment, queryClient, refetch, selectedDate])
@@ -179,13 +189,13 @@ export function CalendarContent() {
     if (!isDialogOpen) {
       // Delay slightly to ensure edits are saved
       const timer = setTimeout(() => {
-        // Force refetch by invalidating the cache
-        queryClient.invalidateQueries({ queryKey: ['all-appointments', selectedDate] })
+        // Force refetch by invalidating the cache for the visible range if available
+        queryClient.invalidateQueries({ queryKey: ['all-appointments', visibleStart, visibleEnd, selectedDate] })
         refetch()
       }, 300)
       return () => clearTimeout(timer)
     }
-  }, [isDialogOpen, refetch, selectedDate, queryClient])
+  }, [isDialogOpen, refetch, selectedDate, visibleStart, visibleEnd, queryClient])
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -228,13 +238,11 @@ export function CalendarContent() {
           </CardHeader>
         </Card>
 
-        {/* Loading state */}
+        {/* Loading state: keep calendar mounted during loading to avoid remount flicker */}
         {isLoading && (
-          <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">
-              Carregando agenda...
-            </CardContent>
-          </Card>
+          <div className="p-2">
+            <div className="text-sm text-muted-foreground mb-2">Carregando agenda...</div>
+          </div>
         )}
 
         {/* Error state */}
@@ -266,6 +274,8 @@ export function CalendarContent() {
                     <CalendarMonth
                       appointments={allAppointments}
                       selectedDate={selectedDate}
+                      currentMonth={currentMonth}
+                      onCurrentMonthChange={(iso: string) => setCurrentMonth(iso)}
                       onDateSelect={(date: string) => {
                         setSelectedDate(date)
                         setViewMode('week')
@@ -276,6 +286,10 @@ export function CalendarContent() {
                           setDetailAppointment(apt)
                           setIsDialogOpen(true)
                         }
+                      }}
+                      onRangeChange={(s: string, e: string) => {
+                        setVisibleStart(s)
+                        setVisibleEnd(e)
                       }}
                     />
                   </div>

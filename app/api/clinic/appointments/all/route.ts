@@ -6,16 +6,25 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
     const dateParam = url.searchParams.get('date')
+    const startParam = url.searchParams.get('start')
+    const endParam = url.searchParams.get('end')
 
     const supabase = await createClient()
 
-    // Get date range (default to current month)
-    const referenceDate = dateParam ? parseISO(dateParam) : new Date()
-    const monthStart = format(startOfMonth(referenceDate), "yyyy-MM-dd")
-    const monthEndDate = endOfMonth(referenceDate)
-    const monthEnd = format(monthEndDate, "yyyy-MM-dd")
+    // Determine date range. Priority: explicit start/end -> date param month -> current month
+    let rangeStart: string
+    let rangeEnd: string
+    if (startParam && endParam) {
+      rangeStart = startParam
+      rangeEnd = endParam
+    } else {
+      const referenceDate = dateParam ? parseISO(dateParam) : new Date()
+      rangeStart = format(startOfMonth(referenceDate), 'yyyy-MM-dd')
+      const monthEndDate = endOfMonth(referenceDate)
+      rangeEnd = format(monthEndDate, 'yyyy-MM-dd')
+    }
 
-    console.log('Fetching appointments for month:', monthStart, 'to', monthEnd)
+    console.log('Fetching appointments for range:', rangeStart, 'to', rangeEnd)
 
     // Fetch ALL appointments and filter in-memory
     const { data, error } = await supabase
@@ -31,12 +40,12 @@ export async function GET(request: Request) {
       )
     }
 
-    // Filter appointments for the given month
+    // Filter appointments for the given range (inclusive)
     const filtered = (data || []).filter((a: any) => {
       if (!a.appointmentdate) return false
       const appointmentStr = String(a.appointmentdate)
       const dateOnly = appointmentStr.substring(0, 10) // Get YYYY-MM-DD part
-      return dateOnly >= monthStart && dateOnly <= monthEnd
+      return dateOnly >= rangeStart && dateOnly <= rangeEnd
     })
 
     console.log('Total appointments in DB:', data?.length || 0, 'Filtered for month:', filtered.length)
