@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
-import { format } from 'date-fns'
 
 export async function GET(request: Request) {
   try {
@@ -36,7 +35,15 @@ export async function GET(request: Request) {
 
     // Map appointments to the shape expected by the UI
     const mapped = (filtered || []).map((a: any) => {
-      const dt = new Date(a.appointmentdate)
+      // appointmentdate can be stored as "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss"
+      // Extract time without timezone conversion using string parsing
+      const appointmentStr = String(a.appointmentdate || '')
+      // Handle both "YYYY-MM-DD HH:mm:ss" and "YYYY-MM-DDTHH:mm:ss" formats
+      const [dateStr, timeStr] = appointmentStr.includes('T') 
+        ? appointmentStr.split('T') 
+        : appointmentStr.split(' ')
+      const extractedTime = (timeStr || '').substring(0, 5) // Get HH:mm
+      
       return {
         id: a.id,
         appointmentdate: a.appointmentdate,
@@ -73,7 +80,7 @@ export async function GET(request: Request) {
         valor_pago: a.valor_pago ?? a.valor_pago_cents ?? null,
         valor_a_pagar: a.valor_a_pagar ?? a.valor_a_pagar_cents ?? null,
         // derived fields
-        time: format(dt, 'HH:mm'),
+        time: extractedTime,
         name: a.childname || a.contractorname || '',
         service: {
           duration: (a.durationhours || 0) * 60,

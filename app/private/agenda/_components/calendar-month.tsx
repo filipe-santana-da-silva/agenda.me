@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   format,
   startOfMonth,
@@ -12,6 +12,7 @@ import {
   endOfWeek,
   addMonths,
   subMonths,
+  parseISO,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
@@ -45,6 +46,20 @@ export function CalendarMonth({
 }: CalendarMonthProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate || new Date()))
 
+  // Sync currentMonth with selectedDate only when selectedDate comes from parent prop change
+  // This allows local navigation with arrows without affecting parent state
+  useEffect(() => {
+    try {
+      const newDate = parseISO(selectedDate)
+      // Only update if the month actually changed from parent
+      if (format(currentMonth, 'yyyy-MM') !== format(newDate, 'yyyy-MM')) {
+        setCurrentMonth(newDate)
+      }
+    } catch (e) {
+      // If selectedDate is invalid, keep currentMonth as is
+    }
+  }, [selectedDate])
+
   // Get all days to display (including previous/next month days)
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
@@ -67,8 +82,15 @@ export function CalendarMonth({
     return map
   }, [appointments])
 
-  const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
-  const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
+  const handlePrevMonth = () => {
+    const prevMonth = subMonths(currentMonth, 1)
+    setCurrentMonth(prevMonth)
+  }
+
+  const handleNextMonth = () => {
+    const nextMonth = addMonths(currentMonth, 1)
+    setCurrentMonth(nextMonth)
+  }
 
   return (
     <div className="w-full h-full flex flex-col">

@@ -43,20 +43,36 @@ export async function getTimesClinicInternal({ userId }: { userId: string }) {
     }
 
     // Extract time-of-day from appointmentdate and include into slots
+    // Avoid using `new Date(...)` to prevent timezone conversions; appointmentdate
+    // is stored as a local string ("YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss").
     const appointmentTimes = new Set<string>()
     if (Array.isArray(appointments)) {
       for (const ap of appointments as any[]) {
         try {
-          const dt = new Date(ap.appointmentdate)
-          if (!isNaN(dt.getTime())) {
-            appointmentTimes.add(format(dt, 'HH:mm'))
-            // If appointment has duration, also add hourly increments covered by it
+          const appointmentStr = String(ap?.appointmentdate || '')
+          const [, timePart] = appointmentStr.includes('T') ? appointmentStr.split('T') : appointmentStr.split(' ')
+          const hhmm = (timePart || '').substring(0, 5) // HH:mm
+          if (hhmm && hhmm.length === 5) {
+            appointmentTimes.add(hhmm)
+
             const duration = Number(ap.durationhours) || 0
-            // convert duration in hours to number of half-hour slices
             const slices = Math.ceil((duration || 0) * 2)
+            // helper: parse HH:mm to minutes since midnight
+            const toMinutes = (t: string) => {
+              const [hh, mm] = t.split(':')
+              return Number(hh) * 60 + Number(mm)
+            }
+            // helper: format minutes back to HH:mm
+            const fromMinutes = (mins: number) => {
+              const h = Math.floor(mins / 60)
+              const m = mins % 60
+              return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+            }
+
+            const startMins = toMinutes(hhmm)
             for (let i = 1; i < slices; i++) {
-              const slot = new Date(dt.getTime() + i * 30 * 60 * 1000)
-              appointmentTimes.add(format(slot, 'HH:mm'))
+              const next = fromMinutes(startMins + i * 30)
+              appointmentTimes.add(next)
             }
           }
         } catch (e) {

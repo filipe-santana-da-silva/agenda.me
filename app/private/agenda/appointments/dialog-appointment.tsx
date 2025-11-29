@@ -31,7 +31,22 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
   // is present can cause React/Next to complain about missing static flags
   // when the portal/content is mounted asynchronously.
   const ap = appointment ?? null
-    const formattedDate = ap ? format(new Date(ap.appointmentdate), 'dd/MM/yyyy') : ''
+    // appointmentdate stored as string like "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss".
+    // Avoid `new Date(...)` to prevent timezone shifts — extract date portion directly.
+    const formattedDate = (() => {
+      if (!ap?.appointmentdate) return ''
+      try {
+        const appointmentStr = String(ap.appointmentdate)
+        const [datePart] = appointmentStr.includes('T') ? appointmentStr.split('T') : appointmentStr.split(' ')
+        const parts = datePart.split('-')
+        if (parts.length === 3) {
+          return `${parts[2]}/${parts[1]}/${parts[0]}`
+        }
+        return ''
+      } catch (e) {
+        return ''
+      }
+    })()
     const formattedPrice = ap ? formatCurrancy((ap.service?.price ?? 0) / 100) : ''
 
   const [recreatorNames, setRecreatorNames] = useState<string[]>([])

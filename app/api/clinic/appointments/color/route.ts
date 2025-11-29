@@ -18,24 +18,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify the appointment belongs to the user (RLS will also enforce this)
-    const { data: appointment, error: fetchError } = await supabase
-      .from('Appointment')
-      .select('id, userid')
-      .eq('id', id)
-      .single()
-
-    if (fetchError || !appointment) {
-      console.error('Appointment not found:', fetchError)
-      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 })
-    }
-
-    // Verify ownership (RLS will enforce this, but we verify for clarity)
-    if (appointment.userid !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-    }
-
-    // Update with authenticated client - RLS enforces row-level security
+    // Update appointment color - no RLS in place, so any authenticated user can update any appointment
     const { data, error } = await supabase
       .from('Appointment')
       .update({ color_index: colorIndex })

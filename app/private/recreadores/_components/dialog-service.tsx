@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 
-import { useDialogRecreatorForm, DialogRecreatorFormData } from './dialog-recreator-form'
+import { useDialogRecreatorForm, DialogRecreatorFormData, formatRG, formatCPF } from './dialog-recreator-form'
 import { createRecreator } from '../_actions/create-recreator'
 import { updateRecreator } from '../_actions/update'
 
@@ -102,7 +102,17 @@ export function DialogService({
           <FormField control={form.control} name="rg" render={({ field }) => (
             <FormItem>
               <FormLabel>RG</FormLabel>
-              <FormControl><Input {...field} /></FormControl>
+              <FormControl>
+                <Input
+                  {...field}
+                  onChange={(e) => {
+                    const formatted = formatRG(e.target.value)
+                    field.onChange(formatted)
+                  }}
+                  maxLength={12}
+                  placeholder="XX.XXX.XXX-X"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )} />
@@ -110,7 +120,17 @@ export function DialogService({
           <FormField control={form.control} name="cpf" render={({ field }) => (
             <FormItem>
               <FormLabel>CPF</FormLabel>
-              <FormControl><Input {...field} /></FormControl>
+              <FormControl>
+                <Input
+                  {...field}
+                  onChange={(e) => {
+                    const formatted = formatCPF(e.target.value)
+                    field.onChange(formatted)
+                  }}
+                  maxLength={14}
+                  placeholder="XXX.XXX.XXX-XX"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )} />

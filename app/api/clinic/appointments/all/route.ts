@@ -43,10 +43,13 @@ export async function GET(request: Request) {
 
     // Map appointments to the shape expected by the UI
     const mapped = (filtered || []).map((a: any) => {
-      // appointmentdate is stored as "YYYY-MM-DD HH:mm:ss" in local timezone
-      // Extract date and time without timezone conversion
+      // appointmentdate can be stored as "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss"
+      // Extract time without timezone conversion
       const appointmentStr = String(a.appointmentdate || '')
-      const [dateStr, timeStr] = appointmentStr.split(' ')
+      // Handle both "YYYY-MM-DD HH:mm:ss" and "YYYY-MM-DDTHH:mm:ss" formats
+      const [dateStr, timeStr] = appointmentStr.includes('T') 
+        ? appointmentStr.split('T') 
+        : appointmentStr.split(' ')
       
       return {
         id: a.id,

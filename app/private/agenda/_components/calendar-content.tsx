@@ -84,12 +84,13 @@ export function CalendarContent() {
   const [appointmentColors, setAppointmentColors] = useState<Record<string, number>>({})
   const [loadingColors, setLoadingColors] = useState<Set<string>>(new Set())
 
-  // Fetch all appointments for the month
+  // Fetch all appointments for the month - include selectedDate in queryKey to refetch when month changes
   const { data: allAppointments = [], isLoading, refetch, isError, error } = useQuery({
-    queryKey: ['all-appointments'],
+    queryKey: ['all-appointments', selectedDate],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/clinic/appointments/all')
+        // Pass the selected date so API returns appointments for that month
+        const response = await fetch(`/api/clinic/appointments/all?date=${selectedDate}`)
         if (!response.ok) {
           const errorText = await response.text()
           console.error('Failed to fetch appointments. Status:', response.status, 'Error:', errorText)
@@ -102,8 +103,8 @@ export function CalendarContent() {
         throw error
       }
     },
-    staleTime: 60000,
-    refetchInterval: 120000,
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 10 * 60 * 1000,
     retry: 3,
   })
 
@@ -132,7 +133,8 @@ export function CalendarContent() {
           return newSet
         })
         
-        queryClient.invalidateQueries({ queryKey: ['all-appointments'] })
+        // Invalidate the specific query for this month
+        queryClient.invalidateQueries({ queryKey: ['all-appointments', selectedDate] })
         await refetch()
       } catch (error) {
         console.error('Error updating color:', error)
@@ -166,21 +168,24 @@ export function CalendarContent() {
 
     setConfirmOpen(false)
     setToDeleteAppointment(null)
-    queryClient.invalidateQueries({ queryKey: ['all-appointments'] })
+    // Invalidate the specific query for this month
+    queryClient.invalidateQueries({ queryKey: ['all-appointments', selectedDate] })
     await refetch()
     toast.success(response.data)
-  }, [toDeleteAppointment, queryClient, refetch])
+  }, [toDeleteAppointment, queryClient, refetch, selectedDate])
 
-  // Refetch appointments when dialog closes (after editing)
+  // Refetch appointments when dialog closes (after editing) or when returning from new appointment
   useEffect(() => {
     if (!isDialogOpen) {
       // Delay slightly to ensure edits are saved
       const timer = setTimeout(() => {
+        // Force refetch by invalidating the cache
+        queryClient.invalidateQueries({ queryKey: ['all-appointments', selectedDate] })
         refetch()
-      }, 500)
+      }, 300)
       return () => clearTimeout(timer)
     }
-  }, [isDialogOpen, refetch])
+  }, [isDialogOpen, refetch, selectedDate, queryClient])
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -415,6 +415,7 @@ export default function NewAppointmentPage() {
         console.error('Error while awarding ranking points:', e)
       }
 
+      toast.success('Agendamento criado com sucesso!')
       router.push('/private/agenda')
     } catch (err: any) {
       console.error("Erro ao criar agendamento:", err)
