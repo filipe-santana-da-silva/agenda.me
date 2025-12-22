@@ -3,14 +3,12 @@
 import { createClient } from '@/utils/supabase/server'
 
 export async function getReminders({ userId }: { userId: string }) {
-  if (!userId) return []
-
   try {
     const supabase = await createClient()
     const { data, error } = await supabase
-      .from('reminder')
+      .from('Reminder')
       .select('*')
-      .eq('user_id', userId)
+      .order('createdat', { ascending: false })
 
     if (error) {
       console.error('Erro ao buscar lembretes:', error.message)

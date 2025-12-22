@@ -23,23 +23,12 @@ export async function createReminder(formData: FormSchema) {
       }
     }
 
-    const { data: userData, error: authError } = await supabase.auth.getUser()
-    const user = userData?.user
-
-    if (!user || authError) {
-      console.error('Auth error:', authError)
-      return {
-        error: 'Usuário não encontrado. Faça login novamente.'
-      }
-    }
-
     const now = new Date().toISOString()
     const { data, error: insertError } = await supabase
       .from('Reminder')
       .insert([
         {
           description: formData.description,
-          userid: user.id,
           reminderdate: formData.reminderdate || now,
           createdat: now,
         }

@@ -1,6 +1,62 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders })
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    
+    const { appointment_date, appointment_time, customer_id, service_id, professional_id, status } = body
+
+    if (!appointment_date || !appointment_time || !customer_id) {
+      return NextResponse.json(
+        { error: 'Data, horário e cliente são obrigatórios' },
+        { status: 400, headers: corsHeaders }
+      )
+    }
+
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .insert({
+        appointment_date,
+        appointment_time,
+        customer_id,
+        service_id: service_id || null,
+        professional_id: professional_id || null,
+        status: status || 'pending'
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating appointment:', error)
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500, headers: corsHeaders }
+      )
+    }
+
+    return NextResponse.json({ success: true, appointment: data }, { headers: corsHeaders })
+  } catch (err) {
+    console.error('Error in POST /api/clinic/appointments', err)
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500, headers: corsHeaders }
+    )
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
@@ -12,81 +68,49 @@ export async function GET(request: Request) {
 
     const supabase = await createClient()
 
-    // Query appointments where appointmentdate is within the given day
-    // Since appointmentdate is stored as "YYYY-MM-DD HH:mm:ss" in local timezone
-    // We fetch all and filter in-memory because the database filtering doesn't work
-    // reliably with "timestamp without time zone" type
+    // Query appointments with customer and service details
     const { data, error } = await supabase
-      .from('Appointment')
-      .select('*')
-      .order('appointmentdate', { ascending: true })
+      .from('appointments')
+      .select(`
+        id,
+        appointment_date,
+        appointment_time,
+        status,
+        created_at,
+        updated_at,
+        customer:customer_id (
+          id,
+          name,
+          phone
+        ),
+        service:service_id (
+          id,
+          name,
+          duration,
+          price
+        )
+      `)
+      .eq('appointment_date', date)
+      .order('appointment_time', { ascending: true })
 
     if (error) {
       console.error('Error fetching appointments:', error)
       return NextResponse.json([], { status: 500 })
     }
 
-    // Filter appointments in-memory by date
-    const filtered = (data || []).filter((a: any) => {
-      const appointmentStr = String(a.appointmentdate)
-      const dateOnly = appointmentStr.substring(0, 10) // "YYYY-MM-DD"
-      return dateOnly === date
-    })
-
     // Map appointments to the shape expected by the UI
-    const mapped = (filtered || []).map((a: any) => {
-      // appointmentdate can be stored as "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss"
-      // Extract time without timezone conversion using string parsing
-      const appointmentStr = String(a.appointmentdate || '')
-      // Handle both "YYYY-MM-DD HH:mm:ss" and "YYYY-MM-DDTHH:mm:ss" formats
-      const [dateStr, timeStr] = appointmentStr.includes('T') 
-        ? appointmentStr.split('T') 
-        : appointmentStr.split(' ')
-      const extractedTime = (timeStr || '').substring(0, 5) // Get HH:mm
-      
+    const mapped = (data || []).map((a: any) => {
       return {
         id: a.id,
-        appointmentdate: a.appointmentdate,
-        durationhours: a.durationhours,
-          recreatorscount: a.recreatorscount ?? null,
-        childname: a.childname,
-        contractorname: a.contractorname,
-        phone: a.phone,
-        email: a.email,
-        address: a.address,
-        eventaddress: a.eventaddress,
-        outofcity: a.outofcity,
-        requestedbymother: a.requestedbymother,
-        // color index: support several naming variants and normalize to a number or null
-        color_index: a.color_index ?? a.colorIndex ?? a.color ?? null,
-        // normalize possible proof/contract field names to stable keys the UI expects
-        proof_url: a.proof_url ?? a.paymentproofurl ?? a.proofurl ?? a.payment_proof_url ?? null,
-        contract_url: a.contract_url ?? a.contracturl ?? a.contract_url ?? null,
-        // support single recreator id or array of recreator ids
-        recreatorid: a.recreatorid ?? a.recreator_id ?? null,
-        recreator_ids: a.recreator_ids ?? a.recreatorids ?? a.recreator_ids_json ?? null,
-        responsible_recreatorid: a.responsible_recreatorid ?? a.responsible_recreator_id ?? null,
-        ownerpresent: a.ownerpresent ?? a.owner_present ?? false,
-        bagid: a.bagid,
-  contractorid: a.contractorid,
-  // event name (some schemas use eventname or event_name)
-  eventname: a.eventname ?? a.event_name ?? null,
-  userid: a.userid,
-  // creator name: support several naming variants (created_by, creator_name, creatorname)
-  created_by: a.created_by ?? a.creator_name ?? a.creatorname ?? a.createdby ?? null,
-        createdat: a.createdat,
-        updatedat: a.updatedat,
-        // payment fields (stored as integer cents in DB)
-        valor_pago: a.valor_pago ?? a.valor_pago_cents ?? null,
-        valor_a_pagar: a.valor_a_pagar ?? a.valor_a_pagar_cents ?? null,
-        // derived fields
-        time: extractedTime,
-        name: a.childname || a.contractorname || '',
-        service: {
-          duration: (a.durationhours || 0) * 60,
-          name: a.service_name || 'Serviço',
-          price: a.service_price || 0,
-        },
+        appointment_date: a.appointment_date,
+        appointment_time: a.appointment_time,
+        status: a.status,
+        customer_id: a.customer_id,
+        service_id: a.service_id,
+        created_at: a.created_at,
+        updated_at: a.updated_at,
+        customer: a.customer,
+        service: a.service,
       }
     })
 
@@ -94,5 +118,72 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error('Error in /api/clinic/appointments', err)
     return NextResponse.json([], { status: 500 })
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const url = new URL(request.url)
+    const id = url.searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 })
+    }
+
+    const body = await request.json()
+    
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    }
+    
+    if (body.appointment_date !== undefined) updateData.appointment_date = body.appointment_date
+    if (body.appointment_time !== undefined) updateData.appointment_time = body.appointment_time
+    if (body.status !== undefined) updateData.status = body.status
+    if (body.customer_id !== undefined) updateData.customer_id = body.customer_id
+    if (body.service_id !== undefined) updateData.service_id = body.service_id
+    if (body.professional_id !== undefined) updateData.professional_id = body.professional_id
+
+    const supabase = await createClient()
+    const { error } = await supabase
+      .from('appointments')
+      .update(updateData)
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error updating appointment:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('Error in PATCH /api/clinic/appointments', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const url = new URL(request.url)
+    const id = url.searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 })
+    }
+
+    const supabase = await createClient()
+    const { error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting appointment:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('Error in DELETE /api/clinic/appointments', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

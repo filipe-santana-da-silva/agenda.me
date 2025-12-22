@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     console.log('Attempting to delete appointment:', appointmentId, 'by user:', user.id)
 
     const { error: deleteError } = await supabase
-      .from('Appointment')
+      .from('appointments')
       .delete()
       .eq('id', appointmentId)
 

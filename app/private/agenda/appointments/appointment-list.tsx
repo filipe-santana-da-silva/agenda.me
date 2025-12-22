@@ -36,42 +36,37 @@ interface AppointmentListProps {
 
 export type AppointmentWithService = {
   id: string
-  appointmentdate: string
-  durationhours: number
-  childname: string
-  contractorname: string
-  phone: string
-  email: string
-  name: string
-  time: string 
-  service: {
-    duration: number
+  appointment_date: string
+  appointment_time: string
+  status: string | null
+  customer_id: string | null
+  service_id: string | null
+  professional_id?: string | null
+  created_at: string | null
+  updated_at: string | null
+  time?: string
+  appointmentdate?: string
+  durationhours?: number
+  contractorname?: string
+  phone?: string
+  email?: string
+  name?: string
+  eventname?: string
+  color_index?: number
+  responsible_recreatorid?: string
+  responsible_recreatorname?: string
+  customer?: {
+    id: string
     name: string
+    email: string
+    phone: string
+  }
+  service?: {
+    id: string
+    name: string
+    duration: number
     price: number
   }
-
-  proof_url?: string | null
-  contract_url?: string | null
-  eventname?: string | null
-  bagid?: string | null
-  recreatorid?: string | null
-  recreator_ids?: string[] | null
-  responsible_recreatorid?: string | null
-  ownerpresent?: boolean
-  eventaddress?: string | null
-  
-  childagegroup?: string | null
-  recreatorscount?: number | null
-  address?: string | null
-  outofcity?: boolean | null
-  requestedbymother?: boolean | null
-  userid?: string | null
-  createdat?: string | null
-  color_index?: number | null
-  created_by?: string | null
-  // payment fields (stored as integer cents)
-  valor_pago?: number | null
-  valor_a_pagar?: number | null
 }
 
 
@@ -96,7 +91,8 @@ export function AppointmentsList({ times }: AppointmentListProps) {
     queryKey: ['get-appointments', date],
     queryFn: async () => {
       const activeDate = date ?? format(new Date(), 'yyyy-MM-dd')
-      const url = `${process.env.NEXT_PUBLIC_URL}/api/clinic/appointments?date=${activeDate}`
+      // Request by interval (start=end=activeDate) to avoid per-day-specific route differences
+      const url = `/api/clinic/appointments/all?start=${activeDate}&end=${activeDate}`
       const response = await fetch(url)
       const json = await response.json()
       return response.ok ? (json as AppointmentWithService[]) : []
@@ -174,12 +170,13 @@ export function AppointmentsList({ times }: AppointmentListProps) {
   useMemo(() => {
     if (!data) return
    
-    if (Object.keys(appointmentColors).length > 0) return
     const map: Record<string, number> = {}
     for (const a of data) {
-      if (typeof a.color_index === 'number') map[String(a.id)] = a.color_index
+      if (typeof a.color_index === 'number') {
+        map[String(a.id)] = a.color_index
+      }
     }
-    if (Object.keys(map).length > 0) setAppointmentColors(map)
+    setAppointmentColors(map)
    
   }, [data])
 
@@ -314,9 +311,6 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                     >
                       <div className="min-w-16 text-sm font-semibold ml-4">{slot}</div>
                       
-                      <div className="absolute left-3 bottom-1 text-xs text-muted-foreground">
-                        {representative?.created_by ? `Criado por: ${String(representative.created_by)}` : ''}
-                      </div>
                       <div className="grow text-sm flex flex-col space-y-2">
                         {hasOccupants ? (
                           // If there are starters in this slot, render them stacked and
@@ -332,8 +326,12 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                             return (
                               <div
                                 key={occ.id + '-' + occIndex}
-                                className="w-full py-2 px-3 border-b last:border-b-0"
-                                style={{ backgroundColor: (appointmentColors[occ.id] !== undefined) ? (COLORS[appointmentColors[occ.id]] ?? 'transparent') : 'transparent' }}
+                                className="w-full py-2 px-3 border-l-4 rounded-r-md"
+                                style={{ 
+                                  backgroundColor: (appointmentColors[occ.id] !== undefined) ? (COLORS[appointmentColors[occ.id]] ?? '#f5f5f5') : '#f5f5f5',
+                                  borderLeftColor: (appointmentColors[occ.id] !== undefined) ? (COLORS[appointmentColors[occ.id]] ?? '#e0e0e0') : '#e0e0e0',
+                                  opacity: 0.8
+                                }}
                               >
                                 <div className="flex justify-between items-center w-full">
                                   <div className="flex flex-col">
@@ -389,7 +387,11 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                             return (
                               <div className="flex flex-col space-y-1">
                                 {covered.map((c) => (
-                                  <div key={`cov-${c.id}`} className="w-full py-2 px-3 border-b last:border-b-0" style={{ backgroundColor: (appointmentColors[c.id] !== undefined) ? (COLORS[appointmentColors[c.id]] ?? 'transparent') : 'transparent' }}>
+                                  <div key={`cov-${c.id}`} className="w-full py-2 px-3 border-l-4 rounded-r-md" style={{ 
+                                    backgroundColor: (appointmentColors[c.id] !== undefined) ? (COLORS[appointmentColors[c.id]] ?? '#f5f5f5') : '#f5f5f5',
+                                    borderLeftColor: (appointmentColors[c.id] !== undefined) ? (COLORS[appointmentColors[c.id]] ?? '#e0e0e0') : '#e0e0e0',
+                                    opacity: 0.6
+                                  }}>
                                     <div className="flex justify-between items-center w-full">
                                       <div className="flex flex-col">
                                         <div className="font-semibold text-amber-900">{c.contractorname} <span className="text-xs text-gray-500">(em andamento)</span></div>

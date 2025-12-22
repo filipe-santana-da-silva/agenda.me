@@ -26,11 +26,38 @@ export async function GET(request: Request) {
 
     console.log('Fetching appointments for range:', rangeStart, 'to', rangeEnd)
 
-    // Fetch ALL appointments and filter in-memory
+    // Query appointments with customer and service details
     const { data, error } = await supabase
-      .from('Appointment')
-      .select('*')
-      .order('appointmentdate', { ascending: true })
+      .from('appointments')
+      .select(`
+        id,
+        appointment_date,
+        appointment_time,
+        status,
+        created_at,
+        updated_at,
+        customer:customer_id (
+          id,
+          name,
+          phone
+        ),
+        service:service_id (
+          id,
+          name,
+          duration,
+          price
+        ),
+        professional:professional_id (
+          id,
+          name,
+          email,
+          position
+        )
+      `)
+      .gte('appointment_date', rangeStart)
+      .lte('appointment_date', rangeEnd)
+      .order('appointment_date', { ascending: true })
+      .order('appointment_time', { ascending: true })
 
     if (error) {
       console.error('Error fetching all appointments:', error)
@@ -40,57 +67,56 @@ export async function GET(request: Request) {
       )
     }
 
-    // Filter appointments for the given range (inclusive)
-    const filtered = (data || []).filter((a: any) => {
-      if (!a.appointmentdate) return false
-      const appointmentStr = String(a.appointmentdate)
-      const dateOnly = appointmentStr.substring(0, 10) // Get YYYY-MM-DD part
-      return dateOnly >= rangeStart && dateOnly <= rangeEnd
-    })
-
-    console.log('Total appointments in DB:', data?.length || 0, 'Filtered for month:', filtered.length)
+    console.log('Total appointments fetched:', data?.length || 0)
 
     // Map appointments to the shape expected by the UI
-    const mapped = (filtered || []).map((a: any) => {
-      // appointmentdate can be stored as "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss"
-      // Extract time without timezone conversion
-      const appointmentStr = String(a.appointmentdate || '')
-      // Handle both "YYYY-MM-DD HH:mm:ss" and "YYYY-MM-DDTHH:mm:ss" formats
-      const [dateStr, timeStr] = appointmentStr.includes('T') 
-        ? appointmentStr.split('T') 
-        : appointmentStr.split(' ')
-      
+    const mapped = (data || []).map((a: any) => {
+      // Process service duration from HH:MM:SS to minutes
+      let durationMinutes = null
+      if (a.service?.duration) {
+        const duration = a.service.duration
+        if (typeof duration === 'string' && duration.includes(':')) {
+          // Parse HH:MM:SS format
+          const parts = duration.split(':')
+          if (parts.length >= 2) {
+            // Take first two parts as minutes and seconds (since the format might be MM:SS instead of HH:MM:SS)
+            const firstPart = parseInt(parts[0], 10)
+            const secondPart = parseInt(parts[1], 10)
+            
+            // If first part is >= 60, it's likely minutes; otherwise it's hours
+            if (firstPart >= 60) {
+              durationMinutes = firstPart // Already in minutes
+            } else {
+              durationMinutes = firstPart * 60 + secondPart // HH:MM format
+            }
+          }
+        } else if (typeof duration === 'number') {
+          durationMinutes = duration
+        }
+      }
+
       return {
         id: a.id,
-        appointmentdate: dateStr || '',
-        time: (timeStr || '').substring(0, 5), // Get HH:mm
-        durationhours: a.durationhours,
-        recreatorscount: a.recreatorscount ?? null,
-        childname: a.childname,
-        contractorname: a.contractorname,
-        phone: a.phone,
-        email: a.email,
-        address: a.address,
-        eventaddress: a.eventaddress,
-        outofcity: a.outofcity,
-        requestedbymother: a.requestedbymother,
-        color_index: a.color_index ?? a.colorIndex ?? a.color ?? null,
-        proof_url: a.proof_url,
-        contract_url: a.contract_url,
-        eventname: a.eventname,
-        bagid: a.bagid,
-        recreatorid: a.recreatorid,
-        recreator_ids: a.recreator_ids,
-        responsible_recreatorid: a.responsible_recreatorid,
-        ownerpresent: a.ownerpresent,
-        childagegroup: a.childagegroup,
-        userid: a.userid,
-        createdat: a.createdat,
-        created_by: a.created_by,
-        valor_pago: a.valor_pago,
-        valor_a_pagar: a.valor_a_pagar,
-        service: a.service,
-        name: a.name,
+        appointmentdate: `${a.appointment_date} ${a.appointment_time}`,
+        appointment_date: a.appointment_date,
+        appointment_time: a.appointment_time,
+        time: (a.appointment_time || '').substring(0, 5), // Get HH:mm
+        status: a.status,
+        customer_id: a.customer_id,
+        service_id: a.service_id,
+        professional_id: a.professional_id,
+        created_at: a.created_at,
+        updated_at: a.updated_at,
+        customer: a.customer,
+        service: a.service ? {
+          ...a.service,
+          duration: durationMinutes ?? a.service.duration
+        } : null,
+        professional: a.professional,
+        // For backward compatibility with UI that might expect these
+        contractorname: a.customer?.name || '',
+        phone: a.customer?.phone || '',
+        name: a.customer?.name || '',
       }
     })
 

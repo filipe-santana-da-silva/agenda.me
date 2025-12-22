@@ -33,35 +33,9 @@ export async function deleteAppointment(formData: FormSchema) {
     const appointmentId = schema.data.appointmentId
     console.log('Attempting to delete appointment:', appointmentId)
 
-    // First, delete related RankingEventDetail records
-    const { error: rankingDeleteError } = await supabase
-      .from('RankingEventDetail')
-      .delete()
-      .eq('appointmentid', appointmentId)
-
-    if (rankingDeleteError) {
-      console.error('Error deleting ranking details:', rankingDeleteError)
-      return {
-        error: `Erro ao remover dados relacionados: ${rankingDeleteError.message}`
-      }
-    }
-
-    // Then delete related AppointmentRequestedRecreator records
-    const { error: requestedDeleteError } = await supabase
-      .from('AppointmentRequestedRecreator')
-      .delete()
-      .eq('appointment_id', appointmentId)
-
-    if (requestedDeleteError) {
-      console.error('Error deleting requested recreators:', requestedDeleteError)
-      return {
-        error: `Erro ao remover recreadores solicitados: ${requestedDeleteError.message}`
-      }
-    }
-
-    // Finally, delete the appointment
+    // Delete the appointment directly (no related tables in new schema)
     const { error: deleteError } = await supabase
-      .from('Appointment')
+      .from('appointments')
       .delete()
       .eq('id', appointmentId)
 

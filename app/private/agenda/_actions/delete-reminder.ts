@@ -22,20 +22,11 @@ export async function deleteReminder(formData: FormSchema) {
       }
     }
 
-    const { data: userData, error: authError } = await supabase.auth.getUser()
-    if (!userData?.user || authError) {
-      console.error('Auth error:', authError)
-      return {
-        error: 'Usuário não encontrado'
-      }
-    }
-
     console.log('Deletando lembrete com id:', formData.reminderId)
     const { data, error: deleteError } = await supabase
       .from('Reminder')
       .delete()
       .eq('id', formData.reminderId)
-      .eq('userid', userData.user.id)
       .select()
 
     if (deleteError) {

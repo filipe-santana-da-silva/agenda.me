@@ -18,45 +18,97 @@ export async function GET(request: Request) {
   const clinicId = session.user.id
   const searchParams = new URL(request.url).searchParams
   const dateString = searchParams.get('date')
+  const startString = searchParams.get('start')
+  const endString = searchParams.get('end')
 
-  // 📅 Validação da data
-  if (!dateString || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    return NextResponse.json({ error: 'Data inválida ou não informada' }, { status: 400 })
+  let startDate: Date
+  let endDate: Date
+
+  // Support both single date and date range queries
+  if (startString && endString) {
+    // Validate range dates
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startString) || !/^\d{4}-\d{2}-\d{2}$/.test(endString)) {
+      return NextResponse.json({ error: 'Datas inválidas' }, { status: 400 })
+    }
+    const [startYear, startMonth, startDay] = startString.split('-').map(Number)
+    const [endYear, endMonth, endDay] = endString.split('-').map(Number)
+    startDate = new Date(Date.UTC(startYear, startMonth - 1, startDay, 0, 0, 0))
+    endDate = new Date(Date.UTC(endYear, endMonth - 1, endDay, 23, 59, 59, 999))
+  } else if (dateString) {
+    // 📅 Validação da data
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return NextResponse.json({ error: 'Data inválida ou não informada' }, { status: 400 })
+    }
+    const [year, month, day] = dateString.split('-').map(Number)
+    startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
+    endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
+  } else {
+    return NextResponse.json({ error: 'Data ou intervalo de datas deve ser informado' }, { status: 400 })
   }
 
   try {
-    const [year, month, day] = dateString.split('-').map(Number)
-    const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
-    const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
-
     // 📦 Consulta de agendamentos com todos os campos necessários
     const { data: appointments, error: aptError } = await (await supabase)
-      .from('Appointment')
+      .from('appointments')
       .select(`
         id,
-        appointmentdate,
-        durationhours,
-        childname,
-        contractorname,
-        phone,
-        email,
-        name,
-        service (
-          duration,
+        customer_id,
+        service_id,
+        appointment_date,
+        appointment_time,
+        status,
+        created_at,
+        updated_at,
+        customers (
+          id,
           name,
+          phone,
+          email
+        ),
+        services (
+          id,
+          name,
+          duration,
           price
         )
       `)
-      .eq('userid', clinicId)
-      .gte('appointmentdate', startDate.toISOString())
-      .lte('appointmentdate', endDate.toISOString())
+      .gte('appointment_date', startDate.toISOString().split('T')[0])
+      .lte('appointment_date', endDate.toISOString().split('T')[0])
 
     if (aptError) {
       console.error('Erro ao buscar agendamentos:', aptError.message)
       return NextResponse.json({ error: 'Erro ao buscar agendamentos' }, { status: 500 })
     }
 
-    return NextResponse.json(appointments)
+    // Transform data to include customer and service info at top level
+    const transformedAppointments = appointments.map((apt: any) => {
+      // Normalize appointment_date to YYYY-MM-DD string so frontend grouping matches
+      const appointmentDateStr = apt.appointment_date ? new Date(apt.appointment_date).toISOString().split('T')[0] : null
+
+      return {
+        id: apt.id,
+        appointment_date: appointmentDateStr,
+        appointment_time: apt.appointment_time,
+      status: apt.status,
+      customer_id: apt.customer_id,
+      service_id: apt.service_id,
+      created_at: apt.created_at,
+      updated_at: apt.updated_at,
+      name: apt.customers?.name,
+      phone: apt.customers?.phone,
+      email: apt.customers?.email,
+      eventname: apt.customers?.name, // Use customer name as event name
+      service: apt.services ? {
+        id: apt.services.id,
+        name: apt.services.name,
+        duration: apt.services.duration,
+        price: apt.services.price
+      } : null,
+      color_index: 0, // Default color
+      }
+    })
+
+    return NextResponse.json(transformedAppointments)
   } catch (err) {
     console.error('Erro inesperado:', err)
     return NextResponse.json({ error: 'Erro interno ao processar agendamentos' }, { status: 500 })

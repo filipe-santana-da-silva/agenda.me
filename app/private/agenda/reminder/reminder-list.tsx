@@ -11,9 +11,10 @@ import { useRouter } from "next/navigation"
 
 interface ReminderContentProps {
     closeDialog: () => void;
+    onRefresh?: () => void;
 }
 
-export function Reminderlist({ closeDialog } : ReminderContentProps){
+export function Reminderlist({ closeDialog, onRefresh } : ReminderContentProps){
     const form = useReminderForm()
     const router = useRouter();
 
@@ -35,8 +36,7 @@ export function Reminderlist({ closeDialog } : ReminderContentProps){
                 toast.success(response.data)
                 form.reset()
                 closeDialog();
-                // Force hard refresh to update reminders list
-                setTimeout(() => window.location.reload(), 500);
+                if (onRefresh) onRefresh();
             }
         } catch (err) {
             console.error('Error creating reminder:', err)

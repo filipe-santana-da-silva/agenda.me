@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
 
 export type LoginState = {
   success: boolean | null
@@ -11,39 +11,46 @@ export async function login(
   previousState: LoginState,
   formData: FormData
 ): Promise<LoginState> {
-  const supabase = createClient()
-
   const email = formData.get('email') as string
   const password = formData.get('password') as string
-  const name = (formData.get('name') as string) || ''
 
-  const { data, error } = await (await supabase).auth.signInWithPassword({ email, password })
-
-  if (error) {
+  if (!email || !password) {
     return {
       success: false,
-      message: error.message,
+      message: 'Email e senha são obrigatórios',
     }
   }
 
-  // if sign-in succeeded and a name was provided, upsert into User table
   try {
-    const userId = (data as any)?.user?.id ?? (data as any)?.session?.user?.id
-    if (userId && name && name.trim().length > 0) {
-      const sup = await supabase
-      const { error: upsertError } = await sup.from('User').upsert({ id: userId, name: name.trim() }, { onConflict: 'id' })
-      if (upsertError) {
-        // log but don't fail login
-        // eslint-disable-next-line no-console
-        console.error('Failed to upsert user name after login:', upsertError)
+    // Usar nossa API customizada
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      return {
+        success: false,
+        message: error.error || 'Credenciais inválidas',
       }
     }
-  } catch (e) {
-    // ignore errors during optional profile upsert
-  }
 
-  return {
-    success: true,
-    message: 'Login realizado com sucesso!',
+    const { user } = await response.json()
+    
+    // Armazenar dados do usuário no localStorage (será usado pelo SimpleAuthContext)
+    // Como estamos no server, vamos redirecionar e deixar o client lidar com o storage
+    
+    return {
+      success: true,
+      message: 'Login realizado com sucesso!',
+    }
+  } catch (error) {
+    console.error('Erro no login:', error)
+    return {
+      success: false,
+      message: 'Erro interno do servidor',
+    }
   }
 }

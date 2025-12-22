@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/utils/supabase/client'
-import { format, startOfMonth } from 'date-fns'
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -93,13 +93,16 @@ export function CalendarContent() {
     queryKey: ['all-appointments', visibleStart, visibleEnd, selectedDate],
     queryFn: async () => {
       try {
-        // If we have a visible range, request appointments for that full interval
-        let url = '/api/clinic/appointments/all'
-        if (visibleStart && visibleEnd) {
-          url += `?start=${visibleStart}&end=${visibleEnd}`
-        } else {
-          url += `?date=${selectedDate}`
-        }
+        // Always request appointments by interval (start/end).
+        // Prefer explicit visible range, otherwise compute month range from selectedDate.
+        const startStr = visibleStart && visibleEnd
+          ? visibleStart
+          : format(startOfMonth(parseISO(selectedDate)), 'yyyy-MM-dd')
+        const endStr = visibleStart && visibleEnd
+          ? visibleEnd
+          : format(endOfMonth(parseISO(selectedDate)), 'yyyy-MM-dd')
+
+        const url = `/api/clinic/appointments/all?start=${startStr}&end=${endStr}`
         const response = await fetch(url)
         if (!response.ok) {
           const errorText = await response.text()
@@ -116,6 +119,30 @@ export function CalendarContent() {
     staleTime: 5 * 60 * 1000,
     refetchInterval: 10 * 60 * 1000,
     retry: 3,
+  })
+
+  // Normalize API response to the shape expected by CalendarMonth and CalendarWeek
+  const mappedAppointments = (allAppointments || []).map((a: any) => {
+    // appointment_date (API) -> appointmentdate (calendar components)
+    const appointmentdate = a.appointment_date || a.appointmentdate || null
+    // time normalization: prefer appointment_time then time
+    const timeRaw = a.appointment_time ?? a.time ?? ''
+    const time = typeof timeRaw === 'string' ? timeRaw.slice(0, 5) : ''
+
+    return {
+      id: a.id,
+      appointmentdate,
+      time,
+      durationhours: a.durationhours ?? (a.service?.duration ? a.service.duration / 60 : undefined),
+      contractorname: a.name ?? a.contractorname ?? a.eventname ?? '',
+      phone: a.phone ?? a.phone_number ?? '',
+      email: a.email ?? null,
+      eventname: a.eventname ?? a.name ?? null,
+      color_index: a.color_index ?? 0,
+      service: a.service ?? null,
+      // include original payload for details dialog
+      __raw: a,
+    }
   })
 
   // Color cycle handler with optimistic update
@@ -229,7 +256,6 @@ export function CalendarContent() {
   onClick={() => router.push('/private/agenda/new')}
   className="relative w-full sm:w-auto text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 flex items-center justify-center"
 >
-  <Plus className="absolute left-3 w-3 h-3 sm:w-4 sm:h-4" />
   <span className="mx-auto">Novo Agendamento</span>
 </Button>
 
@@ -266,13 +292,13 @@ export function CalendarContent() {
 
         {/* Calendar Views */}
         {!isLoading && !isError && (
-          <Card className="w-full mx-auto overflow-hidden">
-            <CardContent className="p-0 h-[500px] sm:h-[600px] lg:h-[700px] overflow-y-auto overflow-x-hidden">
+          <Card className="w-full mx-auto overflow-hidden border-0 shadow-lg">
+            <CardContent className="p-4 sm:p-6 h-[500px] sm:h-[600px] lg:h-[700px] overflow-y-auto overflow-x-hidden">
               <Suspense fallback={<div className="p-4 text-muted-foreground">Carregando...</div>}>
                 {viewMode === 'month' ? (
                   <div className="p-2 sm:p-0">
                     <CalendarMonth
-                      appointments={allAppointments}
+                      appointments={mappedAppointments}
                       selectedDate={selectedDate}
                       currentMonth={currentMonth}
                       onCurrentMonthChange={(iso: string) => setCurrentMonth(iso)}
@@ -296,7 +322,7 @@ export function CalendarContent() {
                 ) : (
                   <div className="p-2 sm:p-0">
                     <CalendarWeek
-                      appointments={allAppointments}
+                      appointments={mappedAppointments}
                       selectedDate={selectedDate}
                       onDateSelect={setSelectedDate}
                       onAppointmentClick={(id: string) => {
