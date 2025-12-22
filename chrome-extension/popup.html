@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda.me</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Agenda.me</h1>
+            <div style="display: flex; gap: 8px;">
+                <button id="syncBtn" class="btn-sync" title="Sincronizar catálogos">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36"></path>
+                    </svg>
+                </button>
+                <button id="logoutBtn" class="btn-logout hidden" title="Sair">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div id="authContainer" class="auth-section">
+            <h2>Faça login para continuar</h2>
+            <input type="email" id="emailInput" placeholder="Email" />
+            <input type="password" id="passwordInput" placeholder="Senha" />
+            <button id="loginBtn" class="btn-primary">Entrar</button>
+            <div id="authError" class="error hidden"></div>
+        </div>
+
+        <div id="mainContainer" class="hidden">
+            <div class="appointments-section">
+                <button id="newAppointmentBtn" class="btn-new-appointment">
+                    ➕ Novo Agendamento
+                </button>
+                <button id="appointmentsBtn" class="btn-appointments">
+                     Ver Agendamentos do Dia
+                </button>
+            </div>
+            <div class="catalogs-section">
+                <h3 class="section-title">Catálogos</h3>
+                <div id="catalogsList" class="catalogs-list">
+                    <div class="loading">Carregando catálogos...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="appointmentsModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Agendamentos</h3>
+                    <button id="closeModal" class="close-btn">✕</button>
+                </div>
+                <div class="modal-body">
+                    <input type="date" id="dateInput" class="date-input" />
+                    <button id="loadAppointments" class="btn-primary">Carregar Agendamentos</button>
+                    <div id="appointmentsError" class="error hidden"></div>
+                </div>
+            </div>
+        </div>
+        
+
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

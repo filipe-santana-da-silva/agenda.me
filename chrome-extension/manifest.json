@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Agenda.me",
+  "description": "Compartilhe seus catálogos pelo WhatsApp Web",
+  "version": "1.0.21",
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://web.whatsapp.com/*",
+    "https://recreart-agenda.vercel.app/*",
+    "https://hfggzfsvdrbzzojyjssx.supabase.co/*",
+    "http://localhost/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Recreart Catálogos"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
