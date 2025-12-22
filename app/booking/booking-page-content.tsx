@@ -13,12 +13,13 @@ import {
 } from "@/components/ui/page";
 import Footer from "@/components/footer";
 import QuickSearch from "@/components/quick-search";
-import BarbershopItem from "@/components/barbershop-item";
 import { Card } from "@/components/ui/card";
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useSearchParams } from "next/navigation";
+import BarbershopCarousel from "@/components/barbershop-carousel";
+import { CAROUSEL_IMAGES } from "@/data/carousel-images";
 const BookingLogin = dynamic(() => import("./booking-login"), { ssr: false });
 
 interface BookingPageContentProps {
@@ -147,7 +148,7 @@ export function BookingPageContent({
                           {service.description}
                         </p>
                         <p className="text-sm font-bold mt-2">
-                          R${(service.price_in_cents / 100).toFixed(2)}
+                          R${(service.price).toFixed(2)}
                         </p>
                       </div>
                     </Card>
@@ -160,26 +161,15 @@ export function BookingPageContent({
             {initialBarbershops.length > 0 && (
               <PageSectionContent>
                 <PageSectionTitle>Barbearias Populares</PageSectionTitle>
-                <PageSectionScroller>
-                  {initialBarbershops.slice(0, 1).map((barbershop) => {
-                    // Imagens do seed.ts para o carrossel
-                    const carouselImages = [
-                      "https://utfs.io/f/c97a2dc9-cf62-468b-a851-bfd2bdde775f-16p.png",
-                      "https://utfs.io/f/45331760-899c-4b4b-910e-e00babb6ed81-16q.png",
-                      "https://utfs.io/f/5832df58-cfd7-4b3f-b102-42b7e150ced2-16r.png",
-                      "https://utfs.io/f/7e309eaa-d722-465b-b8b6-76217404a3d3-16s.png",
-                      "https://utfs.io/f/178da6b6-6f9a-424a-be9d-a2feb476eb36-16t.png",
-                    ];
-
-                    return (
-                      <BarbershopItem 
-                        key={barbershop.id} 
-                        barbershop={barbershop}
-                        images={carouselImages}
-                      />
-                    );
-                  })}
-                </PageSectionScroller>
+                <div className="w-full">
+                  {initialBarbershops.slice(0, 1).map((barbershop) => (
+                    <BarbershopCarousel
+                      key={barbershop.id}
+                      barbershop={barbershop}
+                      carouselImages={CAROUSEL_IMAGES}
+                    />
+                  ))}
+                </div>
               </PageSectionContent>
             )}
           </PageContainer>

@@ -3,7 +3,6 @@
 import Header from "@/components/fullstack/header"
 import Footer from "@/components/fullstack/footer"
 import QuickSearch from "@/components/fullstack/quick-search"
-import BarbershopItem from "@/components/barbershop-item"
 import BookingItem from "@/components/booking-item"
 import { getPopularBarbershops } from "@/data/barbershops"
 import { getUserBookings } from "@/data/bookings"

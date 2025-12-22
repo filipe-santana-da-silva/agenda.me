@@ -1,7 +1,7 @@
 import Header from "@/components/fullstack/header"
 import Footer from "@/components/fullstack/footer"
 import QuickSearch from "@/components/fullstack/quick-search"
-import BarbershopItem from "@/components/barbershop-item"
+
 import BookingItem from "@/components/booking-item"
 import { getPopularBarbershops } from "@/data/barbershops"
 import { getUserBookings } from "@/data/bookings"
@@ -41,9 +41,7 @@ export default async function Home() {
         <section>
           <h2 className="text-lg font-bold mb-3">Barbearias Populares</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {barbershops.map((barbershop) => (
-              <BarbershopItem key={barbershop.id} barbershop={barbershop} />
-            ))}
+            
           </div>
         </section>
 

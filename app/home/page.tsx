@@ -12,7 +12,6 @@ import {
   PageSectionTitle,
 } from "@/components/ui/page";
 import Footer from "@/components/footer";
-import BarbershopItem from "@/components/barbershop-item";
 
 export default async function Home() {
   const barbershops = await getBarbershops();
@@ -41,9 +40,7 @@ export default async function Home() {
         <PageSectionContent>
           <PageSectionTitle>Barbearias</PageSectionTitle>
           <PageSectionScroller>
-            {barbershops.map((barbershop) => (
-              <BarbershopItem key={barbershop.id} barbershop={barbershop} />
-            ))}
+            ols
           </PageSectionScroller>
         </PageSectionContent>
       </PageContainer>
