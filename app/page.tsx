@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Calendar, Users, BarChart3, Smartphone, Mail, ArrowRight, Download, CheckCircle, Star, Globe, Chrome } from "lucide-react"
+import { Calendar, Users, BarChart3, Smartphone, Mail, ArrowRight, Download, CheckCircle, Star, Globe, Chrome, Bot } from "lucide-react"
+import Snowfall from 'react-snowfall'
 
 /**
  * Home Page - Server Component
@@ -49,9 +50,9 @@ export default function Home() {
       description: 'Interface responsiva que funciona perfeitamente em qualquer dispositivo'
     },
     {
-      icon: Mail,
-      title: 'Confirmação por Email',
-      description: 'Emails automáticos de confirmação enviados para clientes após cada agendamento'
+      icon: Bot,
+      title: 'Agendamento com IA',
+      description: 'Sistema inteligente que realiza agendamentos para seus clientes automaticamente'
     }
   ]
 
@@ -116,7 +117,8 @@ const staggerContainer = {
 
 function LandingPage({ features, testimonials, plans }: any) {
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 relative">
+      <Snowfall />
       {/* Header */}
       <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-200">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
