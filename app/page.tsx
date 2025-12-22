@@ -116,12 +116,12 @@ const staggerContainer = {
 
 function LandingPage({ features, testimonials, plans }: any) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50">
       {/* Header */}
       <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-200">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <motion.div 
-            className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+            className="text-2xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
           >
@@ -147,21 +147,21 @@ function LandingPage({ features, testimonials, plans }: any) {
         <div className="container mx-auto text-center">
           <motion.div {...fadeInUp}>
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              <span className="bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
                 Gerencie seus
               </span>
               <br />
-              <span className="relative bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+              <span className="relative bg-linear-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
                 agendamentos
                 <motion.div
-                  className="absolute -bottom-2 left-0 right-0 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-30"
+                  className="absolute -bottom-2 left-0 right-0 h-3 bg-linear-to-r from-blue-400 to-purple-400 rounded-full opacity-30"
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
                   transition={{ delay: 0.8, duration: 0.8 }}
                 />
               </span>
               <br />
-              <span className="bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
                 com inteligência
               </span>
             </h1>
@@ -171,7 +171,7 @@ function LandingPage({ features, testimonials, plans }: any) {
             </p>
             <div className="flex justify-center">
               <Link href="/auth/register">
-                <Button size="lg" className="text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                <Button size="lg" className="text-lg px-8 py-6 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                   Começar Gratuitamente
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
@@ -188,7 +188,7 @@ function LandingPage({ features, testimonials, plans }: any) {
           >
             <div className="relative mx-auto max-w-6xl">
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-3xl blur-3xl opacity-20"
+                className="absolute inset-0 bg-linear-to-r from-blue-400 to-purple-400 rounded-3xl blur-3xl opacity-20"
                 animate={{ 
                   scale: [1, 1.02, 1],
                 }}
@@ -213,7 +213,7 @@ function LandingPage({ features, testimonials, plans }: any) {
                   </div>
                   
                   {/* Dashboard Content */}
-                  <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50">
+                  <div className="p-6 bg-linear-to-br from-slate-50 to-blue-50">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
                       <div>
@@ -291,28 +291,32 @@ function LandingPage({ features, testimonials, plans }: any) {
           {/* Mobile Preview */}
           <motion.div 
             className="mt-20 flex justify-center"
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.8 }}
+            initial={{ opacity: 0, y: 100, scale: 0.9 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.9 }}
+            viewport={{ once: false, amount: 0.3 }}
           >
-            <div className="text-center">
-              <h3 className="text-2xl font-bold mb-4 text-gray-800">Acesse de qualquer lugar</h3>
-              <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                Interface responsiva que funciona perfeitamente em dispositivos móveis
-              </p>
+            <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-0 items-center">
+              {/* Text Section */}
+              <div className="text-center lg:text-left">
+                <h3 className="text-2xl font-bold mb-4 text-gray-800">Acesse de qualquer lugar</h3>
+                <p className="text-gray-600 max-w-md mx-auto lg:mx-0">
+                  Interface responsiva que funciona perfeitamente em dispositivos móveis
+                </p>
+              </div>
               
               {/* iPhone Mockup */}
-              <div className="flex justify-center">
-                <div className="relative w-80 transform -rotate-12">
+              <div className="flex justify-center lg:justify-end lg:-ml-32">
+                <div className="relative w-80">
                   {/* iPhone Frame */}
                   <div className="bg-black rounded-3xl shadow-2xl p-3" style={{ aspectRatio: '9/19' }}>
                     {/* Notch */}
                     <div className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-black w-40 h-7 rounded-b-3xl z-10"></div>
                     
                     {/* Screen */}
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl h-full w-full overflow-hidden flex flex-col">
+                    <div className="bg-white rounded-2xl h-full w-full overflow-hidden flex flex-col">
                       {/* Status Bar */}
-                      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 text-xs flex items-center justify-between">
+                      <div className="bg-white text-gray-900 px-4 py-2 text-xs flex items-center justify-between border-b border-gray-100">
                         <span>9:41</span>
                         <div className="flex gap-1">
                           <span>📶</span>
@@ -321,30 +325,47 @@ function LandingPage({ features, testimonials, plans }: any) {
                         </div>
                       </div>
                       
+                      {/* Header */}
+                      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+                        <h1 className="text-lg font-bold text-gray-900">Agenda.me</h1>
+                        <button className="w-8 h-8 bg-blue-500 rounded-full"></button>
+                      </div>
+                      
                       {/* Content */}
-                      <div className="flex-1 overflow-hidden px-4 py-6 flex flex-col">
-                        <h2 className="text-lg font-bold text-gray-900 mb-2">Dashboard</h2>
-                        <p className="text-xs text-gray-600 mb-4">Bem-vindo!</p>
-                        
-                        {/* Stats Cards */}
-                        <div className="space-y-2 mb-4">
-                          <div className="bg-white rounded-lg p-3 shadow-sm">
-                            <div className="text-xs text-gray-600">Agendamentos</div>
-                            <div className="text-xl font-bold text-blue-600">12</div>
+                      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col space-y-4">
+                        {/* Today and Clients Cards */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-green-50 rounded-lg p-4 text-center">
+                            <div className="text-sm font-medium text-gray-600 mb-1">Hoje</div>
+                            <div className="text-2xl font-bold text-green-600">12</div>
                           </div>
-                          <div className="bg-white rounded-lg p-3 shadow-sm">
-                            <div className="text-xs text-gray-600">Clientes</div>
-                            <div className="text-xl font-bold text-green-600">248</div>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 shadow-sm">
-                            <div className="text-xs text-gray-600">Receita</div>
-                            <div className="text-xl font-bold text-purple-600">R$ 8.5k</div>
+                          <div className="bg-blue-50 rounded-lg p-4 text-center">
+                            <div className="text-sm font-medium text-gray-600 mb-1">Clientes</div>
+                            <div className="text-2xl font-bold text-blue-600">248</div>
                           </div>
                         </div>
                         
-                        <button className="bg-blue-600 text-white rounded-lg py-2 text-xs font-semibold w-full">
-                          Novo Agendamento
-                        </button>
+                        {/* Calendar Section */}
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900 mb-3">Calendário</h3>
+                          <div className="grid grid-cols-7 gap-2 text-center text-xs mb-4">
+                            {[15, 16, 17, 18, 19, 20, 21].map((day) => (
+                              <div key={day} className="text-gray-600 font-medium">{day}</div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {/* Appointments List */}
+                        <div className="space-y-2">
+                          <div className="bg-green-50 border-l-4 border-green-500 rounded p-3">
+                            <div className="text-xs font-medium text-gray-600">10:00</div>
+                            <div className="text-sm font-semibold text-gray-900">Maria Silva</div>
+                          </div>
+                          <div className="bg-blue-50 border-l-4 border-blue-500 rounded p-3">
+                            <div className="text-xs font-medium text-gray-600">14:30</div>
+                            <div className="text-sm font-semibold text-gray-900">João Santos</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -380,7 +401,7 @@ function LandingPage({ features, testimonials, plans }: any) {
                 <Card className="h-full hover:shadow-xl transition-all duration-300 group">
                   <CardContent className="p-6">
                     <motion.div
-                      className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
+                      className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
                       whileHover={{ rotateY: 180 }}
                       style={{ transformStyle: 'preserve-3d' }}
                     >
@@ -397,7 +418,7 @@ function LandingPage({ features, testimonials, plans }: any) {
       </section>
 
       {/* Chrome Extension Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-purple-50 to-pink-50">
+      <section className="py-20 px-4 bg-linear-to-r from-purple-50 to-pink-50">
         <div className="container mx-auto">
           <motion.div 
             className="text-center mb-16"
@@ -421,7 +442,7 @@ function LandingPage({ features, testimonials, plans }: any) {
             >
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shrink-0">
                     <CheckCircle className="w-4 h-4 text-white" />
                   </div>
                   <div>
@@ -430,7 +451,7 @@ function LandingPage({ features, testimonials, plans }: any) {
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shrink-0">
                     <CheckCircle className="w-4 h-4 text-white" />
                   </div>
                   <div>
@@ -439,7 +460,7 @@ function LandingPage({ features, testimonials, plans }: any) {
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shrink-0">
                     <CheckCircle className="w-4 h-4 text-white" />
                   </div>
                   <div>
@@ -469,7 +490,7 @@ function LandingPage({ features, testimonials, plans }: any) {
             >
               <div className="relative">
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl blur-2xl opacity-20"
+                  className="absolute inset-0 bg-linear-to-r from-purple-400 to-pink-400 rounded-2xl blur-2xl opacity-20"
                   animate={{ 
                     scale: [1, 1.02, 1],
                   }}
@@ -517,7 +538,7 @@ function LandingPage({ features, testimonials, plans }: any) {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 px-4 bg-gradient-to-r from-blue-50 to-purple-50">
+      <section className="py-20 px-4 bg-linear-to-r from-blue-50 to-purple-50">
         <div className="container mx-auto">
           <motion.div 
             className="text-center mb-16"
@@ -582,7 +603,7 @@ function LandingPage({ features, testimonials, plans }: any) {
                 <div className="mb-6">
                   <h3 className="text-3xl font-bold mb-2">{plans[0].name}</h3>
                   <div className="mb-4">
-                    <span className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    <span className="text-5xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                       R$ {plans[0].price.toFixed(2)}
                     </span>
                     <span className="text-gray-600 text-lg">/mês</span>
@@ -593,14 +614,14 @@ function LandingPage({ features, testimonials, plans }: any) {
                 <div className="grid grid-cols-1 gap-3 mb-8 text-left">
                   {plans[0].features.map((feature: any, i: number) => (
                     <div key={i} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
                       <span className="text-sm">{feature}</span>
                     </div>
                   ))}
                 </div>
                 
                 <Link href="/auth/register">
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6">
+                  <Button className="w-full bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6">
                     Começar Agora
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
@@ -616,7 +637,7 @@ function LandingPage({ features, testimonials, plans }: any) {
       </section>
 
       {/* CTA Final */}
-      <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <section className="py-20 px-4 bg-linear-to-r from-blue-600 to-purple-600 text-white">
         <div className="container mx-auto text-center">
           <motion.div {...fadeInUp}>
             <h2 className="text-4xl font-bold mb-4">Pronto para transformar seu negócio?</h2>
@@ -636,7 +657,7 @@ function LandingPage({ features, testimonials, plans }: any) {
       {/* Footer */}
       <footer className="py-12 px-4 bg-gray-900 text-white">
         <div className="container mx-auto text-center">
-          <div className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <div className="text-2xl font-bold mb-4 bg-linear-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             Agenda.me
           </div>
           <p className="text-gray-400 mb-4">
