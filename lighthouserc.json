@@ -7,7 +7,6 @@
         "http://localhost:3000/private/servicos",
         "http://localhost:3000/booking"
       ],
-      "staticDistDir": "./.next/standalone",
       "settings": {
         "configPath": "./lighthouse-config.js"
       }
