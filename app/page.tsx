@@ -137,9 +137,6 @@ function LandingPage({ features, testimonials, plans }: any) {
             <Link href="/login">
               <Button variant="ghost">Entrar</Button>
             </Link>
-            <Link href="/auth/register">
-              <Button>Começar Grátis</Button>
-            </Link>
           </motion.div>
         </div>
       </header>
@@ -171,14 +168,6 @@ function LandingPage({ features, testimonials, plans }: any) {
               A plataforma completa que automatiza seus agendamentos, organiza seus clientes 
               e impulsiona seu negócio com relatórios inteligentes e confirmações automáticas.
             </p>
-            <div className="flex justify-center">
-              <Link href="/auth/register">
-                <Button size="lg" className="text-lg px-8 py-6 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  Começar Gratuitamente
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-              </Link>
-            </div>
           </motion.div>
 
           {/* Dashboard Preview */}
@@ -298,80 +287,22 @@ function LandingPage({ features, testimonials, plans }: any) {
             transition={{ duration: 0.9 }}
             viewport={{ once: false, amount: 0.3 }}
           >
-            <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-0 items-center">
+            <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-0 items-center lg:-gap-8">
               {/* Text Section */}
-              <div className="text-center lg:text-left">
+              <div className="text-center lg:text-left pr-8">
                 <h3 className="text-2xl font-bold mb-4 text-gray-800">Acesse de qualquer lugar</h3>
                 <p className="text-gray-600 max-w-md mx-auto lg:mx-0">
                   Interface responsiva que funciona perfeitamente em dispositivos móveis
                 </p>
               </div>
               
-              {/* iPhone Mockup */}
-              <div className="flex justify-center lg:justify-end lg:-ml-32">
-                <div className="relative w-80">
-                  {/* iPhone Frame */}
-                  <div className="bg-black rounded-3xl shadow-2xl p-3" style={{ aspectRatio: '9/19' }}>
-                    {/* Notch */}
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-black w-40 h-7 rounded-b-3xl z-10"></div>
-                    
-                    {/* Screen */}
-                    <div className="bg-white rounded-2xl h-full w-full overflow-hidden flex flex-col">
-                      {/* Status Bar */}
-                      <div className="bg-white text-gray-900 px-4 py-2 text-xs flex items-center justify-between border-b border-gray-100">
-                        <span>9:41</span>
-                        <div className="flex gap-1">
-                          <span>📶</span>
-                          <span>📡</span>
-                          <span>🔋</span>
-                        </div>
-                      </div>
-                      
-                      {/* Header */}
-                      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
-                        <h1 className="text-lg font-bold text-gray-900">Agenda.me</h1>
-                        <button className="w-8 h-8 bg-blue-500 rounded-full"></button>
-                      </div>
-                      
-                      {/* Content */}
-                      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col space-y-4">
-                        {/* Today and Clients Cards */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-green-50 rounded-lg p-4 text-center">
-                            <div className="text-sm font-medium text-gray-600 mb-1">Hoje</div>
-                            <div className="text-2xl font-bold text-green-600">12</div>
-                          </div>
-                          <div className="bg-blue-50 rounded-lg p-4 text-center">
-                            <div className="text-sm font-medium text-gray-600 mb-1">Clientes</div>
-                            <div className="text-2xl font-bold text-blue-600">248</div>
-                          </div>
-                        </div>
-                        
-                        {/* Calendar Section */}
-                        <div>
-                          <h3 className="text-sm font-semibold text-gray-900 mb-3">Calendário</h3>
-                          <div className="grid grid-cols-7 gap-2 text-center text-xs mb-4">
-                            {[15, 16, 17, 18, 19, 20, 21].map((day) => (
-                              <div key={day} className="text-gray-600 font-medium">{day}</div>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        {/* Appointments List */}
-                        <div className="space-y-2">
-                          <div className="bg-green-50 border-l-4 border-green-500 rounded p-3">
-                            <div className="text-xs font-medium text-gray-600">10:00</div>
-                            <div className="text-sm font-semibold text-gray-900">Maria Silva</div>
-                          </div>
-                          <div className="bg-blue-50 border-l-4 border-blue-500 rounded p-3">
-                            <div className="text-xs font-medium text-gray-600">14:30</div>
-                            <div className="text-sm font-semibold text-gray-900">João Santos</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {/* Mockup SVG */}
+              <div className="flex justify-center lg:justify-start">
+                <img 
+                  src="/mockup-iphone.svg" 
+                  alt="Mockup da aplicação" 
+                  className="w-72 lg:w-80 h-auto drop-shadow-2xl"
+                />
               </div>
             </div>
           </motion.div>
@@ -646,12 +577,6 @@ function LandingPage({ features, testimonials, plans }: any) {
             <p className="text-xl mb-8 opacity-90">
               Junte-se a milhares de empresas que já automatizaram seus agendamentos
             </p>
-            <Link href="/auth/register">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-6">
-                Começar Gratuitamente
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
           </motion.div>
         </div>
       </section>
