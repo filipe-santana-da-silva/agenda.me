@@ -58,7 +58,7 @@ export function SuportePage() {
         </CardHeader>
         <CardContent>
           <a
-            href="https://suporte.seusite.com" // Altere para o link real
+            href="https://www.notion.so/Project-Name-Project-Portal-2d4e1ace88db802e92befdafabce027a?source=copy_link"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"

@@ -2,8 +2,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-
 import { useAuth } from "@/contexts/SimpleAuthContext";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function BookingLogin({ onLogin }: { onLogin: (user: { name: string; phone: string }) => void }) {
   const [name, setName] = useState("");
@@ -69,28 +74,82 @@ export default function BookingLogin({ onLogin }: { onLogin: (user: { name: stri
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted">
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm flex flex-col gap-4">
-        <h2 className="text-xl font-bold text-center">Login do Cliente</h2>
-        <input
-          type="text"
-          placeholder="Nome completo"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        <input
-          type="tel"
-          placeholder="Telefone (com DDD)"
-          value={phone}
-          onChange={e => setPhone(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-        <button type="submit" className="bg-primary text-white rounded px-4 py-2 font-semibold hover:bg-primary/90 transition" disabled={loading}>
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
-      </form>
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <Card className="w-full max-w-md shadow-2xl border-slate-700">
+        <CardHeader className="space-y-2">
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-2xl">✂️</span>
+            </div>
+          </div>
+          <CardTitle className="text-2xl text-center">Agendamento</CardTitle>
+          <CardDescription className="text-center">
+            Faça login para continuar seu agendamento
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <Alert variant="destructive" className="border-red-400 bg-red-50">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Erro</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium">
+                Nome Completo
+              </Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Digite seu nome completo"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                disabled={loading}
+                className="h-10"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm font-medium">
+                Telefone
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="(11) 99999-9999"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                disabled={loading}
+                className="h-10"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-10 mt-6 font-semibold text-base"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block animate-spin">⌛</span>
+                  Entrando...
+                </span>
+              ) : (
+                "Entrar"
+              )}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center text-sm text-muted-foreground">
+            <p>Primeira vez aqui?</p>
+            <p>Crie uma conta ao continuar</p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

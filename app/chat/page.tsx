@@ -98,33 +98,63 @@ const ChatPage = () => {
   const [professionals, setProfessionals] = useState<any[]>([]);
 
   useEffect(() => {
-    // Buscar serviços com todos os campos
+    // Buscar serviços reais do banco
     const fetchServices = async () => {
       try {
-        const { data, error } = await supabase.from("services").select("id, name, duration, price");
+        const { data, error } = await supabase
+          .from("services")
+          .select("id, name, duration, price");
+        
         if (error) {
           console.error("Erro ao buscar serviços:", error);
+          setServices(staticServices);
+        } else if (data && data.length > 0) {
+          console.log("Serviços encontrados no banco:", data);
+          // Mapear os serviços do banco com as imagens estáticas
+          const servicesWithData = data.map((service: any, index: number) => ({
+            ...service,
+            price: service.price || staticServices[index % staticServices.length].price,
+            duration: service.duration || staticServices[index % staticServices.length].duration,
+            imageUrl: staticServices[index % staticServices.length].imageUrl,
+          }));
+          console.log("Serviços mapeados:", servicesWithData);
+          setServices(servicesWithData);
         } else {
-          console.log("Serviços carregados:", data);
-          if (data) setServices(data);
+          console.log("Nenhum serviço encontrado no banco, usando estáticos");
+          setServices(staticServices);
         }
       } catch (err) {
         console.error("Erro na query de serviços:", err);
+        setServices(staticServices);
       }
     };
 
-    // Buscar profissionais com todos os campos
+    // Buscar profissionais reais do banco
     const fetchProfessionals = async () => {
       try {
-        const { data, error } = await supabase.from("employees").select("id, name, position, department");
+        const { data, error } = await supabase
+          .from("employees")
+          .select("id, name, position, department");
+        
         if (error) {
           console.error("Erro ao buscar profissionais:", error);
+          setProfessionals(staticProfessionals);
+        } else if (data && data.length > 0) {
+          console.log("Profissionais encontrados no banco:", data);
+          // Mapear os profissionais do banco com as imagens estáticas
+          const professionalsWithImages = data.map((prof: any, index: number) => ({
+            ...prof,
+            imageUrl: staticProfessionals[index % staticProfessionals.length].imageUrl,
+          }));
+          console.log("Profissionais mapeados:", professionalsWithImages);
+          setProfessionals(professionalsWithImages);
         } else {
-          console.log("Profissionais carregados:", data);
-          if (data) setProfessionals(data);
+          console.log("Nenhum profissional encontrado no banco, usando estáticos");
+          setProfessionals(staticProfessionals);
         }
       } catch (err) {
         console.error("Erro na query de profissionais:", err);
+        setProfessionals(staticProfessionals);
       }
     };
 
@@ -145,6 +175,91 @@ const ChatPage = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
+
+  // Serviços estáticos do seed
+  const staticServices = [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      name: "Corte de Cabelo",
+      duration: "01:00:00",
+      price: 60,
+      imageUrl: "https://utfs.io/f/0ddfbd26-a424-43a0-aaf3-c3f1dc6be6d1-1kgxo7.png",
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440002",
+      name: "Barba",
+      duration: "00:20:00",
+      price: 40,
+      imageUrl: "https://utfs.io/f/e6bdffb6-24a9-455b-aba3-903c2c2b5bde-1jo6tu.png",
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440003",
+      name: "Pézinho",
+      duration: "00:30:00",
+      price: 35,
+      imageUrl: "https://utfs.io/f/8a457cda-f768-411d-a737-cdb23ca6b9b5-b3pegf.png",
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440004",
+      name: "Sobrancelha",
+      duration: "00:15:00",
+      price: 20,
+      imageUrl: "https://utfs.io/f/2118f76e-89e4-43e6-87c9-8f157500c333-b0ps0b.png",
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440005",
+      name: "Massagem",
+      duration: "00:45:00",
+      price: 50,
+      imageUrl: "https://utfs.io/f/c4919193-a675-4c47-9f21-ebd86d1c8e6a-4oen2a.png",
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440006",
+      name: "Hidratação",
+      duration: "00:30:00",
+      price: 25,
+      imageUrl: "https://utfs.io/f/8a457cda-f768-411d-a737-cdb23ca6b9b5-b3pegf.png",
+    },
+  ];
+
+  // Profissionais estáticos do seed
+  const staticProfessionals = [
+    {
+      id: "650e8400-e29b-41d4-a716-446655440001",
+      name: "Vitor",
+      position: "Barbeiro",
+      department: "Salão",
+      imageUrl: "https://utfs.io/f/c97a2dc9-cf62-468b-a851-bfd2bdde775f-16p.png",
+    },
+    {
+      id: "650e8400-e29b-41d4-a716-446655440002",
+      name: "Vinícius",
+      position: "Barbeiro",
+      department: "Salão",
+      imageUrl: "https://utfs.io/f/45331760-899c-4b4b-910e-e00babb6ed81-16q.png",
+    },
+    {
+      id: "650e8400-e29b-41d4-a716-446655440003",
+      name: "João Pedro",
+      position: "Barbeiro",
+      department: "Salão",
+      imageUrl: "https://utfs.io/f/5832df58-cfd7-4b3f-b102-42b7e150ced2-16r.png",
+    },
+    {
+      id: "650e8400-e29b-41d4-a716-446655440004",
+      name: "Carlos",
+      position: "Barbeiro",
+      department: "Salão",
+      imageUrl: "https://utfs.io/f/7e309eaa-d722-465b-b8b6-76217404a3d3-16s.png",
+    },
+    {
+      id: "650e8400-e29b-41d4-a716-446655440005",
+      name: "Lucas",
+      position: "Barbeiro",
+      department: "Salão",
+      imageUrl: "https://utfs.io/f/178da6b6-6f9a-424a-be9d-a2feb476eb36-16t.png",
+    },
+  ];
 
   // Inicia o fluxo de perguntas ao abrir o chat
   useEffect(() => {
@@ -299,6 +414,13 @@ const ChatPage = () => {
       // Usar dados passados ou valores do estado
       const finalAppointment = appointmentData || appointment;
       
+      console.log("Dados do agendamento:", {
+        service_id: finalAppointment.service_id,
+        professional_id: finalAppointment.professional_id,
+        appointment_date: finalAppointment.appointment_date,
+        appointment_time: finalAppointment.appointment_time,
+      });
+      
       // Validação dos campos obrigatórios
       if (!finalAppointment.service_id || !finalAppointment.professional_id || !finalAppointment.appointment_date || !finalAppointment.appointment_time) {
         setSuccessMessage("Preencha todos os campos obrigatórios do agendamento.");
@@ -357,10 +479,12 @@ const ChatPage = () => {
         setAppointment({ service_id: "", professional_id: "", appointment_date: "", appointment_time: "" });
       } else {
         // Mostra mensagem detalhada do erro
+        console.error("Erro na resposta da API:", result);
         setSuccessMessage("Erro ao agendar: " + (result.error || "Tente novamente."));
         setShowSuccessModal(true);
       }
     } catch (error) {
+      console.error("Erro ao agendar:", error);
       setSuccessMessage("Erro ao agendar. Tente novamente.");
       setShowSuccessModal(true);
     } finally {
@@ -504,6 +628,10 @@ const ChatPage = () => {
 
   const isLoading = status === "submitted" || status === "streaming" || loading;
 
+  function handleConfirmBooking() {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
@@ -600,38 +728,34 @@ const ChatPage = () => {
 
       {/* Modal Menu */}
       {showMenuModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-card rounded-2xl p-6 max-w-sm w-full mx-4 shadow-lg">
-            <h2 className="text-xl font-bold text-center mb-6">Opções</h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-xl">
+            <h2 className="text-2xl font-bold text-center mb-8 text-gray-900">Opções</h2>
             <div className="space-y-3">
-              <Button
+              <button
                 onClick={() => handleMenuOption("agendar")}
-                variant="outline"
-                className="w-full justify-start text-left h-auto py-3 px-4 text-base font-normal"
+                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 font-medium text-gray-900"
               >
                 📅 Agendar
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={() => handleMenuOption("servicos")}
-                variant="outline"
-                className="w-full justify-start text-left h-auto py-3 px-4 text-base font-normal"
+                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 font-medium text-gray-900"
               >
                 ✂️ Serviços
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={() => handleMenuOption("profissionais")}
-                variant="outline"
-                className="w-full justify-start text-left h-auto py-3 px-4 text-base font-normal"
+                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 font-medium text-gray-900"
               >
                 👨‍💼 Profissionais
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={() => router.push("/booking")}
-                variant="outline"
-                className="w-full justify-start text-left h-auto py-3 px-4 text-base font-normal"
+                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 font-medium text-gray-900"
               >
                 ← Voltar
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -639,37 +763,107 @@ const ChatPage = () => {
 
       {/* Modal Serviços */}
       {showServicesModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-card rounded-2xl p-6 max-w-sm w-full mx-4 shadow-lg max-h-96 overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">✂️ Serviços</h2>
-              <Button
-                onClick={() => {
-                  setShowServicesModal(false);
-                  setShowMenuModal(true);
-                  setStep(null);
-                  setAwaitingInput(null);
-                }}
-                variant="ghost"
-                size="sm"
-                className="p-0 h-auto"
-              >
-                <ChevronLeft className="size-5" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {services.map((service) => (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl flex flex-col lg:flex-row w-full max-w-4xl max-h-[95vh] lg:max-h-[90vh]">
+            {/* Serviços à esquerda/topo */}
+            <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
+              <div className="flex items-center justify-between mb-6 lg:mb-8">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Se desejam, adicionem mais serviços</h2>
                 <Button
-                  key={service.id}
-                  onClick={() => handleServiceSelect(service)}
-                  variant="outline"
-                  className="w-full justify-start text-left h-auto py-3 px-4 text-base font-normal flex-col items-start"
+                  onClick={() => {
+                    setShowServicesModal(false);
+                    setShowMenuModal(true);
+                    setStep(null);
+                    setAwaitingInput(null);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-auto text-gray-600 hover:bg-gray-100 text-xl shrink-0"
                 >
-                  <span className="font-semibold">{service.name}</span>
-                  {service.price && <span className="text-sm text-muted-foreground">R$ {service.price}</span>}
-                  {service.duration && <span className="text-xs text-muted-foreground mt-1">{service.duration}</span>}
+                  ✕
                 </Button>
-              ))}
+              </div>
+              <div className="space-y-3">
+                {services.map((service) => (
+                  <button
+                    key={service.id}
+                    onClick={() => handleServiceSelect(service)}
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-200 group ${
+                      selectedService?.id === service.id 
+                        ? 'border-blue-400 bg-blue-50' 
+                        : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full shrink-0 bg-gray-100 overflow-hidden border-2 border-gray-300 box-border">
+                      {service.imageUrl ? (
+                        <img 
+                          src={service.imageUrl} 
+                          alt={service.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-linear-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-lg lg:text-2xl">
+                          {service.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="font-semibold text-gray-900 text-base lg:text-lg truncate">{service.name}</div>
+                      <div className="text-sm text-gray-600 mt-1">{service.duration}</div>
+                      {service.price && <div className="text-base font-bold text-blue-600 mt-2">R$ {service.price}</div>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Resumo à direita/bottom */}
+            <div className="w-full lg:w-80 bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200 p-6 lg:p-8 flex flex-col justify-between rounded-b-3xl lg:rounded-b-none lg:rounded-r-3xl">
+              <div>
+                <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-4 lg:mb-6">Resumo</h3>
+                <div className="space-y-4">
+                  {selectedService && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <div className="text-sm text-gray-600 mb-2">Serviço</div>
+                      <div className="font-semibold text-gray-900 text-lg">{selectedService.name}</div>
+                      <div className="text-sm text-gray-500 mt-1">{selectedService.duration}</div>
+                      <div className="text-lg font-bold text-blue-600 mt-2">R$ {selectedService.price}</div>
+                    </div>
+                  )}
+                  {!selectedService && (
+                    <div className="text-center text-gray-500 py-8">
+                      Selecione um serviço
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-6 border-t border-gray-200 mt-6">
+                <Button
+                  onClick={() => {
+                    setShowServicesModal(false);
+                    setShowMenuModal(true);
+                    setStep(null);
+                    setAwaitingInput(null);
+                  }}
+                  variant="outline"
+                  className="w-full text-sm lg:text-base"
+                >
+                  ← Voltar
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (selectedService) {
+                      setShowServicesModal(false);
+                      setShowProfessionalsModal(true);
+                    }
+                  }}
+                  disabled={!selectedService}
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm lg:text-base"
+                >
+                  Próximo passo →
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -677,33 +871,95 @@ const ChatPage = () => {
 
       {/* Modal Data */}
       {showDateModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-card rounded-2xl p-6 max-w-sm w-full mx-4 shadow-lg max-h-96 overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">📅 Escolha a data</h2>
-              <Button
-                onClick={() => {
-                  setShowDateModal(false);
-                  setShowServicesModal(true);
-                }}
-                variant="ghost"
-                size="sm"
-                className="p-0 h-auto"
-              >
-                <ChevronLeft className="size-5" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {getAvailableDates().map((date) => (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl flex flex-col lg:flex-row w-full max-w-4xl max-h-[95vh] lg:max-h-[90vh]">
+            {/* Datas à esquerda/topo */}
+            <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
+              <div className="flex items-center justify-between mb-6 lg:mb-8">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">📅 Escolha a data</h2>
                 <Button
-                  key={date.value}
-                  onClick={() => handleDateSelect(date.value)}
-                  variant="outline"
-                  className="w-full justify-start text-left h-auto py-3 px-4 text-base font-normal"
+                  onClick={() => {
+                    setShowDateModal(false);
+                    setShowMenuModal(true);
+                    setStep(null);
+                    setAwaitingInput(null);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-auto text-gray-600 hover:bg-gray-100 text-xl"
                 >
-                  {date.display}
+                  ✕
                 </Button>
-              ))}
+              </div>
+              <div className="space-y-2">
+                {getAvailableDates().map((date) => (
+                  <button
+                    key={date.value}
+                    onClick={() => handleDateSelect(date.value)}
+                    className={`w-full text-left p-4 rounded-xl border transition-all duration-200 font-medium ${
+                      appointment.appointment_date === date.value
+                        ? 'border-blue-400 bg-blue-50 text-blue-900'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-900'
+                    }`}
+                  >
+                    {date.display}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Resumo à direita/bottom */}
+            <div className="w-full lg:w-80 bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200 p-6 lg:p-8 flex flex-col justify-between rounded-b-3xl lg:rounded-b-none lg:rounded-r-3xl">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Resumo</h3>
+                <div className="space-y-4">
+                  {selectedService && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <div className="text-sm text-gray-600 mb-2">Serviço</div>
+                      <div className="font-semibold text-gray-900 text-lg">{selectedService.name}</div>
+                      <div className="text-sm text-gray-500 mt-1">{selectedService.duration}</div>
+                      <div className="text-lg font-bold text-blue-600 mt-2">R$ {selectedService.price}</div>
+                    </div>
+                  )}
+                  {selectedProfessional && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <div className="text-sm text-gray-600 mb-2">Profissional</div>
+                      <div className="font-semibold text-gray-900 text-lg">{selectedProfessional.name}</div>
+                    </div>
+                  )}
+                  {appointment.appointment_date && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <div className="text-sm text-gray-600 mb-2">Data</div>
+                      <div className="font-semibold text-gray-900 text-lg">{appointment.appointment_date}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-6 border-t border-gray-200">
+                <Button
+                  onClick={() => {
+                    setShowDateModal(false);
+                    setShowProfessionalsModal(true);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  ← Voltar
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (appointment.appointment_date) {
+                      setShowDateModal(false);
+                      setShowTimeModal(true);
+                    }
+                  }}
+                  disabled={!appointment.appointment_date}
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white"
+                >
+                  Próximo passo →
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -711,33 +967,100 @@ const ChatPage = () => {
 
       {/* Modal Horário */}
       {showTimeModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-card rounded-2xl p-6 max-w-sm w-full mx-4 shadow-lg max-h-96 overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">🕐 Escolha o horário</h2>
-              <Button
-                onClick={() => {
-                  setShowTimeModal(false);
-                  setShowDateModal(true);
-                }}
-                variant="ghost"
-                size="sm"
-                className="p-0 h-auto"
-              >
-                <ChevronLeft className="size-5" />
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {getAvailableTimes().map((time) => (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl flex flex-col lg:flex-row w-full max-w-4xl max-h-[95vh] lg:max-h-[90vh]">
+            {/* Horários à esquerda/topo */}
+            <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
+              <div className="flex items-center justify-between mb-6 lg:mb-8">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">🕐 Escolha o horário</h2>
                 <Button
-                  key={time}
-                  onClick={() => handleTimeSelect(time)}
-                  variant="outline"
-                  className="h-auto py-2 px-3 text-sm font-normal"
+                  onClick={() => {
+                    setShowTimeModal(false);
+                    setShowMenuModal(true);
+                    setStep(null);
+                    setAwaitingInput(null);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-auto text-gray-600 hover:bg-gray-100 text-xl"
                 >
-                  {time}
+                  ✕
                 </Button>
-              ))}
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                {getAvailableTimes().map((time) => (
+                  <button
+                    key={time}
+                    onClick={() => handleTimeSelect(time)}
+                    className={`p-3 rounded-lg border transition-all duration-200 font-medium text-sm ${
+                      appointment.appointment_time === time
+                        ? 'border-blue-400 bg-blue-50 text-blue-900'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-900'
+                    }`}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Resumo à direita/bottom */}
+            <div className="w-full lg:w-80 bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200 p-6 lg:p-8 flex flex-col justify-between rounded-b-3xl lg:rounded-b-none lg:rounded-r-3xl">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Resumo</h3>
+                <div className="space-y-4">
+                  {selectedService && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <div className="text-sm text-gray-600 mb-2">Serviço</div>
+                      <div className="font-semibold text-gray-900 text-lg">{selectedService.name}</div>
+                      <div className="text-sm text-gray-500 mt-1">{selectedService.duration}</div>
+                      <div className="text-lg font-bold text-blue-600 mt-2">R$ {selectedService.price}</div>
+                    </div>
+                  )}
+                  {selectedProfessional && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <div className="text-sm text-gray-600 mb-2">Profissional</div>
+                      <div className="font-semibold text-gray-900 text-lg">{selectedProfessional.name}</div>
+                    </div>
+                  )}
+                  {appointment.appointment_date && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <div className="text-sm text-gray-600 mb-2">Data</div>
+                      <div className="font-semibold text-gray-900 text-lg">{appointment.appointment_date}</div>
+                    </div>
+                  )}
+                  {appointment.appointment_time && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <div className="text-sm text-gray-600 mb-2">Horário</div>
+                      <div className="font-semibold text-gray-900 text-lg">{appointment.appointment_time}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-6 border-t border-gray-200">
+                <Button
+                  onClick={() => {
+                    setShowTimeModal(false);
+                    setShowDateModal(true);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  ← Voltar
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (appointment.appointment_time) {
+                      handleConfirmBooking();
+                    }
+                  }}
+                  disabled={!appointment.appointment_time}
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white"
+                >
+                  Confirmar →
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -745,39 +1068,120 @@ const ChatPage = () => {
 
       {/* Modal Profissionais */}
       {showProfessionalsModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-card rounded-2xl p-6 max-w-sm w-full mx-4 shadow-lg max-h-96 overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">👨‍💼 Profissionais</h2>
-              <Button
-                onClick={() => {
-                  setShowProfessionalsModal(false);
-                  setShowDateModal(true);
-                }}
-                variant="ghost"
-                size="sm"
-                className="p-0 h-auto"
-              >
-                <ChevronLeft className="size-5" />
-              </Button>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl flex flex-col lg:flex-row w-full max-w-4xl max-h-[95vh] lg:max-h-[90vh]">
+            {/* Profissionais à esquerda/topo */}
+            <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
+              <div className="flex items-center justify-between mb-6 lg:mb-8">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">👨‍💼 Profissionais</h2>
+                <Button
+                  onClick={() => {
+                    setShowProfessionalsModal(false);
+                    setShowMenuModal(true);
+                    setStep(null);
+                    setAwaitingInput(null);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-auto text-gray-600 hover:bg-gray-100 text-xl"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {professionals && professionals.length > 0 ? (
+                  professionals.map((professional) => (
+                    <button
+                      key={professional.id}
+                      onClick={() => handleProfessionalSelect(professional)}
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-200 group ${
+                        selectedProfessional?.id === professional.id 
+                          ? 'border-blue-400 bg-blue-50' 
+                          : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="shrink-0 w-20 h-20 rounded-full border-2 border-gray-300 overflow-hidden box-border">
+                        {professional.imageUrl ? (
+                          <img 
+                            src={professional.imageUrl} 
+                            alt={professional.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-linear-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-2xl">
+                            {professional.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold text-gray-900 text-lg">{professional.name}</div>
+                        {professional.position && (
+                          <div className="text-sm text-gray-600 mt-1">{professional.position}</div>
+                        )}
+                        {professional.department && (
+                          <div className="text-xs text-gray-500 mt-1">{professional.department}</div>
+                        )}
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-8">Nenhum profissional encontrado</div>
+                )}
+              </div>
             </div>
-            <div className="space-y-2">
-              {professionals && professionals.length > 0 ? (
-                professionals.map((professional) => (
-                  <Button
-                    key={professional.id}
-                    onClick={() => handleProfessionalSelect(professional)}
-                    variant="outline"
-                    className="w-full justify-start text-left h-auto py-3 px-4 text-base font-normal flex-col items-start"
-                  >
-                    <span className="font-semibold">{professional.name}</span>
-                    {professional.position && <span className="text-sm text-muted-foreground">{professional.position}</span>}
-                    {professional.department && <span className="text-xs text-muted-foreground">{professional.department}</span>}
-                  </Button>
-                ))
-              ) : (
-                <div className="text-center text-muted-foreground py-4">Nenhum profissional encontrado</div>
-              )}
+
+            {/* Resumo à direita/bottom */}
+            <div className="w-full lg:w-80 bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200 p-6 lg:p-8 flex flex-col justify-between rounded-b-3xl lg:rounded-b-none lg:rounded-r-3xl">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Resumo</h3>
+                <div className="space-y-4">
+                  {selectedService && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <div className="text-sm text-gray-600 mb-2">Serviço</div>
+                      <div className="font-semibold text-gray-900 text-lg">{selectedService.name}</div>
+                      <div className="text-sm text-gray-500 mt-1">{selectedService.duration}</div>
+                      <div className="text-lg font-bold text-blue-600 mt-2">R$ {selectedService.price}</div>
+                    </div>
+                  )}
+                  {selectedProfessional && (
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <div className="text-sm text-gray-600 mb-2">Profissional</div>
+                      <div className="font-semibold text-gray-900 text-lg">{selectedProfessional.name}</div>
+                      <div className="text-sm text-gray-500 mt-1">{selectedProfessional.position}</div>
+                    </div>
+                  )}
+                  {!selectedService && !selectedProfessional && (
+                    <div className="text-center text-gray-500 py-8">
+                      Selecionando...
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-6 border-t border-gray-200">
+                <Button
+                  onClick={() => {
+                    setShowProfessionalsModal(false);
+                    setShowServicesModal(true);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  ← Voltar
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (selectedProfessional) {
+                      setShowProfessionalsModal(false);
+                      setShowDateModal(true);
+                    }
+                  }}
+                  disabled={!selectedProfessional}
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white"
+                >
+                  Próximo passo →
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -785,41 +1189,54 @@ const ChatPage = () => {
 
       {/* Modal Visualizar Serviços */}
       {showViewServicesModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-card rounded-2xl p-6 max-w-sm w-full mx-4 shadow-lg max-h-96 overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold"> Serviços Disponíveis</h2>
-              <Button
-                onClick={() => {
-                  setShowViewServicesModal(false);
-                  setShowMenuModal(true);
-                }}
-                variant="ghost"
-                size="sm"
-                className="p-0 h-auto"
-              >
-                <ChevronLeft className="size-5" />
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {services && services.length > 0 ? (
-                services.map((service) => (
-                  <div
-                    key={service.id}
-                    className="border rounded-lg p-4 bg-muted/30"
-                  >
-                    <div className="font-semibold text-base">{service.name}</div>
-                    {service.duration && (
-                      <div className="text-sm text-muted-foreground mt-1">Duração: {service.duration}</div>
-                    )}
-                    {service.price && (
-                      <div className="text-sm font-semibold text-primary mt-2">R$ {service.price}</div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-muted-foreground py-4">Nenhum serviço encontrado</div>
-              )}
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+            <div className="p-6 lg:p-8">
+              <div className="flex items-center justify-between mb-6 lg:mb-8">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Serviços Disponíveis</h2>
+                <Button
+                  onClick={() => {
+                    setShowViewServicesModal(false);
+                    setShowMenuModal(true);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-auto text-gray-600 hover:bg-gray-100 text-xl shrink-0"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {services && services.length > 0 ? (
+                  services.map((service) => (
+                    <div
+                      key={service.id}
+                      className="flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 group"
+                    >
+                      <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full shrink-0 bg-gray-100 overflow-hidden border-2 border-gray-300 box-border">
+                        {service.imageUrl ? (
+                          <img 
+                            src={service.imageUrl} 
+                            alt={service.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-linear-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-lg lg:text-2xl">
+                            {service.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="font-semibold text-gray-900 text-base lg:text-lg truncate">{service.name}</div>
+                        <div className="text-sm text-gray-600 mt-1">{service.duration}</div>
+                        {service.price && <div className="text-base font-bold text-blue-600 mt-2">R$ {service.price}</div>}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-8">Nenhum serviço encontrado</div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -827,41 +1244,58 @@ const ChatPage = () => {
 
       {/* Modal Visualizar Profissionais */}
       {showViewProfessionalsModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-card rounded-2xl p-6 max-w-sm w-full mx-4 shadow-lg max-h-96 overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">👨‍💼 Profissionais</h2>
-              <Button
-                onClick={() => {
-                  setShowViewProfessionalsModal(false);
-                  setShowMenuModal(true);
-                }}
-                variant="ghost"
-                size="sm"
-                className="p-0 h-auto"
-              >
-                <ChevronLeft className="size-5" />
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {professionals && professionals.length > 0 ? (
-                professionals.map((professional) => (
-                  <div
-                    key={professional.id}
-                    className="border rounded-lg p-4 bg-muted/30"
-                  >
-                    <div className="font-semibold text-base">{professional.name}</div>
-                    {professional.position && (
-                      <div className="text-sm text-muted-foreground mt-1">Cargo: {professional.position}</div>
-                    )}
-                    {professional.department && (
-                      <div className="text-sm text-muted-foreground">Departamento: {professional.department}</div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-muted-foreground py-4">Nenhum profissional encontrado</div>
-              )}
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+            <div className="p-6 lg:p-8">
+              <div className="flex items-center justify-between mb-6 lg:mb-8">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Profissionais</h2>
+                <Button
+                  onClick={() => {
+                    setShowViewProfessionalsModal(false);
+                    setShowMenuModal(true);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-auto text-gray-600 hover:bg-gray-100 text-xl shrink-0"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {professionals && professionals.length > 0 ? (
+                  professionals.map((professional) => (
+                    <div
+                      key={professional.id}
+                      className="flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 group"
+                    >
+                      <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full shrink-0 bg-gray-100 overflow-hidden border-2 border-gray-300 box-border">
+                        {professional.imageUrl ? (
+                          <img 
+                            src={professional.imageUrl} 
+                            alt={professional.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-linear-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-lg lg:text-2xl">
+                            {professional.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="font-semibold text-gray-900 text-base lg:text-lg truncate">{professional.name}</div>
+                        {professional.position && (
+                          <div className="text-sm text-gray-600 mt-1">{professional.position}</div>
+                        )}
+                        {professional.department && (
+                          <div className="text-sm text-gray-600">Departamento: {professional.department}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-8">Nenhum profissional encontrado</div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -869,10 +1303,10 @@ const ChatPage = () => {
 
       {/* Modal Sucesso/Erro */}
       {showSuccessModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-card rounded-2xl p-6 max-w-sm w-full mx-4 shadow-lg text-center">
-            <h2 className="text-xl font-bold mb-4">{successMessage.includes("sucesso") ? "✅" : "⚠️"}</h2>
-            <p className="text-foreground mb-6">{successMessage}</p>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-xl text-center">
+            <h2 className="text-4xl mb-4">{successMessage.includes("sucesso") ? "✅" : "⚠️"}</h2>
+            <p className="text-gray-900 mb-6 text-base leading-relaxed">{successMessage}</p>
             <Button
               onClick={() => {
                 setShowSuccessModal(false);

@@ -72,7 +72,7 @@ const MenuSheet = () => {
     }
 
     toast.success("Logout realizado com sucesso!");
-    router.push("/");
+    router.push("/booking?login=true");
   };
 
   const isLoggedIn = !!bookingUser || !!authUser;

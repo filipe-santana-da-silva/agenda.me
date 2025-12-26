@@ -77,18 +77,12 @@ export function SideBarDashboard({ children }: {children: React.ReactNode}){
                         )}
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                        {/* Botão Login/Sair */}
-                        {user ? (
-                            <Button size="sm" variant="outline" onClick={logout} className="mb-1">Sair</Button>
-                        ) : (
-                            <Button size="sm" variant="outline" onClick={() => window.location.href = '/auth/login'} className="mb-1">Login</Button>
-                        )}
                         <Button 
                             variant="ghost" 
                             size="icon"
                             onClick={() => setIsCollapsed(!isCollapsed)} 
                             suppressHydrationWarning
-                            className="flex-shrink-0 h-8 w-8 lg:h-9 lg:w-9"
+                            className="shrink-0 h-8 w-8 lg:h-9 lg:w-9"
                         >
                             {!isCollapsed ? <ChevronLeft className="w-4 h-4 lg:w-5 lg:h-5"/> : <ChevronRight className="w-4 h-4 lg:w-5 lg:h-5"/>}
                         </Button>
@@ -207,7 +201,7 @@ function NavLink({ href, icon: Icon, label, pathname, tourId, onNavigate }: NavI
                     ? "bg-blue-500 text-white shadow-md" 
                     : "text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-200 dark:active:bg-slate-600"
             )} data-tour={tourId}>
-                <Icon className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+                <Icon className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
                 <span className="truncate">{label}</span>
             </div>
         </Link>
