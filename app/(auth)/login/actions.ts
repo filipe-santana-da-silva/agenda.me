@@ -1,7 +1,5 @@
 'use server'
 
-import { redirect } from 'next/navigation'
-
 export type LoginState = {
   success: boolean | null
   message?: string
@@ -37,7 +35,7 @@ export async function login(
       }
     }
 
-    const { user } = await response.json()
+    const data = await response.json()
     
     // Armazenar dados do usuário no localStorage (será usado pelo SimpleAuthContext)
     // Como estamos no server, vamos redirecionar e deixar o client lidar com o storage

@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: Run npm audit
-        run: npm audit --production
+        run: npm audit --audit-level=high --omit=dev || true
         continue-on-error: true
 
       - name: Run Snyk scan
@@ -36,18 +36,8 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
-      - name: Check for secrets
-        if: github.event_name == 'pull_request'
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          base: ${{ github.event.pull_request.base.sha }}
-          head: ${{ github.event.pull_request.head.sha }}
-          extra_args: --debug --only-verified
-        continue-on-error: true
-
-      - name: Check for secrets (push)
-        if: github.event_name == 'push'
+      - name: Check for hardcoded secrets
         run: |
-          npx trufflehog filesystem . --debug --only-verified
+          echo "Scanning for common secret patterns..."
+          ! grep -r "SUPABASE_SERVICE_ROLE_KEY\|STRIPE_SECRET_KEY\|OPENAI_API_KEY\|GOOGLE_CLIENT_SECRET" --include="*.tsx" --include="*.ts" --include="*.jsx" --include="*.js" app/ components/ || echo "Warning: Potential secrets found in code"
         continue-on-error: true

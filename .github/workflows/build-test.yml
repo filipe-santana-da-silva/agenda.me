@@ -39,9 +39,10 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Upload build artifacts
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nextjs-build
           path: .next/
           retention-days: 5
+          if-no-files-found: ignore

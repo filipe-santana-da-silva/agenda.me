@@ -25,7 +25,7 @@ export function usePermissoes() {
     }
 
     fetchPermissoes()
-  }, [])
+  }, [supabase])
 
   return { role, paginas }
 }

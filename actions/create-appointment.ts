@@ -31,7 +31,7 @@ export async function createAppointment(data: CreateAppointmentData) {
     }
 
     // Verificar se o cliente existe
-    const { data: customer, error: customerError } = await supabase
+    const { data: customer } = await supabase
       .from("customers")
       .select("id, name, phone")
       .eq("id", data.customerId)
@@ -145,6 +145,7 @@ export async function createAppointment(data: CreateAppointmentData) {
       success: true,
       appointment,
     };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return {
       success: false,
@@ -198,6 +199,7 @@ export async function getAvailableTimeSlots(
       success: true,
       availableSlots,
     };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return {
       success: false,
@@ -210,11 +212,11 @@ export async function getServices() {
   try {
     const supabase = await createClient();
 
-    const { data: services, error } = await supabase
+    const { data: services, error: servicesError } = await supabase
       .from("services")
       .select("id, name, description, price_in_cents, duration");
 
-    if (error) {
+    if (servicesError) {
       return {
         success: false,
         error: "Erro ao buscar serviços",
@@ -225,6 +227,7 @@ export async function getServices() {
       success: true,
       services,
     };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return {
       success: false,
@@ -237,11 +240,11 @@ export async function getProfessionals() {
   try {
     const supabase = await createClient();
 
-    const { data: professionals, error } = await supabase
+    const { data: professionals, error: professionalsError } = await supabase
       .from("employees")
       .select("id, name, specialty, image_url");
 
-    if (error) {
+    if (professionalsError) {
       return {
         success: false,
         error: "Erro ao buscar profissionais",
@@ -252,6 +255,7 @@ export async function getProfessionals() {
       success: true,
       professionals,
     };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return {
       success: false,
@@ -264,13 +268,13 @@ export async function getCustomerInfo(customerId: string) {
   try {
     const supabase = await createClient();
 
-    const { data: customer, error } = await supabase
+    const { data: customer, error: customerError } = await supabase
       .from("customers")
       .select("id, name, email")
       .eq("id", customerId)
       .single();
 
-    if (error) {
+    if (customerError) {
       return {
         success: false,
         error: "Cliente não encontrado",
@@ -281,6 +285,7 @@ export async function getCustomerInfo(customerId: string) {
       success: true,
       customer,
     };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return {
       success: false,
