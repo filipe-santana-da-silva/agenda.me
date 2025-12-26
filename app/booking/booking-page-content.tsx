@@ -1,7 +1,6 @@
 "use client";
 import Header from "@/components/header";
 import Image from "next/image";
-import banner from "@/public/banner.png";
 import BookingItem from "@/components/booking-item";
 import { Barbershop } from "@/data/barbershops";
 import { BookingWithRelations } from "@/data/bookings";
@@ -113,9 +112,11 @@ export function BookingPageContent({
 
             {/* Banner */}
             <Image
-              src={banner}
+              src="/banner.png"
               alt="Banner"
               className="w-full h-64 object-cover rounded-lg"
+              width={1200}
+              height={400}
             />
 
             {/* Bookings */}

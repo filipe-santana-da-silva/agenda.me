@@ -18,7 +18,6 @@ import { ChevronLeft, ChevronRight, List, Calendar, Users, Briefcase, Package, G
 
 import Link from 'next/link'
 import Image from "next/image";
-import logoImg from '../../../public/logo.png'
 
 import {
   Collapsible,
@@ -69,7 +68,7 @@ export function SideBarDashboard({ children }: {children: React.ReactNode}){
                 })}>
                     <div className="flex flex-col flex-1">
                         {!isCollapsed && (
-                            <Image src={logoImg} alt="Logo da recreart" className="w-28 md:w-32 h-auto" height={60} width={140} priority quality={100}/>
+                            <Image src="/logo.png" alt="Logo da recreart" className="w-28 md:w-32 h-auto" height={60} width={140} priority quality={100}/>
                         )}
                         {/* Nome do usuário logado */}
                         {!isCollapsed && user && user.name && (

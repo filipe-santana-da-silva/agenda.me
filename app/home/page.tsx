@@ -1,9 +1,7 @@
 import Header from "@/components/header";
 import Image from "next/image";
-import banner from "@/public/banner.png";
 import BookingItem from "@/components/booking-item";
 
-import { getBarbershops } from "@/data/barbershops";
 import { getUserBookings } from "@/data/bookings";
 import {
   PageContainer,
@@ -14,7 +12,6 @@ import {
 import Footer from "@/components/footer";
 
 export default async function Home() {
-  const barbershops = await getBarbershops();
   const { confirmedBookings } = await getUserBookings();
 
   return (
@@ -22,10 +19,12 @@ export default async function Home() {
       <Header />
       <PageContainer>
         <Image
-          src={banner}
+          src="/banner.png"
           alt="Agende nos melhores com a Aparatus"
           sizes="100vw"
           className="h-auto w-full"
+          width={1200}
+          height={400}
         />
         {confirmedBookings.length > 0 && (
           <PageSectionContent>

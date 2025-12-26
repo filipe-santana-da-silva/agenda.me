@@ -37,10 +37,17 @@ jobs:
         continue-on-error: true
 
       - name: Check for secrets
+        if: github.event_name == 'pull_request'
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
           extra_args: --debug --only-verified
+        continue-on-error: true
+
+      - name: Check for secrets (push)
+        if: github.event_name == 'push'
+        run: |
+          npx trufflehog filesystem . --debug --only-verified
         continue-on-error: true
