@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
-import { Eye, Palette, Pencil, Trash2 } from 'lucide-react'
+import { Eye, Palette, Trash2 } from 'lucide-react'
 import { cancelAppointment } from '../_actions/cancel-appointments'
 import { toast } from 'sonner'
 import {
@@ -79,13 +79,13 @@ export function AppointmentsList({ times }: AppointmentListProps) {
   const router = useRouter()
   const [detailAppointment, setDetailAppointment] = useState<AppointmentWithService | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [startEditing, setStartEditing] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toDeleteAppointment, setToDeleteAppointment] = useState<AppointmentWithService | null>(null)
   const [appointmentColors, setAppointmentColors] = useState<Record<string, number>>({})
-  const [availableColors, setAvailableColors] = useState<Record<string, number>>({})
 
-  
+  const startEditing = (appointment: AppointmentWithService) => {
+    router.push(`/private/agenda/edit/${appointment.id}`)
+  }
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['get-appointments', date],
@@ -115,14 +115,13 @@ export function AppointmentsList({ times }: AppointmentListProps) {
           // Some errors from supabase are plain objects without enumerable properties
           const safe = JSON.stringify(e, Object.getOwnPropertyNames(e), 2)
           console.error('Failed to load recreators for name map — full error:', safe)
-        } catch (err) {
-          console.error('Failed to load recreators for name map (could not stringify error):', e)
+        } catch (_err) {
         }
         // Also log env vars that the client uses (sanitized) to help debugging
         try {
           console.debug('NEXT_PUBLIC_SUPABASE_URL present?', Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL))
           console.debug('NEXT_PUBLIC_SUPABASE_ANON_KEY present?', Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY))
-        } catch (err) {
+        } catch (_err) {
           // ignore in browser
         }
 
@@ -142,13 +141,13 @@ export function AppointmentsList({ times }: AppointmentListProps) {
               // Notify the user and reload so they'll be prompted to re-authenticate.
               // `toast` is available in this module.
               toast.error('Sessão expirada. Por favor, faça login novamente.')
-            } catch (tErr) {
+            } catch (_tErr) {
               // ignore toast failures
             }
             // reload page to clear any in-memory state and trigger auth flow
-            try { window.location.reload() } catch (rErr) { /* ignore */ }
+            try { window.location.reload() } catch (_rErr) { /* ignore */ }
           }
-        } catch (err) {
+        } catch (_err) {
           // ignore
         }
 
@@ -162,7 +161,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
     const map: Record<string, string> = {}
     if (!recreators) return map
     for (const r of recreators as Array<Record<string, unknown>>) {
-      if (r && r.id) map[String(r.id)] = r.name ?? ''
+      if (r && r.id) map[String(r.id)] = (r.name as string) ?? ''
     }
     return map
   }, [recreators])
@@ -316,10 +315,11 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                           // If there are starters in this slot, render them stacked and
                           // do NOT mix in continued appointments that started earlier.
                           occupants.map((occ: Record<string, unknown>, occIndex: number) => {
-                            const isFirstSlot = occ.time === slot
-                            const responsibleId = (occ.responsible_recreatorid || occ.responsibleRecreatorId || occ.responsible_recreator_id || occ.recreatorid) as string | null || null
+                            const occTyped = occ as AppointmentWithService
+                            const isFirstSlot = (occ.time as string) === slot
+                            const responsibleId = ((occ.responsible_recreatorid as string) || (occ.responsibleRecreatorId as string) || (occ.responsible_recreator_id as string) || (occ.recreatorid as string)) as string | null || null
                             const resolvedFromMap = responsibleId ? (recreatorNameMap[String(responsibleId)] ?? null) : null
-                            const fallbackName = (occ.responsible_recreatorname || occ.responsibleRecreatorName || occ.responsible_recreator_name || occ.recreatorname || occ.recreator_name) as string || null
+                            const fallbackName = ((occ.responsible_recreatorname as string) || (occ.responsibleRecreatorName as string) || (occ.responsible_recreator_name as string) || (occ.recreatorname as string) || (occ.recreator_name as string)) as string || null
                             const responsibleName = resolvedFromMap || fallbackName
 
                             return (
@@ -327,17 +327,17 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                                 key={occ.id + '-' + occIndex}
                                 className="w-full py-2 px-3 border-l-4 rounded-r-md"
                                 style={{ 
-                                  backgroundColor: (appointmentColors[occ.id] !== undefined) ? (COLORS[appointmentColors[occ.id]] ?? '#f5f5f5') : '#f5f5f5',
-                                  borderLeftColor: (appointmentColors[occ.id] !== undefined) ? (COLORS[appointmentColors[occ.id]] ?? '#e0e0e0') : '#e0e0e0',
+                                  backgroundColor: (appointmentColors[(occ.id as string)] !== undefined) ? (COLORS[appointmentColors[(occ.id as string)]] ?? '#f5f5f5') : '#f5f5f5',
+                                  borderLeftColor: (appointmentColors[(occ.id as string)] !== undefined) ? (COLORS[appointmentColors[(occ.id as string)]] ?? '#e0e0e0') : '#e0e0e0',
                                   opacity: 0.8
                                 }}
                               >
                                 <div className="flex justify-between items-center w-full">
                                   <div className="flex flex-col">
-                                    <div className="font-semibold text-amber-900">{occ.contractorname}</div>
+                                    <div className="font-semibold text-amber-900">{occ.contractorname as string}</div>
                                     <div className="text-sm text-gray-600 mt-0.5">
-                                      {occ.phone}{responsibleName ? ` — ${String(responsibleName)}` : ''}
-                                      {occ.eventname ? <span className="text-sm text-gray-500 ml-2">{occ.eventname}</span> : null}
+                                      {occ.phone as string}{responsibleName ? ` — ${String(responsibleName)}` : ''}
+                                      {(occ.eventname as string) ? <span className="text-sm text-gray-500 ml-2">{occ.eventname as string}</span> : null}
                                     </div>
                                   </div>
 
@@ -348,7 +348,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => setDetailAppointment(occ)}
+                                            onClick={() => setDetailAppointment(occTyped)}
                                           >
                                             <Eye className="w-4 h-4" />
                                           </Button>
@@ -356,7 +356,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          onClick={() => cycleColor(appointmentColors, setAppointmentColors, occ.id)}
+                                          onClick={() => cycleColor(appointmentColors, setAppointmentColors, (occ.id as string))}
                                           title="Alterar cor"
                                         >
                                           <Palette className="w-6 h-6" />
@@ -365,7 +365,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                                           variant="ghost"
                                           size="icon"
                                           onClick={() => {
-                                            setToDeleteAppointment(occ)
+                                            setToDeleteAppointment(occTyped)
                                             setConfirmOpen(true)
                                           }}
                                         >
@@ -412,7 +412,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
           </ScrollArea>
         </CardContent>
       </Card>
-      <DialogAppointment appointment={detailAppointment} startEditing={startEditing} />
+      <DialogAppointment appointment={detailAppointment} />
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>

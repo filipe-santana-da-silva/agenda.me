@@ -42,7 +42,7 @@ export const getUserBookings = async (): Promise<{
   }
 
   // Obter customer vinculado ao auth_id
-  let customerData: unknown = null;
+  let customerData: { id: string } | null = null;
 
   const { data: customerByAuth } = await supabase
     .from("customers")
@@ -196,28 +196,28 @@ export const getUserBookings = async (): Promise<{
 // Função auxiliar para converter appointment do Supabase para BookingWithRelations
 const convertAppointment = (appointment: Record<string, unknown>): BookingWithRelations => {
   return {
-    id: appointment.id,
-    customer_id: appointment.customer_id,
-    service_id: appointment.service_id,
-    professional_id: appointment.professional_id,
-    appointment_date: appointment.appointment_date,
-    appointment_time: appointment.appointment_time,
-    status: appointment.status,
-    created_at: appointment.created_at,
-    updated_at: appointment.updated_at,
+    id: appointment.id as string,
+    customer_id: appointment.customer_id as string,
+    service_id: appointment.service_id as string,
+    professional_id: appointment.professional_id as string | null,
+    appointment_date: appointment.appointment_date as Date | string,
+    appointment_time: appointment.appointment_time as string,
+    status: appointment.status as string,
+    created_at: appointment.created_at as Date | string,
+    updated_at: appointment.updated_at as Date | string,
     service: appointment.services ? {
-      id: appointment.services.id,
-      name: appointment.services.name,
-      description: appointment.services.description,
-      image_url: appointment.services.image_url,
-      price_in_cents: appointment.services.price_in_cents,
-      barbershop_id: appointment.services.barbershop_id,
-      deleted_at: appointment.services.deleted_at,
+      id: (appointment.services as Record<string, unknown>).id as string,
+      name: (appointment.services as Record<string, unknown>).name as string,
+      description: (appointment.services as Record<string, unknown>).description as string,
+      image_url: (appointment.services as Record<string, unknown>).image_url as string,
+      price_in_cents: (appointment.services as Record<string, unknown>).price_in_cents as number,
+      barbershop_id: (appointment.services as Record<string, unknown>).barbershop_id as string,
+      deleted_at: (appointment.services as Record<string, unknown>).deleted_at as Date | string | null,
     } : undefined,
     customer: appointment.customers ? {
-      id: appointment.customers.id,
-      name: appointment.customers.name,
-      email: appointment.customers.email,
+      id: (appointment.customers as Record<string, unknown>).id as string,
+      name: (appointment.customers as Record<string, unknown>).name as string,
+      email: (appointment.customers as Record<string, unknown>).email as string,
     } : undefined,
   };
 };

@@ -40,13 +40,14 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({ signedUrl: data.signedUrl })
-    } catch (e: Record<string, unknown>) {
+    } catch (e: unknown) {
       console.error('signed-url parse error', e)
       return NextResponse.json({ error: 'invalid url' }, { status: 400 })
     }
-  } catch (e: Record<string, unknown>) {
+  } catch (e: unknown) {
     console.error('signed-url endpoint error', e)
-    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 })
+    const errorMessage = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 

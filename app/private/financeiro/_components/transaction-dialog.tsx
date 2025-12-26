@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -189,8 +188,9 @@ export function TransactionDialog({
       }
 
       onSaved()
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao salvar transação')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar transação'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -219,8 +219,8 @@ export function TransactionDialog({
             <Label htmlFor="type">Tipo *</Label>
             <Select
               value={formData.type}
-              onValueChange={(value: Record<string, unknown>) =>
-                setFormData({ ...formData, type: value, category: '' })
+              onValueChange={(value: string) =>
+                setFormData({ ...formData, type: value as 'income' | 'expense', category: '' })
               }
             >
               <SelectTrigger id="type" className="mt-2">
@@ -345,8 +345,8 @@ export function TransactionDialog({
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value: Record<string, unknown>) =>
-                  setFormData({ ...formData, status: value })
+                onValueChange={(value: string) =>
+                  setFormData({ ...formData, status: value as 'pending' | 'completed' | 'cancelled' })
                 }
               >
                 <SelectTrigger id="status" className="mt-2">

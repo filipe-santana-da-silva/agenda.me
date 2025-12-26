@@ -45,8 +45,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ ok: true, userId: authUser.user.id })
-  } catch (e: Record<string, unknown>) {
+  } catch (e: unknown) {
+    const error = e as Record<string, unknown>
     console.error('create-user error', e)
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+    return NextResponse.json({ error: error?.message || String(e) }, { status: 500 })
   }
 }

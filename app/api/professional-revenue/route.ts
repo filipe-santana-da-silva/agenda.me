@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     revenues?.forEach((rev) => {
       const r = rev as Record<string, unknown>
-      const profId = r.professional_id
+      const profId = r.professional_id as string
       const amount = parseFloat((r.revenue as Record<string, unknown>).toString())
 
       totalRevenue += amount
@@ -73,11 +73,12 @@ export async function GET(request: NextRequest) {
       }
 
       if (!professionalStats[profId]) {
+        const employees = r.employees as Record<string, unknown> | undefined
         professionalStats[profId] = {
           professionalId: profId,
-          professionalName: rev.employees?.name,
-          email: rev.employees?.email,
-          position: rev.employees?.position,
+          professionalName: employees?.name,
+          email: employees?.email,
+          position: employees?.position,
           totalRevenue: 0,
           completedRevenue: 0,
           pendingRevenue: 0,
@@ -85,13 +86,14 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      professionalStats[profId].totalRevenue += amount
-      professionalStats[profId].appointmentCount += 1
+      const stats = professionalStats[profId] as Record<string, unknown>
+      stats.totalRevenue = (stats.totalRevenue as number) + amount
+      stats.appointmentCount = (stats.appointmentCount as number) + 1
 
-      if (rev.status === 'completed') {
-        professionalStats[profId].completedRevenue += amount
-      } else if (rev.status === 'pending') {
-        professionalStats[profId].pendingRevenue += amount
+      if (r.status === 'completed') {
+        stats.completedRevenue = (stats.completedRevenue as number) + amount
+      } else if (r.status === 'pending') {
+        stats.pendingRevenue = (stats.pendingRevenue as number) + amount
       }
     })
 
@@ -146,7 +148,7 @@ export async function PATCH(request: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ data: data?.[0] })
-  } catch (error: Record<string, unknown>) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
   }
 }

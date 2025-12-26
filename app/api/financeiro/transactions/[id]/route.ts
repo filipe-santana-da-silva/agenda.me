@@ -23,10 +23,10 @@ export async function PUT(
     }
 
     return NextResponse.json({ data: data?.[0] })
-  } catch (error: Record<string, unknown>) {
+  } catch (error: unknown) {
     console.error('PUT /api/financeiro/transactions/:id error:', error)
     return NextResponse.json(
-      { error: error.message || 'Error updating transaction' },
+      { error: error instanceof Error ? error.message : 'Error updating transaction' },
       { status: 500 }
     )
   }
@@ -52,10 +52,10 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: Record<string, unknown>) {
+  } catch (error: unknown) {
     console.error('DELETE /api/financeiro/transactions/:id error:', error)
     return NextResponse.json(
-      { error: error.message || 'Error deleting transaction' },
+      { error: error instanceof Error ? error.message : 'Error deleting transaction' },
       { status: 500 }
     )
   }

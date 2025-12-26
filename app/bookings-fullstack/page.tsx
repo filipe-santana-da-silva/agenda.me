@@ -106,9 +106,6 @@ export default async function BookingsFullstackPage() {
     ],
   };
 
-  // Lista de barbearias populares (repetidas para carrossel)
-  const popularBarbershops = [barbershop];
-
   return (
     <div>
       <Header />
@@ -146,7 +143,7 @@ export default async function BookingsFullstackPage() {
                     </div>
                   </div>
 
-                  <div className="flex h-full w-[6.625rem] flex-col items-center justify-center border-l py-3">
+                  <div className="flex h-full w-26.5 flex-col items-center justify-center border-l py-3">
                     <p className="text-xs capitalize">
                       {new Date(booking.appointment_date).toLocaleDateString("pt-BR")}
                     </p>

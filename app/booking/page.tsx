@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { BookingPageContent } from "./booking-page-content";
 import { getBarbershops } from "@/data/barbershops";
+import { BookingWithRelations } from "@/data/bookings";
 
 const BookingsPage = async () => {
   const barbershops = await getBarbershops();
-  const confirmedBookings: Array<Record<string, unknown>> = [];
+  const confirmedBookings: BookingWithRelations[] = [];
 
   // Mapa de imagens dos serviços
   const serviceImages: Record<string, string> = {

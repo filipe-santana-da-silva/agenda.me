@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    let subscription: ReturnType<typeof Object.prototype.constructor> | null = null;
+    let subscription: unknown = null;
 
     async function init() {
       setIsLoading(true);

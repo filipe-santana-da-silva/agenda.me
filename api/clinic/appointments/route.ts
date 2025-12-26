@@ -1,5 +1,4 @@
 import { createClient } from '@/utils/supabase/server'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -15,7 +14,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Acesso não autorizado!' }, { status: 401 })
   }
 
-  const clinicId = session.user.id
   const searchParams = new URL(request.url).searchParams
   const dateString = searchParams.get('date')
   const startString = searchParams.get('start')
@@ -81,32 +79,34 @@ export async function GET(request: Request) {
     }
 
     // Transform data to include customer and service info at top level
-    const transformedAppointments = appointments.map((apt: Record<string, unknown>) => {
+    const transformedAppointments = appointments?.map((apt: Record<string, unknown>) => {
+      const customers = apt.customers as Record<string, unknown>
+      const services = apt.services as Record<string, unknown>
       // Normalize appointment_date to YYYY-MM-DD string so frontend grouping matches
-      const appointmentDateStr = apt.appointment_date ? new Date(apt.appointment_date).toISOString().split('T')[0] : null
+      const appointmentDateStr = apt.appointment_date ? new Date(apt.appointment_date as string | number | Date).toISOString().split('T')[0] : null
 
       return {
         id: apt.id,
         appointment_date: appointmentDateStr,
         appointment_time: apt.appointment_time,
-      status: apt.status,
-      customer_id: apt.customer_id,
-      service_id: apt.service_id,
-      created_at: apt.created_at,
-      updated_at: apt.updated_at,
-      name: apt.customers?.name,
-      phone: apt.customers?.phone,
-      email: apt.customers?.email,
-      eventname: apt.customers?.name, // Use customer name as event name
-      service: apt.services ? {
-        id: apt.services.id,
-        name: apt.services.name,
-        duration: apt.services.duration,
-        price: apt.services.price
-      } : null,
-      color_index: 0, // Default color
+        status: apt.status,
+        customer_id: apt.customer_id,
+        service_id: apt.service_id,
+        created_at: apt.created_at,
+        updated_at: apt.updated_at,
+        name: customers?.name,
+        phone: customers?.phone,
+        email: customers?.email,
+        eventname: customers?.name,
+        service: services ? {
+          id: services.id,
+          name: services.name,
+          duration: services.duration,
+          price: services.price
+        } : null,
+        color_index: 0,
       }
-    })
+    }) || []
 
     return NextResponse.json(transformedAppointments)
   } catch (err) {

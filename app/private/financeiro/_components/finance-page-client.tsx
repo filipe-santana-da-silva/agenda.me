@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,8 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts'
-import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from 'date-fns'
+import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts'
+import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 type Transaction = {
@@ -62,8 +60,6 @@ type Transaction = {
 }
 
 export function FinancePageClient() {
-  const supabase = createClient()
-  const router = useRouter()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -76,10 +72,6 @@ export function FinancePageClient() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; description: string } | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
-
-  useEffect(() => {
-    loadTransactions()
-  }, [dateRange])
 
   const loadTransactions = async () => {
     try {
@@ -94,12 +86,17 @@ export function FinancePageClient() {
 
       const { data } = await res.json()
       setTransactions(data || [])
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao carregar transações')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar transações'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadTransactions()
+  }, [dateRange])
 
   const handleDelete = async (id: string) => {
     try {
@@ -115,8 +112,9 @@ export function FinancePageClient() {
       toast.success('Transação removida com sucesso')
       setDeleteConfirm(null)
       loadTransactions()
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao remover transação')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao remover transação'
+      toast.error(errorMessage)
     } finally {
       setDeleteLoading(false)
     }
@@ -162,7 +160,7 @@ export function FinancePageClient() {
       ]
 
       // Dados por categoria (Receitas)
-      const incomeCategoryData: Array<Record<string, unknown>> = [['Categoria', 'Valor (R$)']]
+      const incomeCategoryData: unknown[][] = [['Categoria', 'Valor (R$)']]
       const incomeByCategory: Record<string, number> = {}
       filteredTransactions
         .filter(tx => tx.type === 'income' && tx.status === 'completed')
@@ -174,7 +172,7 @@ export function FinancePageClient() {
       })
 
       // Dados por categoria (Despesas)
-      const expenseCategoryData: Array<Record<string, unknown>> = [['Categoria', 'Valor (R$)']]
+      const expenseCategoryData: unknown[][] = [['Categoria', 'Valor (R$)']]
       const expenseByCategory: Record<string, number> = {}
       filteredTransactions
         .filter(tx => tx.type === 'expense' && tx.status === 'completed')
@@ -412,7 +410,7 @@ export function FinancePageClient() {
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <Select value={selectedType} onValueChange={(value: Record<string, unknown>) => setSelectedType(value)}>
+          <Select value={selectedType} onValueChange={(value: string) => setSelectedType(value as 'all' | 'income' | 'expense')}>
             <SelectTrigger className="text-xs sm:text-sm" suppressHydrationWarning>
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
@@ -423,7 +421,7 @@ export function FinancePageClient() {
             </SelectContent>
           </Select>
 
-          <Select value={selectedStatus} onValueChange={(value: Record<string, unknown>) => setSelectedStatus(value)}>
+          <Select value={selectedStatus} onValueChange={(value: string) => setSelectedStatus(value as 'all' | 'pending' | 'completed' | 'cancelled')}>
             <SelectTrigger className="text-xs sm:text-sm" suppressHydrationWarning>
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -435,7 +433,7 @@ export function FinancePageClient() {
             </SelectContent>
           </Select>
 
-          <Select value={dateRange} onValueChange={(value: Record<string, unknown>) => setDateRange(value)}>
+          <Select value={dateRange} onValueChange={(value: string) => setDateRange(value as 'all' | 'today' | 'week' | 'month' | 'quarter' | 'semester' | 'year')}>
             <SelectTrigger className="text-xs sm:text-sm" suppressHydrationWarning>
               <SelectValue placeholder="Período" />
             </SelectTrigger>
@@ -482,7 +480,7 @@ export function FinancePageClient() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
+                  <Tooltip formatter={(value) => `R$ ${Number(value).toFixed(2)}`} />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>
@@ -521,7 +519,7 @@ export function FinancePageClient() {
                       <Cell key={`cell-${index}`} fill={EXPENSE_COLORS[index % EXPENSE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
+                  <Tooltip formatter={(value) => `R$ ${Number(value).toFixed(2)}`} />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>

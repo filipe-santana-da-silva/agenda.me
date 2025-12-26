@@ -78,7 +78,7 @@ O projeto possui um pipeline de CI/CD completo automatizado usando GitHub Action
 ## Configuração de Secrets Necessários
 
 Para que o CI/CD funcione completamente, configure os seguintes secrets no repositório:
-
+ 
 ```
 NEXT_PUBLIC_SUPABASE_URL        # URL do Supabase
 NEXT_PUBLIC_SUPABASE_ANON_KEY   # Chave anônima Supabase

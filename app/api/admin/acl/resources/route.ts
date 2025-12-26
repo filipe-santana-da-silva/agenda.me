@@ -13,8 +13,9 @@ export async function GET() {
     if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: 500 })
     const data = await res.json()
     return NextResponse.json({ data })
-  } catch (e: Record<string, unknown>) {
+  } catch (e: unknown) {
+    const error = e as Record<string, unknown>
     console.error('acl/resources GET error', e)
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+    return NextResponse.json({ error: error?.message || String(e) }, { status: 500 })
   }
 }

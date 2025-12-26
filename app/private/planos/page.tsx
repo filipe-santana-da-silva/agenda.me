@@ -2,15 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { loadStripe } from '@stripe/stripe-js'
 import { useAuth } from '@/contexts/SimpleAuthContext'
 
-import { Check, Crown, Zap, Users, Calendar, BarChart3, CreditCard } from "lucide-react"
+import { Check, Crown,  CreditCard } from "lucide-react"
 import { toast } from "sonner"
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 type Plan = {
   id: string
@@ -114,9 +111,10 @@ export default function PlanosPage() {
       } else {
         throw new Error('URL do checkout não retornada')
       }
-    } catch (error: Record<string, unknown>) {
+    } catch (error: unknown) {
       console.error('Payment error:', error)
-      toast.error(error.message || 'Erro ao processar pagamento')
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao processar pagamento'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -229,7 +227,7 @@ export default function PlanosPage() {
                 {plans[0].name}
               </CardTitle>
               <div className="space-y-1">
-                <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <div className="text-4xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   R$ {plans[0].price.toFixed(2)}
                 </div>
                 <div className="text-sm text-gray-600">/mês</div>
@@ -240,14 +238,14 @@ export default function PlanosPage() {
               <div className="grid grid-cols-1 gap-3">
                 {plans[0].features.map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
                     <span className="text-sm">{feature}</span>
                   </div>
                 ))}
               </div>
 
               <Button 
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6" 
+                className="w-full bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6" 
                 disabled={plans[0].id === currentPlan || loading}
                 onClick={() => handleUpgrade(plans[0].id)}
               >

@@ -23,7 +23,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { TrendingUp, Download, Filter, CheckCircle, Clock, DollarSign, FileBarChart } from 'lucide-react'
+import { Filter, CheckCircle, Clock, DollarSign, FileBarChart } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Commission {
@@ -76,19 +76,13 @@ interface ProfessionalStats {
   averageCommissionRate: number
 }
 
-const STATUS_COLORS = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-}
+const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 
 const STATUS_LABELS = {
   pending: 'Pendente',
   paid: 'Pago',
   cancelled: 'Cancelado',
 }
-
-const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 
 export default function CommissionManagementClient() {
   const [commissions, setCommissions] = useState<Commission[]>([])
@@ -99,10 +93,6 @@ export default function CommissionManagementClient() {
   const [endDate, setEndDate] = useState('')
   const [professionalFilter, setProfessionalFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-
-  useEffect(() => {
-    loadData()
-  }, [])
 
   const loadData = async (status?: string) => {
     try {
@@ -126,12 +116,17 @@ export default function CommissionManagementClient() {
       setCommissions(data.commissions)
       setSummary(data.summary)
       setProfessionalStats(data.professionalStats)
-    } catch (error: Record<string, unknown>) {
-      toast.error(error.message || 'Erro ao carregar dados')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar dados'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadData()
+  }, [])
 
   const handleApplyFilters = () => {
     loadData(statusFilter)
@@ -154,8 +149,9 @@ export default function CommissionManagementClient() {
 
       toast.success('Status atualizado com sucesso')
       loadData(statusFilter)
-    } catch (error: Record<string, unknown>) {
-      toast.error(error.message || 'Erro ao atualizar comissão')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao atualizar comissão'
+      toast.error(errorMessage)
     }
   }
 
@@ -315,7 +311,7 @@ export default function CommissionManagementClient() {
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
-          <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+          <Card className="border-green-200 bg-linear-to-br from-green-50 to-emerald-50">
             <CardHeader className="pb-2 p-3 sm:p-4">
               <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1 sm:gap-2">
                 <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -330,7 +326,7 @@ export default function CommissionManagementClient() {
             </CardContent>
           </Card>
 
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+          <Card className="border-blue-200 bg-linear-to-br from-blue-50 to-indigo-50">
             <CardHeader className="pb-2 p-3 sm:p-4">
               <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1 sm:gap-2">
                 <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -344,7 +340,7 @@ export default function CommissionManagementClient() {
             </CardContent>
           </Card>
 
-          <Card className="border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50">
+          <Card className="border-yellow-200 bg-linear-to-br from-yellow-50 to-orange-50">
             <CardHeader className="pb-2 p-3 sm:p-4">
               <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1 sm:gap-2">
                 <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -358,7 +354,7 @@ export default function CommissionManagementClient() {
             </CardContent>
           </Card>
 
-          <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+          <Card className="border-purple-200 bg-linear-to-br from-purple-50 to-pink-50">
             <CardHeader className="pb-2 p-3 sm:p-4">
               <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Registros</CardTitle>
             </CardHeader>
@@ -369,7 +365,7 @@ export default function CommissionManagementClient() {
             </CardContent>
           </Card>
 
-          <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 col-span-2 sm:col-span-1">
+          <Card className="border-indigo-200 bg-linear-to-br from-indigo-50 to-blue-50 col-span-2 sm:col-span-1">
             <CardHeader className="pb-2 p-3 sm:p-4">
               <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Taxa Média</CardTitle>
             </CardHeader>
@@ -396,7 +392,7 @@ export default function CommissionManagementClient() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="professionalName" angle={-45} textAnchor="end" height={100} />
                   <YAxis />
-                  <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
+                  <Tooltip formatter={(value) => `R$ ${Number(value).toFixed(2)}`} />
                   <Legend />
                   <Bar dataKey="totalCommissions" fill="#10b981" name="Total" />
                   <Bar dataKey="paidCommissions" fill="#3b82f6" name="Pago" />
@@ -422,7 +418,11 @@ export default function CommissionManagementClient() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: Record<string, unknown>) => `${entry.name}: ${((entry.value / summary.totalCommissions) * 100).toFixed(1)}%`}
+                      label={(entry) => {
+                        const value = (entry as unknown as Record<string, unknown>).value as number
+                        const name = (entry as unknown as Record<string, unknown>).name as string
+                        return `${name}: ${((value / summary.totalCommissions) * 100).toFixed(1)}%`
+                      }}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -431,7 +431,7 @@ export default function CommissionManagementClient() {
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => `R$ ${Number(value).toFixed(2)}`} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : null}

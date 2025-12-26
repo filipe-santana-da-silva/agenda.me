@@ -14,8 +14,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertCircle, LogOut, Save, Upload, Moon, Sun, Sparkles } from 'lucide-react'
-import Link from 'next/link'
-import Image from 'next/image'
 
 type UserProfile = {
   id: string
@@ -79,7 +77,7 @@ export function ProfilePageClient() {
     if (!authLoading) {
       fetchUserProfile()
     }
-  }, [authLoading, authUser])
+  }, [authLoading, authUser, supabase])
 
   useEffect(() => {
     console.log('authUser completo:', authUser)
@@ -144,8 +142,8 @@ export function ProfilePageClient() {
         address: profileData.address || '',
         bio: profileData.bio || ''
       })
-    } catch (err: Record<string, unknown>) {
-      const message = err?.message || 'Erro ao carregar perfil'
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar perfil'
       setError(message)
       toast.error(message)
     } finally {
@@ -203,8 +201,9 @@ export function ProfilePageClient() {
       setAvatarUrl(publicUrl)
       localStorage.setItem(`avatar_${user?.id}`, publicUrl)
       toast.success('Foto atualizada com sucesso!')
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao fazer upload')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao fazer upload'
+      toast.error(errorMessage)
     } finally {
       setUploading(false)
     }
@@ -228,8 +227,9 @@ export function ProfilePageClient() {
 
       toast.success('Perfil atualizado com sucesso!')
       fetchUserProfile()
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao atualizar perfil')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar perfil'
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -240,7 +240,7 @@ export function ProfilePageClient() {
       logout()
       toast.success('Desconectado com sucesso')
       router.push('/login')
-    } catch (err: Record<string, unknown>) {
+    } catch {
       toast.error('Erro ao sair da conta')
     }
   }

@@ -104,8 +104,9 @@ export function CategoryDialog({
 
       onSaved()
       onClose()
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao salvar categoria')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar categoria'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }

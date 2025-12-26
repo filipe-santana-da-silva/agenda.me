@@ -16,6 +16,7 @@ import { createClient } from "@/utils/supabase/client"
 import { toast } from "sonner"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import type { Session } from "@supabase/supabase-js"
 
 const categories = [
   { label: "Cabelo", search: "cabelo" },
@@ -27,7 +28,7 @@ const categories = [
 ]
 
 const MenuSheet = () => {
-  const [session, setSession] = useState<Record<string, unknown> | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()

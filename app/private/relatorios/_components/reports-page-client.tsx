@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -19,7 +18,14 @@ import { toast } from 'sonner'
 
 interface ReportData {
   type: 'service' | 'professional' | 'period'
-  data: Array<Record<string, unknown>>
+  data: Array<{
+    serviceName?: string
+    professionalName?: string
+    date?: string
+    total: number
+    count: number
+    percentage: number
+  }>
   totalRevenue: number
 }
 
@@ -33,6 +39,7 @@ export default function ReportsPageClient() {
 
   useEffect(() => {
     loadReport()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportType, dateRange])
 
   const loadReport = async () => {
@@ -52,15 +59,16 @@ export default function ReportsPageClient() {
 
       const data = await response.json()
       setReportData(data)
-    } catch (error: Record<string, unknown>) {
-      toast.error(error.message || 'Erro ao carregar relatório')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar relatório'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
   }
 
   const handleReportTypeChange = (type: string) => {
-    setReportType(type as Record<string, unknown>)
+    setReportType(type as 'service' | 'professional' | 'period')
   }
 
 
@@ -73,17 +81,17 @@ export default function ReportsPageClient() {
     if (reportType === 'service') {
       csv = 'Serviço,Total (R$),Quantidade,Percentual (%)\n'
       reportData.data.forEach((item) => {
-        csv += `"${item.serviceName}",${item.total.toFixed(2)},${item.count},${item.percentage.toFixed(2)}\n`
+        csv += `"${item.serviceName || ''}",${(item.total || 0).toFixed(2)},${item.count || 0},${(item.percentage || 0).toFixed(2)}\n`
       })
     } else if (reportType === 'professional') {
       csv = 'Profissional,Total (R$),Quantidade,Percentual (%)\n'
       reportData.data.forEach((item) => {
-        csv += `"${item.professionalName}",${item.total.toFixed(2)},${item.count},${item.percentage.toFixed(2)}\n`
+        csv += `"${item.professionalName || ''}",${(item.total || 0).toFixed(2)},${item.count || 0},${(item.percentage || 0).toFixed(2)}\n`
       })
     } else if (reportType === 'period') {
       csv = 'Data,Total (R$),Quantidade\n'
       reportData.data.forEach((item) => {
-        csv += `${item.date},${item.total.toFixed(2)},${item.count}\n`
+        csv += `${item.date || ''},${(item.total || 0).toFixed(2)},${item.count || 0}\n`
       })
     }
 
@@ -120,15 +128,15 @@ export default function ReportsPageClient() {
     } else {
       return reportData.data.map((item) => {
         try {
-          const date = new Date(item.date)
+          const date = new Date(item.date || '')
           return {
             name: !isNaN(date.getTime()) ? format(date, 'dd/MM', { locale: ptBR }) : item.date,
-            value: parseFloat(item.total?.toString() || '0'),
+            value: item.total || 0,
           }
-        } catch (e) {
+        } catch {
           return {
-            name: item.date,
-            value: parseFloat(item.total?.toString() || '0'),
+            name: item.date || '',
+            value: item.total || 0,
           }
         }
       })
@@ -178,7 +186,7 @@ export default function ReportsPageClient() {
 
             <div>
               <label className="text-sm font-medium mb-2 block">Período</label>
-              <Select value={dateRange} onValueChange={(value: Record<string, unknown>) => setDateRange(value)}>
+              <Select value={dateRange} onValueChange={(value: string) => setDateRange(value as 'month' | 'year')}>
                 <SelectTrigger suppressHydrationWarning>
                   <SelectValue />
                 </SelectTrigger>
@@ -194,7 +202,7 @@ export default function ReportsPageClient() {
 
       {/* No Data Message */}
       {!loading && reportData && reportData.data.length === 0 && (
-        <Card className="border-yellow-200 bg-gradient-to-br from-yellow-50 to-amber-50">
+        <Card className="border-yellow-200 bg-linear-to-br from-yellow-50 to-amber-50">
           <CardContent className="py-8">
             <div className="text-center">
               <p className="text-lg font-medium text-yellow-800 mb-2">
@@ -212,7 +220,7 @@ export default function ReportsPageClient() {
 
       {/* Summary Card */}
       {reportData && reportData.data.length > 0 && (
-        <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+        <Card className="border-green-200 bg-linear-to-br from-green-50 to-emerald-50">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-green-600" />
@@ -239,14 +247,14 @@ export default function ReportsPageClient() {
                 </p>
                 <p className="text-2xl font-bold text-purple-600">
                   {topPerformer ? 
-                    (reportType === 'service' ? topPerformer.serviceName : 
-                     reportType === 'professional' ? topPerformer.professionalName :
+                    (reportType === 'service' ? String(topPerformer.serviceName || 'N/A') : 
+                     reportType === 'professional' ? String(topPerformer.professionalName || 'N/A') :
                      (() => {
                        try {
-                         const date = new Date(topPerformer.date)
-                         return !isNaN(date.getTime()) ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : topPerformer.date
-                       } catch (e) {
-                         return topPerformer.date
+                         const date = new Date(topPerformer.date || '')
+                         return !isNaN(date.getTime()) ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : String(topPerformer.date || 'N/A')
+                       } catch {
+                         return String(topPerformer.date || 'N/A')
                        }
                      })())
                    : 'N/A'}
@@ -277,7 +285,7 @@ export default function ReportsPageClient() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => `R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`} />
                     <Legend />
                     <Line type="monotone" dataKey="value" stroke="#10b981" name="Faturamento" />
                   </LineChart>
@@ -286,7 +294,7 @@ export default function ReportsPageClient() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => `R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`} />
                     <Legend />
                     <Bar dataKey="value" fill="#10b981" name="Faturamento" />
                   </BarChart>
@@ -310,7 +318,11 @@ export default function ReportsPageClient() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: Record<string, unknown>) => `${entry.percentage?.toFixed(1) || '0'}%`}
+                      // @ts-expect-error - Recharts label prop type mismatch
+                      label={(entry: Record<string, unknown>) => {
+                        const percentage = (entry.percentage as number) || 0
+                        return `${percentage.toFixed(1)}%`
+                      }}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -319,12 +331,12 @@ export default function ReportsPageClient() {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => `R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                <div className="flex items-center justify-center h-75 text-muted-foreground">
                   {reportType === 'period' ? 'Gráfico de pizza não disponível para período' : 'Sem dados para exibir'}
                 </div>
               )}
@@ -360,19 +372,19 @@ export default function ReportsPageClient() {
                   {reportData.data.map((item, index) => (
                     <tr key={index} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4">
-                        {reportType === 'service' ? item.serviceName :
-                         reportType === 'professional' ? item.professionalName :
+                        {reportType === 'service' ? String(item.serviceName || '') :
+                         reportType === 'professional' ? String(item.professionalName || '') :
                          (() => {
                           try {
-                            const date = new Date(item.date)
-                            return !isNaN(date.getTime()) ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : item.date
-                          } catch (e) {
-                            return item.date
+                            const date = new Date(item.date || '')
+                            return !isNaN(date.getTime()) ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : String(item.date || '')
+                          } catch {
+                            return String(item.date || '')
                           }
                         })()}
                       </td>
                       <td className="text-right py-3 px-4 font-medium text-green-600">
-                        R$ {parseFloat(item.total?.toString() || '0').toFixed(2)}
+                        R$ {(item.total || 0).toFixed(2)}
                       </td>
                       <td className="text-right py-3 px-4">{item.count || 0}</td>
                       {reportType !== 'period' && (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -66,11 +66,7 @@ export function EmployeesPageClient() {
   const [departments, setDepartments] = useState<string[]>([])
   const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null)
 
-  useEffect(() => {
-    loadEmployees()
-  }, [])
-
-  const loadEmployees = async () => {
+  const loadEmployees = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -88,12 +84,17 @@ export function EmployeesPageClient() {
         new Set((data || []).map((e) => e.department).filter(Boolean))
       ) as string[]
       setDepartments(depts.sort())
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao carregar funcionários')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar funcionários'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    loadEmployees()
+  }, [loadEmployees])
 
   const handleDelete = async (id: string) => {
     try {
@@ -103,8 +104,9 @@ export function EmployeesPageClient() {
       toast.success('Funcionário removido com sucesso')
       setDeleteConfirm(null)
       loadEmployees()
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao remover funcionário')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao remover funcionário'
+      toast.error(errorMessage)
     }
   }
 
@@ -254,7 +256,7 @@ export function EmployeesPageClient() {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Select value={selectedStatus} onValueChange={(value: Record<string, unknown>) => setSelectedStatus(value)}>
+          <Select value={selectedStatus} onValueChange={(value: string) => setSelectedStatus(value as 'all' | 'active' | 'inactive' | 'on_leave')}>
             <SelectTrigger className="text-xs sm:text-sm" suppressHydrationWarning>
               <SelectValue placeholder="Status" />
             </SelectTrigger>

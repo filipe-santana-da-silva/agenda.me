@@ -15,12 +15,6 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
-function formatDateBRString(ymd: string | undefined): string {
-  if (!ymd) return '-'
-  const [y, m, d] = ymd.split('-')
-  return `${d}/${m}/${y}` // ex: 07/12/2025
-}
-
 function formatTimeBR(time: string | undefined): string {
   if (!time) return '-'
   const [h, m] = time.split(':')
@@ -86,48 +80,48 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
 
   // Carregar horários disponíveis quando entrar em modo de edição
   useEffect(() => {
+    const loadAvailableSlots = async () => {
+      if (!ap?.professional_id || !ap?.appointment_date) return
+      
+      setLoadingSlots(true)
+      try {
+        // Buscar bloqueios do profissional
+        const response = await fetch(`/api/schedule/blocks?date=${ap.appointment_date}&professionalId=${ap.professional_id}`)
+        const data = await response.json()
+        
+        const blockedTimes = new Set()
+        
+        // Adicionar horários bloqueados
+        if (data.blocks) {
+          data.blocks.forEach((block: Record<string, unknown>) => {
+            const startTime = (block.start_time as string)
+            const endTime = (block.end_time as string)
+            
+            // Bloquear todos os slots entre start e end
+            timeOptions.forEach(slot => {
+              if (slot >= startTime && slot < endTime) {
+                blockedTimes.add(slot)
+              }
+            })
+          })
+        }
+        
+        // Filtrar horários disponíveis
+        const available = timeOptions.filter(slot => !blockedTimes.has(slot))
+        setAvailableTimeSlots(available)
+        
+      } catch (error) {
+        console.error('Erro ao carregar horários:', error)
+        setAvailableTimeSlots(timeOptions) // Fallback para todos os horários
+      } finally {
+        setLoadingSlots(false)
+      }
+    }
+
     if (editingMode && ap?.professional_id && ap?.appointment_date) {
       loadAvailableSlots()
     }
-  }, [editingMode, ap?.professional_id, ap?.appointment_date])
-
-  const loadAvailableSlots = async () => {
-    if (!ap?.professional_id || !ap?.appointment_date) return
-    
-    setLoadingSlots(true)
-    try {
-      // Buscar bloqueios do profissional
-      const response = await fetch(`/api/schedule/blocks?date=${ap.appointment_date}&professionalId=${ap.professional_id}`)
-      const data = await response.json()
-      
-      const blockedTimes = new Set()
-      
-      // Adicionar horários bloqueados
-      if (data.blocks) {
-        data.blocks.forEach((block: Record<string, unknown>) => {
-          const startTime = block.start_time
-          const endTime = block.end_time
-          
-          // Bloquear todos os slots entre start e end
-          timeOptions.forEach(slot => {
-            if (slot >= startTime && slot < endTime) {
-              blockedTimes.add(slot)
-            }
-          })
-        })
-      }
-      
-      // Filtrar horários disponíveis
-      const available = timeOptions.filter(slot => !blockedTimes.has(slot))
-      setAvailableTimeSlots(available)
-      
-    } catch (error) {
-      console.error('Erro ao carregar horários:', error)
-      setAvailableTimeSlots(timeOptions) // Fallback para todos os horários
-    } finally {
-      setLoadingSlots(false)
-    }
-  }
+  }, [editingMode, ap?.professional_id, ap?.appointment_date, timeOptions])
 
   useEffect(() => {
     setEditable({
@@ -197,7 +191,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                     {editingMode ? (
                       <Select 
                         value={editable.appointment_time ?? ''} 
-                        onValueChange={(value) => setEditable((p: Record<string, unknown>) => ({ ...p, appointment_time: value }))}
+                        onValueChange={(value) => setEditable((p) => ({ status: p.status, appointment_time: value }))}
                       >
                         <SelectTrigger className="w-24">
                           <SelectValue />
@@ -250,7 +244,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                 {editingMode ? (
                   <Select 
                     value={editable.status ?? 'pending'} 
-                    onValueChange={(value) => setEditable((p: Record<string, unknown>) => ({ ...p, status: value }))}
+                    onValueChange={(value) => setEditable((p) => ({ status: value, appointment_time: p.appointment_time }))}
                   >
                     <SelectTrigger>
                       <SelectValue />

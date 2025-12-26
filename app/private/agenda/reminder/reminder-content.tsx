@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { deleteReminder } from "../_actions/delete-reminder"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
 
 const Reminderlist = dynamic(() => import("./reminder-list").then(mod => mod.Reminderlist), {
@@ -38,7 +37,6 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [reminderToDelete, setReminderToDelete] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
-    const router = useRouter();
 
     async function handleConfirmDelete(){
         if (!reminderToDelete) return
@@ -81,7 +79,7 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
                                 <Plus className="w-5 h-5"/>
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
+                        <DialogContent className="sm:max-w-106.25">
                             <DialogHeader>
                                 <DialogTitle>Novo lembrete</DialogTitle>
                                 <DialogDescription>Criar um novo lembrete para sua lista</DialogDescription>
@@ -100,7 +98,7 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
                             <p className="text-xs text-gray-400 mt-1">Clique em + para criar um novo</p>
                         </div>
                     )}
-                    <ScrollArea className="h-[340px] lg:max-h-[calc(100vh - 15rem)] w-full">
+                    <ScrollArea className="h-85 lg:max-h-[calc(100vh - 15rem)] w-full">
                         <div className="pr-4">
                             {reminder.map((item) => (
                                 <div key={item.id} className="flex flex-row items-start justify-between py-3 px-3 bg-white mb-2 rounded-lg border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all group">

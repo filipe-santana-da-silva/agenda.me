@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from 'date-fns'
+import { startOfWeek, startOfMonth, startOfQuarter, startOfYear } from 'date-fns'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -35,7 +35,6 @@ export async function GET(request: Request) {
     // Filter by date range
     const now = new Date()
     let startDate: Date | null = null
-    const endDate: Date | null = null
 
     switch (dateRange) {
       case 'today':
@@ -76,9 +75,9 @@ export async function GET(request: Request) {
     if (error) throw error
 
     return NextResponse.json({ data })
-  } catch (error: Record<string, unknown>) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || 'Error fetching transactions' },
+      { error: error instanceof Error ? error.message : 'Error fetching transactions' },
       { status: 500 }
     )
   }
@@ -118,11 +117,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ data: data?.[0] })
-  } catch (error: Record<string, unknown>) {
+  } catch (error: unknown) {
     console.error('POST /api/financeiro/transactions error:', error)
     
     // Check if it's a table not found error
-    if (error.message?.includes('relation "public.transactions" does not exist')) {
+    if (error instanceof Error && error.message?.includes('relation "public.transactions" does not exist')) {
       return NextResponse.json(
         { error: 'Tabela de transações não foi criada. Execute o SQL schema no Supabase.' },
         { status: 500 }
@@ -130,7 +129,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: error.message || 'Erro ao criar transação' },
+      { error: error instanceof Error ? error.message : 'Erro ao criar transação' },
       { status: 500 }
     )
   }

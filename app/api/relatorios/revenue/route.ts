@@ -61,9 +61,10 @@ export async function GET(request: NextRequest) {
 
       appointments?.forEach((apt: Record<string, unknown>) => {
         if (apt.services) {
-          const serviceId = apt.services.id
-          const serviceName = apt.services.name
-          const price = apt.services.price || 0
+          const services = apt.services as Record<string, unknown>
+          const serviceId = services.id as string
+          const serviceName = services.name
+          const price = services.price || 0
           
           if (!serviceMap[serviceId]) {
             serviceMap[serviceId] = {
@@ -75,14 +76,14 @@ export async function GET(request: NextRequest) {
             }
           }
           
-          serviceMap[serviceId].total += parseFloat(price.toString())
-          serviceMap[serviceId].count += 1
+          serviceMap[serviceId].total = (serviceMap[serviceId].total as number) + parseFloat(price.toString())
+          serviceMap[serviceId].count = (serviceMap[serviceId].count as number) + 1
         }
       })
 
       const totalRevenue = Object.values(serviceMap).reduce((sum: number, s: Record<string, unknown>) => sum + (s.total as number), 0)
       Object.keys(serviceMap).forEach((key) => {
-        serviceMap[key].percentage = totalRevenue > 0 ? (serviceMap[key].total / totalRevenue) * 100 : 0
+        serviceMap[key].percentage = totalRevenue > 0 ? ((serviceMap[key].total as number) / totalRevenue) * 100 : 0
       })
 
       reportData = {
@@ -95,9 +96,11 @@ export async function GET(request: NextRequest) {
 
       appointments?.forEach((apt: Record<string, unknown>) => {
         if (apt.employees && apt.services) {
-          const profId = apt.employees.id
-          const profName = apt.employees.name
-          const price = apt.services.price || 0
+          const employees = apt.employees as Record<string, unknown>
+          const services = apt.services as Record<string, unknown>
+          const profId = employees.id as string
+          const profName = employees.name
+          const price = services.price || 0
           
           if (!professionalMap[profId]) {
             professionalMap[profId] = {
@@ -109,14 +112,14 @@ export async function GET(request: NextRequest) {
             }
           }
           
-          professionalMap[profId].total += parseFloat(price.toString())
-          professionalMap[profId].count += 1
+          professionalMap[profId].total = (professionalMap[profId].total as number) + parseFloat(price.toString())
+          professionalMap[profId].count = (professionalMap[profId].count as number) + 1
         }
       })
 
       const totalRevenue = Object.values(professionalMap).reduce((sum: number, p: Record<string, unknown>) => sum + (p.total as number), 0)
       Object.keys(professionalMap).forEach((key) => {
-        professionalMap[key].percentage = totalRevenue > 0 ? (professionalMap[key].total / totalRevenue) * 100 : 0
+        professionalMap[key].percentage = totalRevenue > 0 ? ((professionalMap[key].total as number) / totalRevenue) * 100 : 0
       })
 
       reportData = {
@@ -129,7 +132,8 @@ export async function GET(request: NextRequest) {
 
       appointments?.forEach((apt: Record<string, unknown>) => {
         const date = apt.appointment_date as string
-        const price = apt.services?.price || 0
+        const services = apt.services as Record<string, unknown> | undefined
+        const price = services?.price || 0
         
         if (!periodMap[date]) {
           periodMap[date] = {
@@ -139,8 +143,8 @@ export async function GET(request: NextRequest) {
           }
         }
         
-        periodMap[date].total += parseFloat(price.toString())
-        periodMap[date].count += 1
+        periodMap[date].total = (periodMap[date].total as number) + parseFloat(price.toString())
+        periodMap[date].count = (periodMap[date].count as number) + 1
       })
 
       const totalRevenue = Object.values(periodMap).reduce((sum: number, p: Record<string, unknown>) => sum + (p.total as number), 0)
@@ -153,7 +157,8 @@ export async function GET(request: NextRequest) {
     }
 
     // If no data found, return empty structure
-    if (!reportData.data || reportData.data.length === 0) {
+    const reportDataCast = reportData as Record<string, unknown>
+    if (!reportDataCast.data || (reportDataCast.data as unknown[]).length === 0) {
       reportData = {
         type: reportType,
         data: [],

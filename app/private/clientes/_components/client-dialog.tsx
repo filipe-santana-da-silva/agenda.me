@@ -105,8 +105,9 @@ export function ClientDialog({
       }
 
       onSaved()
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao salvar cliente')
+    } catch (err: unknown) {
+      const errorMessage = (err as Record<string, unknown>)?.message as string | undefined
+      toast.error(errorMessage || 'Erro ao salvar cliente')
     } finally {
       setLoading(false)
     }

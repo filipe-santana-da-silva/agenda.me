@@ -56,7 +56,7 @@ export function AppointmentCalendar({
           <Button
             type="button"
             onClick={() => setShowCalendar(!showCalendar)}
-            className="w-full h-14 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 text-gray-900 font-medium text-lg transition-all duration-200 shadow-sm hover:shadow-md"
+            className="w-full h-14 bg-linear-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 text-gray-900 font-medium text-lg transition-all duration-200 shadow-sm hover:shadow-md"
           >
             {selectedDate
               ? format(new Date(selectedDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })

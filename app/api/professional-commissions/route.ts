@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { format } from 'date-fns'
 
 export async function GET(request: NextRequest) {
   try {
@@ -118,22 +118,22 @@ export async function GET(request: NextRequest) {
 
         const amount = parseFloat((c.commission_amount as Record<string, unknown>).toString())
         const prof = professionalStats[profId as string];
-        (prof.totalCommissions as number) += amount
+        prof.totalCommissions = (prof.totalCommissions as number) + amount
 
         if (c.status === 'paid') {
-          (prof.paidCommissions as number) += amount
+          prof.paidCommissions = (prof.paidCommissions as number) + amount
         } else if (c.status === 'pending') {
-          (prof.pendingCommissions as number) += amount
+          prof.pendingCommissions = (prof.pendingCommissions as number) + amount
         }
 
-        (prof.appointmentCount as number) += 1
-        (prof.averageCommissionRate as number) += (c.commission_rate as number)
+        prof.appointmentCount = (prof.appointmentCount as number) + 1
+        prof.averageCommissionRate = (prof.averageCommissionRate as number) + (c.commission_rate as number)
       })
 
       // Calculate average commission rate
       Object.keys(professionalStats).forEach((key) => {
         const prof = professionalStats[key]
-        (prof.averageCommissionRate as number) = (prof.averageCommissionRate as number) / (prof.appointmentCount as number)
+        prof.averageCommissionRate = (prof.averageCommissionRate as number) / (prof.appointmentCount as number)
       })
     }
 
@@ -194,8 +194,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(data, { status: 201 })
-  } catch (error: Record<string, unknown>) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const err = error as Record<string, unknown>
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
 

@@ -35,7 +35,6 @@ export async function POST(request: Request) {
     }
 
     const { data: publicData } = supabaseAdmin.storage.from(bucket).getPublicUrl(path)
-    // @ts-expect-error - publicUrl is not typed in the response
     const publicUrl = (publicData as Record<string, unknown>)?.publicUrl ?? null
 
     return NextResponse.json({ publicUrl })

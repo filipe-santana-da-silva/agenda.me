@@ -39,10 +39,10 @@ export async function POST(request: Request) {
       data: 'Agendamento deletado com sucesso',
       deletedId: appointmentId
     })
-  } catch (err: Record<string, unknown>) {
+  } catch (err: unknown) {
     console.error('Error in /api/appointments/delete:', err)
     return NextResponse.json({ 
-      error: `Erro ao deletar: ${err?.message ?? String(err)}` 
+      error: `Erro ao deletar: ${err instanceof Error ? err.message : String(err)}` 
     }, { status: 500 })
   }
 }

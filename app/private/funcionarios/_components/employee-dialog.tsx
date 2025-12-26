@@ -228,8 +228,9 @@ export function EmployeeDialog({
       }
 
       onSaved()
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao salvar funcionário')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar funcionário'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -389,7 +390,7 @@ export function EmployeeDialog({
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value: Record<string, unknown>) => setFormData({ ...formData, status: value })}
+                  onValueChange={(value: string) => setFormData({ ...formData, status: value as 'active' | 'inactive' | 'on_leave' })}
                 >
                   <SelectTrigger id="status" className="mt-2">
                     <SelectValue />

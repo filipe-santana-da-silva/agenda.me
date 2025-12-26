@@ -5,7 +5,6 @@ import Footer from "@/components/footer";
 import {
   PageContainer,
   PageSectionContent,
-  PageSectionTitle,
 } from "@/components/ui/page";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -221,7 +220,7 @@ const MeusAgendamentosPage = () => {
           const employeeData = employeesMap[b.professional_id as string] as Record<string, unknown> | undefined;
           
           return {
-            id: b.id,
+            id: (b.id as string) || "",
             barbershop: {
               name: (barbershopData?.name as string) || "Barbearia",
               image_url: (barbershopData?.image_url as string) || "/default-barbershop.png",
@@ -234,9 +233,9 @@ const MeusAgendamentosPage = () => {
             professional: {
               name: (employeeData?.name as string) || "Profissional",
             },
-            appointment_date: b.appointment_date,
-            appointment_time: b.appointment_time,
-            status: b.status || "pending",
+            appointment_date: (b.appointment_date as string) || "",
+            appointment_time: (b.appointment_time as string) || "",
+            status: (b.status as string) || "pending",
           };
         });
         

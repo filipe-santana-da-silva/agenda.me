@@ -63,10 +63,6 @@ export function ProductsCatalogClient() {
     name: string
   } | null>(null)
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
   const loadData = async () => {
     try {
       setLoading(true)
@@ -92,12 +88,17 @@ export function ProductsCatalogClient() {
 
       setCategories(categoriesData || [])
       setProducts(productsData || [])
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao carregar dados')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar dados'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadData()
+  }, [supabase])
 
   const handleDelete = async (type: 'product' | 'category', id: string) => {
     try {
@@ -121,8 +122,9 @@ export function ProductsCatalogClient() {
 
       setDeleteConfirm(null)
       loadData()
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao remover')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao remover'
+      toast.error(errorMessage)
     }
   }
 

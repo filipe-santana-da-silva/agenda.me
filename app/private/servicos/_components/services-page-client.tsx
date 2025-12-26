@@ -17,8 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+
 
 type Service = {
   id: string
@@ -39,7 +38,7 @@ export function ServicesPageClient() {
 
   useEffect(() => {
     loadServices()
-  }, [])
+  }, )
 
   const loadServices = async () => {
     try {
@@ -51,8 +50,8 @@ export function ServicesPageClient() {
 
       if (error) throw error
       setServices(data || [])
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao carregar serviços')
+    } catch (err: unknown) {
+      toast.error((err instanceof Error ? err.message : String(err)) || 'Erro ao carregar serviços')
     } finally {
       setLoading(false)
     }
@@ -69,8 +68,8 @@ export function ServicesPageClient() {
       toast.success('Serviço removido com sucesso')
       setDeleteConfirm(null)
       loadServices()
-    } catch (err: Record<string, unknown>) {
-      toast.error(err.message || 'Erro ao remover serviço')
+    } catch (err: unknown) {
+      toast.error((err instanceof Error ? err.message : String(err)) || 'Erro ao remover serviço')
     }
   }
 

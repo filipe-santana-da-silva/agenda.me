@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
-import { format, startOfMonth, endOfMonth, parseISO, addDays } from 'date-fns'
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns'
 
 export async function GET(request: Request) {
   try {
@@ -73,8 +73,9 @@ export async function GET(request: Request) {
     const mapped = (data || []).map((a: Record<string, unknown>) => {
       // Process service duration from HH:MM:SS to minutes
       let durationMinutes = null
-      if (a.service?.duration) {
-        const duration = a.service.duration
+      const service = a.service as Record<string, unknown> | undefined
+      if (service?.duration) {
+        const duration = service.duration
         if (typeof duration === 'string' && duration.includes(':')) {
           // Parse HH:MM:SS format
           const parts = duration.split(':')
@@ -95,28 +96,33 @@ export async function GET(request: Request) {
         }
       }
 
+      const appointmentTime = a.appointment_time as string | undefined
+      const customer = a.customer as Record<string, unknown> | undefined
+      const serviceCast = a.service as Record<string, unknown> | undefined
+      const professional = a.professional as Record<string, unknown> | undefined
+
       return {
         id: a.id,
         appointmentdate: `${a.appointment_date} ${a.appointment_time}`,
         appointment_date: a.appointment_date,
         appointment_time: a.appointment_time,
-        time: (a.appointment_time || '').substring(0, 5), // Get HH:mm
+        time: (appointmentTime || '').substring(0, 5), // Get HH:mm
         status: a.status,
         customer_id: a.customer_id,
         service_id: a.service_id,
         professional_id: a.professional_id,
         created_at: a.created_at,
         updated_at: a.updated_at,
-        customer: a.customer,
-        service: a.service ? {
-          ...a.service,
-          duration: durationMinutes ?? a.service.duration
+        customer: customer,
+        service: serviceCast ? {
+          ...serviceCast,
+          duration: durationMinutes ?? serviceCast.duration
         } : null,
-        professional: a.professional,
+        professional: professional,
         // For backward compatibility with UI that might expect these
-        contractorname: a.customer?.name || '',
-        phone: a.customer?.phone || '',
-        name: a.customer?.name || '',
+        contractorname: (customer?.name as string | undefined) || '',
+        phone: (customer?.phone as string | undefined) || '',
+        name: (customer?.name as string | undefined) || '',
       }
     })
 

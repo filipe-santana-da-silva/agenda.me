@@ -32,8 +32,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ data })
-  } catch (err: Record<string, unknown>) {
+  } catch (err: unknown) {
     console.error('Error in /api/clinic/appointments/color', err)
-    return NextResponse.json({ error: err?.message ?? String(err) }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

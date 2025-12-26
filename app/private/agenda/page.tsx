@@ -6,6 +6,13 @@ import dynamic from 'next/dynamic'
 import { Card, CardContent } from '@/components/ui/card'
 import { getReminders } from './_data-access/get-reminder'
 
+type ReminderItem = {
+  id: string
+  description: string
+  userId?: string | null
+  createdat?: string | null
+}
+
 // Lazy load components
 const CalendarViewWithAppointments = dynamic(
   () => import('@/app/components/calendar-view-appointments').then(mod => mod.CalendarViewWithAppointments),
@@ -38,7 +45,7 @@ const ReminderListLazy = dynamic(
 )
 
 export default function Agenda() {
-  const [reminders, setReminders] = useState<{ id: string; [key: string]: unknown }[]>([])
+  const [reminders, setReminders] = useState<ReminderItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

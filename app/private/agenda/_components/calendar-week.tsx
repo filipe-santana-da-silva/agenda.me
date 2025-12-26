@@ -141,7 +141,7 @@ export function CalendarWeek({
                         key={idx}
                         onClick={() => onDateSelect(dateStr)}
                         className={`
-                          flex-1 min-w-[90px] sm:min-w-[140px] p-2 text-center border-r last:border-r-0 transition-colors
+                          flex-1 min-w-22.5 sm:min-w-35 p-2 text-center border-r last:border-r-0 transition-colors
                           ${isSelected ? 'bg-blue-50 border-blue-300' : 'hover:bg-muted/50'}
                         `}
                       >
@@ -171,7 +171,7 @@ export function CalendarWeek({
                         return (
                           <div
                             key={`${dayIdx}-${slotIdx}`}
-                            className="flex-1 min-w-[90px] sm:min-w-[140px] border-r last:border-r-0 p-1 min-h-10 bg-white hover:bg-muted/30 transition-colors relative"
+                            className="flex-1 min-w-22.5 sm:min-w-35 border-r last:border-r-0 p-1 min-h-10 bg-white hover:bg-muted/30 transition-colors relative"
                           >
                             {dayAppointments.map((apt) => {
                               const isFirst = (apt.time || '').slice(0, 5) === slot

@@ -23,7 +23,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { TrendingUp, Download, Filter } from 'lucide-react'
+import { Download, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ProfessionalRevenue {
@@ -66,19 +66,13 @@ interface ProfessionalStats {
   appointmentCount: number
 }
 
-const STATUS_COLORS = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  completed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-}
+const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 
 const STATUS_LABELS = {
   pending: 'Pendente',
   completed: 'Concluído',
   cancelled: 'Cancelado',
 }
-
-const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 
 export default function ProfessionalRevenueClient() {
   const [revenues, setRevenues] = useState<ProfessionalRevenue[]>([])
@@ -92,7 +86,8 @@ export default function ProfessionalRevenueClient() {
 
   useEffect(() => {
     loadData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, statusFilter])
 
   const loadData = async (status?: string) => {
     try {
@@ -116,8 +111,9 @@ export default function ProfessionalRevenueClient() {
       setRevenues(data.revenues)
       setSummary(data.summary)
       setProfessionalStats(data.professionalStats)
-    } catch (error: Record<string, unknown>) {
-      toast.error(error.message || 'Erro ao carregar dados')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar dados'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -144,8 +140,9 @@ export default function ProfessionalRevenueClient() {
 
       toast.success('Status atualizado com sucesso')
       loadData(statusFilter)
-    } catch (error: Record<string, unknown>) {
-      toast.error(error.message || 'Erro ao atualizar status')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao atualizar status'
+      toast.error(errorMessage)
     }
   }
 
@@ -241,7 +238,7 @@ export default function ProfessionalRevenueClient() {
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+          <Card className="border-green-200 bg-linear-to-br from-green-50 to-emerald-50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Lucro Total</CardTitle>
             </CardHeader>
@@ -252,7 +249,7 @@ export default function ProfessionalRevenueClient() {
             </CardContent>
           </Card>
 
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+          <Card className="border-blue-200 bg-linear-to-br from-blue-50 to-indigo-50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Concluído</CardTitle>
             </CardHeader>
@@ -263,7 +260,7 @@ export default function ProfessionalRevenueClient() {
             </CardContent>
           </Card>
 
-          <Card className="border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50">
+          <Card className="border-yellow-200 bg-linear-to-br from-yellow-50 to-orange-50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Pendente</CardTitle>
             </CardHeader>
@@ -274,7 +271,7 @@ export default function ProfessionalRevenueClient() {
             </CardContent>
           </Card>
 
-          <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+          <Card className="border-purple-200 bg-linear-to-br from-purple-50 to-pink-50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Registros</CardTitle>
             </CardHeader>
@@ -301,7 +298,7 @@ export default function ProfessionalRevenueClient() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="professionalName" angle={-45} textAnchor="end" height={100} />
                   <YAxis />
-                  <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
+                  <Tooltip formatter={(value) => `R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`} />
                   <Legend />
                   <Bar dataKey="totalRevenue" fill="#10b981" name="Lucro Total" />
                   <Bar dataKey="completedRevenue" fill="#3b82f6" name="Concluído" />
@@ -327,7 +324,11 @@ export default function ProfessionalRevenueClient() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: Record<string, unknown>) => `${entry.name}: ${((entry.value / summary!.totalRevenue) * 100).toFixed(1)}%`}
+                      label={(entry: { name?: string; value?: number }) => {
+                        const name = entry.name || ''
+                        const value = entry.value || 0
+                        return `${name}: ${((value / summary!.totalRevenue) * 100).toFixed(1)}%`
+                      }}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -336,7 +337,7 @@ export default function ProfessionalRevenueClient() {
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => `R$ ${typeof value === 'number' ? value.toFixed(2) : '0.00'}`} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : null}

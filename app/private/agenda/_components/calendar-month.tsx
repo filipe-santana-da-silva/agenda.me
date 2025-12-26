@@ -45,7 +45,6 @@ export function CalendarMonth({
   onDateSelect,
   onAppointmentClick,
   selectedDate,
-  onViewChange,
   onRangeChange,
   currentMonth,
   onCurrentMonthChange,
@@ -184,7 +183,7 @@ export function CalendarMonth({
                   key={idx}
                   onClick={() => onDateSelect(dateStr)}
                   className={`
-                    min-h-[72px] sm:min-h-14 w-full p-2 rounded border transition-all text-left text-xs cursor-pointer flex flex-col
+                    min-h-18 sm:min-h-14 w-full p-2 rounded border transition-all text-left text-xs cursor-pointer flex flex-col
                     ${isCurrentMonth ? 'bg-white' : 'bg-muted/40 text-muted-foreground'}
                     ${isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-border'}
                     hover:border-primary hover:shadow-sm
