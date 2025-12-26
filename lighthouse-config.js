@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 module.exports = {
   extends: 'lighthouse:default',
   settings: {
