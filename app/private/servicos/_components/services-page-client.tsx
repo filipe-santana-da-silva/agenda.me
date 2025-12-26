@@ -36,10 +36,6 @@ export function ServicesPageClient() {
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
 
-  useEffect(() => {
-    loadServices()
-  }, )
-
   const loadServices = async () => {
     try {
       setLoading(true)
@@ -56,6 +52,10 @@ export function ServicesPageClient() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadServices()
+  }, [supabase])
 
   const handleDelete = async (id: string) => {
     try {
