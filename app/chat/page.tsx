@@ -4,12 +4,35 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { BotMessageSquare, ChevronLeft, Send } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Streamdown } from "streamdown";
 import { createClient } from "@/utils/supabase/client";
 
 import { Button } from "@/components/ui/button";
+
+// Type definitions
+interface Service {
+  id: string;
+  name: string;
+  duration: string | number;
+  price: number;
+  imageUrl?: string;
+}
+
+interface Professional {
+  id: string;
+  name: string;
+  position?: string;
+  department?: string;
+  imageUrl?: string;
+}
+
+interface MessageOption {
+  id: string;
+  label: string;
+}
 
 const ChatPage = () => {
   const router = useRouter();
@@ -25,7 +48,7 @@ const ChatPage = () => {
         if (data?.session?.access_token) {
           setToken(data.session.access_token);
         }
-      } catch (err) {
+      } catch {
         // Continuar mesmo se não conseguir obter token
         console.log("Continuando sem autenticação");
       }
@@ -57,10 +80,13 @@ const ChatPage = () => {
                 setCustomerId(data.customerId);
               }
             })
-            .catch(err => {});
+            .catch(() => {
+              // Handle error silently
+            });
         }
       }
-    } catch (err) {
+    } catch {
+      // Handle error silently
     }
   }, []);
 
@@ -83,7 +109,6 @@ const ChatPage = () => {
   });
   const [input, setInput] = useState("");
   // Estados para agendamento guiado por perguntas
-  const [step, setStep] = useState<string | null>(null);
   const [appointment, setAppointment] = useState({
     service_id: "",
     professional_id: "",
@@ -91,93 +116,14 @@ const ChatPage = () => {
     appointment_time: "",
   });
   const [awaitingInput, setAwaitingInput] = useState<string | null>(null);
-  const [messageOptions, setMessageOptions] = useState<Record<string, Array<{ id: string; label: string }>>>({});
+  const [messageOptions, setMessageOptions] = useState<Record<string, MessageOption[]>>({});
 
   // Buscar serviços e profissionais reais do Supabase
-  const [services, setServices] = useState<any[]>([]);
-  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
 
-  useEffect(() => {
-    // Buscar serviços reais do banco
-    const fetchServices = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("services")
-          .select("id, name, duration, price");
-        
-        if (error) {
-          console.error("Erro ao buscar serviços:", error);
-          setServices(staticServices);
-        } else if (data && data.length > 0) {
-          console.log("Serviços encontrados no banco:", data);
-          // Mapear os serviços do banco com as imagens estáticas
-          const servicesWithData = data.map((service: any, index: number) => ({
-            ...service,
-            price: service.price || staticServices[index % staticServices.length].price,
-            duration: service.duration || staticServices[index % staticServices.length].duration,
-            imageUrl: staticServices[index % staticServices.length].imageUrl,
-          }));
-          console.log("Serviços mapeados:", servicesWithData);
-          setServices(servicesWithData);
-        } else {
-          console.log("Nenhum serviço encontrado no banco, usando estáticos");
-          setServices(staticServices);
-        }
-      } catch (err) {
-        console.error("Erro na query de serviços:", err);
-        setServices(staticServices);
-      }
-    };
-
-    // Buscar profissionais reais do banco
-    const fetchProfessionals = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("employees")
-          .select("id, name, position, department");
-        
-        if (error) {
-          console.error("Erro ao buscar profissionais:", error);
-          setProfessionals(staticProfessionals);
-        } else if (data && data.length > 0) {
-          console.log("Profissionais encontrados no banco:", data);
-          // Mapear os profissionais do banco com as imagens estáticas
-          const professionalsWithImages = data.map((prof: any, index: number) => ({
-            ...prof,
-            imageUrl: staticProfessionals[index % staticProfessionals.length].imageUrl,
-          }));
-          console.log("Profissionais mapeados:", professionalsWithImages);
-          setProfessionals(professionalsWithImages);
-        } else {
-          console.log("Nenhum profissional encontrado no banco, usando estáticos");
-          setProfessionals(staticProfessionals);
-        }
-      } catch (err) {
-        console.error("Erro na query de profissionais:", err);
-        setProfessionals(staticProfessionals);
-      }
-    };
-
-    fetchServices();
-    fetchProfessionals();
-  }, []);
-
-  // Estados das opções interativas
-  const [hasInitiated, setHasInitiated] = useState(false);
-  const [showMenuModal, setShowMenuModal] = useState(false);
-  const [showServicesModal, setShowServicesModal] = useState(false);
-  const [showViewServicesModal, setShowViewServicesModal] = useState(false);
-  const [showProfessionalsModal, setShowProfessionalsModal] = useState(false);
-  const [showViewProfessionalsModal, setShowViewProfessionalsModal] = useState(false);
-  const [showDateModal, setShowDateModal] = useState(false);
-  const [showTimeModal, setShowTimeModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [selectedService, setSelectedService] = useState<any>(null);
-  const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
-
-  // Serviços estáticos do seed
-  const staticServices = [
+  // Serviços estáticos do seed - DEVE estar antes do useEffect
+  const staticServices: Service[] = [
     {
       id: "550e8400-e29b-41d4-a716-446655440001",
       name: "Corte de Cabelo",
@@ -222,8 +168,8 @@ const ChatPage = () => {
     },
   ];
 
-  // Profissionais estáticos do seed
-  const staticProfessionals = [
+  // Profissionais estáticos do seed - DEVE estar antes do useEffect
+  const staticProfessionals: Professional[] = [
     {
       id: "650e8400-e29b-41d4-a716-446655440001",
       name: "Vitor",
@@ -261,6 +207,92 @@ const ChatPage = () => {
     },
   ];
 
+  useEffect(() => {
+    // Buscar serviços reais do banco
+    const fetchServices = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("services")
+          .select("id, name, duration, price");
+        
+        if (error) {
+          console.error("Erro ao buscar serviços:", error);
+          setServices(staticServices);
+        } else if (data && data.length > 0) {
+          console.log("Serviços encontrados no banco:", data);
+          // Mapear os serviços do banco com as imagens estáticas
+          const servicesWithData: Service[] = data.map((service, index: number) => {
+            const staticService = staticServices[index % staticServices.length];
+            return {
+              id: String(service.id),
+              name: String(service.name),
+              price: typeof service.price === "number" ? service.price : staticService.price,
+              duration: String(service.duration || staticService.duration),
+              imageUrl: staticService.imageUrl,
+            };
+          });
+          console.log("Serviços mapeados:", servicesWithData);
+          setServices(servicesWithData);
+        } else {
+          console.log("Nenhum serviço encontrado no banco, usando estáticos");
+          setServices(staticServices);
+        }
+      } catch (err) {
+        console.error("Erro na query de serviços:", err);
+        setServices(staticServices);
+      }
+    };
+
+    // Buscar profissionais reais do banco
+    const fetchProfessionals = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("employees")
+          .select("id, name, position, department");
+        
+        if (error) {
+          console.error("Erro ao buscar profissionais:", error);
+          setProfessionals(staticProfessionals);
+        } else if (data && data.length > 0) {
+          console.log("Profissionais encontrados no banco:", data);
+          // Mapear os profissionais do banco com as imagens estáticas
+          const professionalsWithImages: Professional[] = data.map((prof, index: number) => ({
+            id: String(prof.id),
+            name: String(prof.name),
+            position: prof.position ? String(prof.position) : undefined,
+            department: prof.department ? String(prof.department) : undefined,
+            imageUrl: staticProfessionals[index % staticProfessionals.length].imageUrl,
+          }));
+          console.log("Profissionais mapeados:", professionalsWithImages);
+          setProfessionals(professionalsWithImages);
+        } else {
+          console.log("Nenhum profissional encontrado no banco, usando estáticos");
+          setProfessionals(staticProfessionals);
+        }
+      } catch (err) {
+        console.error("Erro na query de profissionais:", err);
+        setProfessionals(staticProfessionals);
+      }
+    };
+
+    fetchServices();
+    fetchProfessionals();
+  }, [supabase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Estados das opções interativas
+  const [hasInitiated, setHasInitiated] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [showServicesModal, setShowServicesModal] = useState(false);
+  const [showViewServicesModal, setShowViewServicesModal] = useState(false);
+  const [showProfessionalsModal, setShowProfessionalsModal] = useState(false);
+  const [showViewProfessionalsModal, setShowViewProfessionalsModal] = useState(false);
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
+
   // Inicia o fluxo de perguntas ao abrir o chat
   useEffect(() => {
     if (!hasInitiated && messages.length === 0) {
@@ -290,7 +322,6 @@ const ChatPage = () => {
   const startBooking = () => {
     setMessageOptions({});
     setShowServicesModal(true);
-    setStep("service");
     setAwaitingInput("service");
   };
 
@@ -304,22 +335,20 @@ const ChatPage = () => {
   };
 
   // Lidar com seleção de serviço
-  const handleServiceSelect = (service: any) => {
+  const handleServiceSelect = (service: Service) => {
     setSelectedService(service);
     setShowServicesModal(false);
     setAppointment(prev => ({ ...prev, service_id: service.id }));
     setShowProfessionalsModal(true);
-    setStep("professional");
     setAwaitingInput("professional");
   };
 
   // Lidar com seleção de profissional
-  const handleProfessionalSelect = (professional: any) => {
+  const handleProfessionalSelect = (professional: Professional) => {
     setSelectedProfessional(professional);
     setShowProfessionalsModal(false);
     setAppointment(prev => ({ ...prev, professional_id: professional.id }));
     setShowDateModal(true);
-    setStep("date");
     setAwaitingInput("date");
   };
 
@@ -345,7 +374,6 @@ const ChatPage = () => {
     setAppointment(prev => ({ ...prev, appointment_date: dateValue }));
     setShowDateModal(false);
     setShowTimeModal(true);
-    setStep("time");
     setAwaitingInput("time");
   };
 
@@ -402,27 +430,16 @@ const ChatPage = () => {
     setShowMenuModal(true);
   };
 
-  // Adiciona mensagem ao chat simulando WhatsApp
-  const addChatMessage = (text: string) => {
-    sendMessage({ text });
-  };
-
   // Salvar agendamento no Supabase
-  const saveAppointment = async (appointmentData?: any) => {
+  const saveAppointment = async (appointmentData?: Record<string, unknown>) => {
     setLoading(true);
     try {
       // Usar dados passados ou valores do estado
       const finalAppointment = appointmentData || appointment;
       
-      console.log("Dados do agendamento:", {
-        service_id: finalAppointment.service_id,
-        professional_id: finalAppointment.professional_id,
-        appointment_date: finalAppointment.appointment_date,
-        appointment_time: finalAppointment.appointment_time,
-      });
-      
       // Validação dos campos obrigatórios
-      if (!finalAppointment.service_id || !finalAppointment.professional_id || !finalAppointment.appointment_date || !finalAppointment.appointment_time) {
+      const apt = finalAppointment as Record<string, unknown>;
+      if (!apt.service_id || !apt.professional_id || !apt.appointment_date || !apt.appointment_time) {
         setSuccessMessage("Preencha todos os campos obrigatórios do agendamento.");
         setShowSuccessModal(true);
         setLoading(false);
@@ -475,7 +492,6 @@ const ChatPage = () => {
         }
         const resumo = `Resumo do agendamento:\nServiço: ${servico}\nProfissional: ${profissional}\nData: ${dataFormatada}\nHorário: ${appointment.appointment_time}`;
         sendMessage({ text: resumo });
-        setStep(null);
         setAppointment({ service_id: "", professional_id: "", appointment_date: "", appointment_time: "" });
       } else {
         // Mostra mensagem detalhada do erro
@@ -503,7 +519,6 @@ const ChatPage = () => {
       if (servico) {
         setAppointment(a => ({ ...a, service_id: servico.id }));
         sendMessage({ text: `Serviço: ${servico.name}` });
-        setStep("professional");
         setAwaitingInput("professional");
         
         const msgId = Date.now().toString();
@@ -526,7 +541,6 @@ const ChatPage = () => {
       if (profissional) {
         setAppointment(a => ({ ...a, professional_id: profissional.id }));
         sendMessage({ text: `Profissional: ${profissional.name}` });
-        setStep("date");
         setAwaitingInput("date");
         sendMessage({ text: "Qual data deseja agendar? (dd/mm/aaaa)" });
       } else {
@@ -543,7 +557,6 @@ const ChatPage = () => {
         const [dia, mes, ano] = input.trim().split("/");
         setAppointment(a => ({ ...a, appointment_date: `${ano}-${mes}-${dia}` }));
         sendMessage({ text: `Data: ${input.trim()}` });
-        setStep("time");
         setAwaitingInput("time");
         sendMessage({ text: "Qual horário deseja? (hh:mm)" });
       } else {
@@ -558,7 +571,6 @@ const ChatPage = () => {
       if (regex.test(input.trim())) {
         setAppointment(a => ({ ...a, appointment_time: input.trim() }));
         sendMessage({ text: `Horário: ${input.trim()}` });
-        setStep("confirm");
         setAwaitingInput("confirm");
         
         // Buscar nomes dos serviços e profissionais selecionados
@@ -588,7 +600,6 @@ const ChatPage = () => {
         setAwaitingInput(null);
       } else {
         sendMessage({ text: "Agendamento cancelado." });
-        setStep(null);
         setAwaitingInput(null);
         setAppointment({ service_id: "", professional_id: "", appointment_date: "", appointment_time: "" });
         handleBackToMenu();
@@ -659,7 +670,7 @@ const ChatPage = () => {
       {/* Chat Container */}
       <div className="flex-1 overflow-y-auto pb-32">
         {/* Chat Messages */}
-        {messages.map((message: any, index: number) => {
+        {messages.map((message, index: number) => {
           const options = messageOptions[message.id] || [];
           return (
             <div key={message.id} className="pt-6">
@@ -670,9 +681,9 @@ const ChatPage = () => {
                   </div>
                   <div className="flex-1">
                     <div className="prose prose-sm max-w-none text-sm leading-relaxed whitespace-pre-wrap">
-                      {message.parts?.map((part: any, partIndex: number) =>
-                        part.type === "text" ? (
-                          <Streamdown key={partIndex}>{part.text}</Streamdown>
+                      {message.parts?.map((part, partIndex: number) =>
+                        part.type === "text" && 'text' in part ? (
+                          <Streamdown key={partIndex}>{(part as { type: string; text: string }).text}</Streamdown>
                         ) : null,
                       )}
                     </div>
@@ -680,7 +691,7 @@ const ChatPage = () => {
                     {/* Quick Reply Buttons - mostrar apenas para última mensagem do bot */}
                     {index === messages.length - 1 && message.role === "assistant" && options.length > 0 && (
                       <div className="mt-3 space-y-2 w-full">
-                        {options.map((option: any) => (
+                        {options.map((option: { id: string; label: string }) => (
                           <Button
                             key={option.id}
                             onClick={() => {
@@ -702,9 +713,9 @@ const ChatPage = () => {
                 <div className="flex justify-end pr-5 pl-10">
                   <div className="bg-secondary rounded-full px-4 py-3">
                     <p className="text-sm">
-                      {message.parts?.map((part: any, partIndex: number) =>
-                        part.type === "text" ? (
-                          <span key={partIndex}>{part.text}</span>
+                      {message.parts?.map((part, partIndex: number) =>
+                        part.type === "text" && "text" in part ? (
+                          <span key={partIndex}>{part.text as string}</span>
                         ) : null,
                       )}
                     </p>
@@ -773,7 +784,6 @@ const ChatPage = () => {
                   onClick={() => {
                     setShowServicesModal(false);
                     setShowMenuModal(true);
-                    setStep(null);
                     setAwaitingInput(null);
                   }}
                   variant="ghost"
@@ -796,9 +806,11 @@ const ChatPage = () => {
                   >
                     <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full shrink-0 bg-gray-100 overflow-hidden border-2 border-gray-300 box-border">
                       {service.imageUrl ? (
-                        <img 
+                        <Image 
                           src={service.imageUrl} 
                           alt={service.name}
+                          width={80}
+                          height={80}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                         />
                       ) : (
@@ -843,7 +855,6 @@ const ChatPage = () => {
                   onClick={() => {
                     setShowServicesModal(false);
                     setShowMenuModal(true);
-                    setStep(null);
                     setAwaitingInput(null);
                   }}
                   variant="outline"
@@ -881,7 +892,6 @@ const ChatPage = () => {
                   onClick={() => {
                     setShowDateModal(false);
                     setShowMenuModal(true);
-                    setStep(null);
                     setAwaitingInput(null);
                   }}
                   variant="ghost"
@@ -977,7 +987,6 @@ const ChatPage = () => {
                   onClick={() => {
                     setShowTimeModal(false);
                     setShowMenuModal(true);
-                    setStep(null);
                     setAwaitingInput(null);
                   }}
                   variant="ghost"
@@ -1078,7 +1087,6 @@ const ChatPage = () => {
                   onClick={() => {
                     setShowProfessionalsModal(false);
                     setShowMenuModal(true);
-                    setStep(null);
                     setAwaitingInput(null);
                   }}
                   variant="ghost"
@@ -1102,9 +1110,11 @@ const ChatPage = () => {
                     >
                       <div className="shrink-0 w-20 h-20 rounded-full border-2 border-gray-300 overflow-hidden box-border">
                         {professional.imageUrl ? (
-                          <img 
+                          <Image 
                             src={professional.imageUrl} 
                             alt={professional.name}
+                            width={80}
+                            height={80}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -1215,9 +1225,11 @@ const ChatPage = () => {
                     >
                       <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full shrink-0 bg-gray-100 overflow-hidden border-2 border-gray-300 box-border">
                         {service.imageUrl ? (
-                          <img 
+                          <Image 
                             src={service.imageUrl} 
                             alt={service.name}
+                            width={80}
+                            height={80}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                           />
                         ) : (
@@ -1270,9 +1282,11 @@ const ChatPage = () => {
                     >
                       <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full shrink-0 bg-gray-100 overflow-hidden border-2 border-gray-300 box-border">
                         {professional.imageUrl ? (
-                          <img 
+                          <Image 
                             src={professional.imageUrl} 
                             alt={professional.name}
+                            width={80}
+                            height={80}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                           />
                         ) : (

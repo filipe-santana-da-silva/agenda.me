@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       customer: customerData,
       appointments: appointmentsData,
       allServices: allServices,
-      serviceIdsInAppointments: appointmentsData?.map((a: any) => a.service_id) || [],
+      serviceIdsInAppointments: appointmentsData?.map((a: Record<string, unknown>) => a.service_id) || [],
     });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });

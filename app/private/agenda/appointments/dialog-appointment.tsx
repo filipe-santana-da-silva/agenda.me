@@ -70,7 +70,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
   const ap = appointment ?? null
 
   const [editingMode, setEditingMode] = useState(false)
-  const [editable, setEditable] = useState<any>({
+  const [editable, setEditable] = useState<{ status: string; appointment_time: string }>({
     status: ap?.status ?? 'pending',
     appointment_time: ap?.appointment_time?.substring(0, 5) ?? '',
   })
@@ -104,7 +104,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
       
       // Adicionar horários bloqueados
       if (data.blocks) {
-        data.blocks.forEach((block: any) => {
+        data.blocks.forEach((block: Record<string, unknown>) => {
           const startTime = block.start_time
           const endTime = block.end_time
           
@@ -197,7 +197,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                     {editingMode ? (
                       <Select 
                         value={editable.appointment_time ?? ''} 
-                        onValueChange={(value) => setEditable((p: any) => ({ ...p, appointment_time: value }))}
+                        onValueChange={(value) => setEditable((p: Record<string, unknown>) => ({ ...p, appointment_time: value }))}
                       >
                         <SelectTrigger className="w-24">
                           <SelectValue />
@@ -250,7 +250,7 @@ export function DialogAppointment({ appointment, startEditing }: DialogAppointme
                 {editingMode ? (
                   <Select 
                     value={editable.status ?? 'pending'} 
-                    onValueChange={(value) => setEditable((p: any) => ({ ...p, status: value }))}
+                    onValueChange={(value) => setEditable((p: Record<string, unknown>) => ({ ...p, status: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />

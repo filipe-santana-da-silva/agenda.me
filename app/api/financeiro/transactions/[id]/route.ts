@@ -23,7 +23,7 @@ export async function PUT(
     }
 
     return NextResponse.json({ data: data?.[0] })
-  } catch (error: any) {
+  } catch (error: Record<string, unknown>) {
     console.error('PUT /api/financeiro/transactions/:id error:', error)
     return NextResponse.json(
       { error: error.message || 'Error updating transaction' },
@@ -52,7 +52,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: Record<string, unknown>) {
     console.error('DELETE /api/financeiro/transactions/:id error:', error)
     return NextResponse.json(
       { error: error.message || 'Error deleting transaction' },

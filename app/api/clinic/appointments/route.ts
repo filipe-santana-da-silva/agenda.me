@@ -99,7 +99,7 @@ export async function GET(request: Request) {
     }
 
     // Map appointments to the shape expected by the UI
-    const mapped = (data || []).map((a: any) => {
+    const mapped = (data || []).map((a: Record<string, unknown>) => {
       return {
         id: a.id,
         appointment_date: a.appointment_date,
@@ -132,7 +132,7 @@ export async function PATCH(request: Request) {
 
     const body = await request.json()
     
-    const updateData: any = {
+    const updateData: unknown = {
       updated_at: new Date().toISOString()
     }
     

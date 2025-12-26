@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     
     try {
       await stripe.prices.retrieve(priceId)
-    } catch (error: any) {
+    } catch (error: Record<string, unknown>) {
       if (error.code === 'resource_missing') {
         console.log('Price not found, creating product and price...')
         
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ url: session.url })
-  } catch (error: any) {
+  } catch (error: Record<string, unknown>) {
     console.error('Stripe checkout error:', error)
     if (error.type === 'StripeAuthenticationError') {
       return NextResponse.json({ error: 'Chave do Stripe inválida. Verifique as configurações.' }, { status: 500 })

@@ -147,8 +147,9 @@ export function ProductDialog({
 
       onSaved()
       onClose()
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar produto')
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err.message : 'Erro ao salvar produto'
+      toast.error(error)
     } finally {
       setLoading(false)
     }

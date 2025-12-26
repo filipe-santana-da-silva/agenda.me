@@ -126,7 +126,7 @@ export default function CommissionManagementClient() {
       setCommissions(data.commissions)
       setSummary(data.summary)
       setProfessionalStats(data.professionalStats)
-    } catch (error: any) {
+    } catch (error: Record<string, unknown>) {
       toast.error(error.message || 'Erro ao carregar dados')
     } finally {
       setLoading(false)
@@ -154,7 +154,7 @@ export default function CommissionManagementClient() {
 
       toast.success('Status atualizado com sucesso')
       loadData(statusFilter)
-    } catch (error: any) {
+    } catch (error: Record<string, unknown>) {
       toast.error(error.message || 'Erro ao atualizar comissão')
     }
   }
@@ -396,7 +396,7 @@ export default function CommissionManagementClient() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="professionalName" angle={-45} textAnchor="end" height={100} />
                   <YAxis />
-                  <Tooltip formatter={(value: any) => `R$ ${value.toFixed(2)}`} />
+                  <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
                   <Legend />
                   <Bar dataKey="totalCommissions" fill="#10b981" name="Total" />
                   <Bar dataKey="paidCommissions" fill="#3b82f6" name="Pago" />
@@ -422,7 +422,7 @@ export default function CommissionManagementClient() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: any) => `${entry.name}: ${((entry.value / summary.totalCommissions) * 100).toFixed(1)}%`}
+                      label={(entry: Record<string, unknown>) => `${entry.name}: ${((entry.value / summary.totalCommissions) * 100).toFixed(1)}%`}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -431,7 +431,7 @@ export default function CommissionManagementClient() {
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: any) => `R$ ${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : null}

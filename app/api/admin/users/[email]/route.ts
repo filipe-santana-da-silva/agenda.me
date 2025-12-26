@@ -56,7 +56,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ e
     }
 
     return NextResponse.json({ ok: true })
-  } catch (e: any) {
+  } catch (e: Record<string, unknown>) {
     console.error('admin/users/[email] DELETE error', e)
     return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
   }

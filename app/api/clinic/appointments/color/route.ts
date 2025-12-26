@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ data })
-  } catch (err: any) {
+  } catch (err: Record<string, unknown>) {
     console.error('Error in /api/clinic/appointments/color', err)
     return NextResponse.json({ error: err?.message ?? String(err) }, { status: 500 })
   }

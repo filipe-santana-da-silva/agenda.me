@@ -1,10 +1,10 @@
-const fetch = require("node-fetch");
+import fetch from "node-fetch";
 
 const newAppointment = {
   appointmentdate: "2025-12-05 14:00:00",
   companyid: "test-company",
   contractorid: "contractor-1",
-  childname: "Teste Criação",
+  childname: "Teste Criaï¿½ï¿½o",
   createdat: new Date().toISOString(),
 };
 

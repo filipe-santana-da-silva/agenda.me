@@ -4,7 +4,7 @@ import { getBarbershops } from "@/data/barbershops";
 
 const BookingsPage = async () => {
   const barbershops = await getBarbershops();
-  const confirmedBookings: any[] = [];
+  const confirmedBookings: Array<Record<string, unknown>> = [];
 
   // Mapa de imagens dos serviços
   const serviceImages: Record<string, string> = {

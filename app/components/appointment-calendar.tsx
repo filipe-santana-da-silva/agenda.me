@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense } from 'react'
 import dynamic from 'next/dynamic'
-import { format, isBefore, startOfToday } from 'date-fns'
+import { format, startOfToday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Clock, CalendarDays } from 'lucide-react'
 import { Button } from '@/components/ui/button'

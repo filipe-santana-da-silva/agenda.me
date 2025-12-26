@@ -57,7 +57,7 @@ export async function createBooking(input: {
     ":" +
     input.date.getMinutes().toString().padStart(2, "0")
 
-  const bookedTimes = (existingBookings as any[]).map((booking) => {
+  const bookedTimes = (existingBookings as Array<{ date: string }>).map((booking) => {
     const bookingDate = new Date(booking.date)
     return bookingDate.getHours().toString().padStart(2, "0") +
       ":" +

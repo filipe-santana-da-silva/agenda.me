@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       data: 'Agendamento deletado com sucesso',
       deletedId: appointmentId
     })
-  } catch (err: any) {
+  } catch (err: Record<string, unknown>) {
     console.error('Error in /api/appointments/delete:', err)
     return NextResponse.json({ 
       error: `Erro ao deletar: ${err?.message ?? String(err)}` 

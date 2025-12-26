@@ -75,37 +75,39 @@ export async function GET(request: NextRequest) {
     }
 
     if (commissions && commissions.length > 0) {
-      const paid = commissions.filter((c: any) => c.status === 'paid')
-      const pending = commissions.filter((c: any) => c.status === 'pending')
+      const paid = commissions.filter((c) => (c as Record<string, unknown>).status === 'paid')
+      const pending = commissions.filter((c) => (c as Record<string, unknown>).status === 'pending')
 
       summary.totalCommissions = commissions.reduce(
-        (sum: number, c: any) => sum + parseFloat(c.commission_amount.toString()),
+        (sum: number, c) => sum + parseFloat(((c as Record<string, unknown>).commission_amount as Record<string, unknown>).toString()),
         0
       )
       summary.paidCommissions = paid.reduce(
-        (sum: number, c: any) => sum + parseFloat(c.commission_amount.toString()),
+        (sum: number, c) => sum + parseFloat(((c as Record<string, unknown>).commission_amount as Record<string, unknown>).toString()),
         0
       )
       summary.pendingCommissions = pending.reduce(
-        (sum: number, c: any) => sum + parseFloat(c.commission_amount.toString()),
+        (sum: number, c) => sum + parseFloat(((c as Record<string, unknown>).commission_amount as Record<string, unknown>).toString()),
         0
       )
       summary.averageCommissionRate =
-        commissions.reduce((sum: number, c: any) => sum + c.commission_rate, 0) / commissions.length
+        commissions.reduce((sum: number, c) => sum + ((c as Record<string, unknown>).commission_rate as number), 0) / commissions.length
     }
 
     // Get commissions by professional
-    const professionalStats: Record<string, any> = {}
+    const professionalStats: Record<string, Record<string, unknown>> = {}
 
     if (commissions && commissions.length > 0) {
-      commissions.forEach((commission: any) => {
-        const profId = commission.professional_id
-        if (!professionalStats[profId]) {
-          professionalStats[profId] = {
+      commissions.forEach((commission) => {
+        const c = commission as Record<string, unknown>;
+        const profId = c.professional_id
+        if (!professionalStats[profId as string]) {
+          const employees = c.employees as Record<string, unknown>;
+          professionalStats[profId as string] = {
             professionalId: profId,
-            professionalName: commission.employees?.name || '',
-            email: commission.employees?.email || '',
-            position: commission.employees?.position || '',
+            professionalName: (employees?.name as string) || '',
+            email: (employees?.email as string) || '',
+            position: (employees?.position as string) || '',
             totalCommissions: 0,
             paidCommissions: 0,
             pendingCommissions: 0,
@@ -114,23 +116,24 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        const amount = parseFloat(commission.commission_amount.toString())
-        professionalStats[profId].totalCommissions += amount
+        const amount = parseFloat((c.commission_amount as Record<string, unknown>).toString())
+        const prof = professionalStats[profId as string];
+        (prof.totalCommissions as number) += amount
 
-        if (commission.status === 'paid') {
-          professionalStats[profId].paidCommissions += amount
-        } else if (commission.status === 'pending') {
-          professionalStats[profId].pendingCommissions += amount
+        if (c.status === 'paid') {
+          (prof.paidCommissions as number) += amount
+        } else if (c.status === 'pending') {
+          (prof.pendingCommissions as number) += amount
         }
 
-        professionalStats[profId].appointmentCount += 1
-        professionalStats[profId].averageCommissionRate += commission.commission_rate
+        (prof.appointmentCount as number) += 1
+        (prof.averageCommissionRate as number) += (c.commission_rate as number)
       })
 
       // Calculate average commission rate
       Object.keys(professionalStats).forEach((key) => {
         const prof = professionalStats[key]
-        prof.averageCommissionRate = prof.averageCommissionRate / prof.appointmentCount
+        (prof.averageCommissionRate as number) = (prof.averageCommissionRate as number) / (prof.appointmentCount as number)
       })
     }
 
@@ -138,11 +141,12 @@ export async function GET(request: NextRequest) {
       commissions,
       summary,
       professionalStats: Object.values(professionalStats).sort(
-        (a: any, b: any) => b.totalCommissions - a.totalCommissions
+        (a, b) => ((b as Record<string, unknown>).totalCommissions as number) - ((a as Record<string, unknown>).totalCommissions as number)
       ),
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -190,7 +194,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(data, { status: 201 })
-  } catch (error: any) {
+  } catch (error: Record<string, unknown>) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
@@ -205,7 +209,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Missing commission ID' }, { status: 400 })
     }
 
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
     if (status) updateData.status = status
     if (notes) updateData.notes = notes
     if (status === 'paid' && !paid_date) {
@@ -225,7 +229,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json(data[0])
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

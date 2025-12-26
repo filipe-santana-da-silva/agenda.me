@@ -28,20 +28,21 @@ export async function POST(request: Request) {
     const safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_')
     const path = `appointments/${Date.now()}_${safeName}`
 
-    const { error: uploadError } = await supabaseAdmin.storage.from(bucket).upload(path, file as any, { upsert: true })
+    const { error: uploadError } = await supabaseAdmin.storage.from(bucket).upload(path, file as File, { upsert: true })
     if (uploadError) {
       console.error('upload error', uploadError)
       return NextResponse.json({ error: uploadError.message || String(uploadError) }, { status: 500 })
     }
 
     const { data: publicData } = supabaseAdmin.storage.from(bucket).getPublicUrl(path)
-    // @ts-ignore
-    const publicUrl = publicData?.publicUrl ?? null
+    // @ts-expect-error - publicUrl is not typed in the response
+    const publicUrl = (publicData as Record<string, unknown>)?.publicUrl ?? null
 
     return NextResponse.json({ publicUrl })
-  } catch (e: any) {
-    console.error('upload endpoint error', e)
-    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 })
+  } catch (e) {
+    const error = e instanceof Error ? e : new Error(String(e))
+    console.error('upload endpoint error', error)
+    return NextResponse.json({ error: (e as Record<string, unknown>)?.message ?? String(e) }, { status: 500 })
   }
 }
 

@@ -3,8 +3,9 @@
 
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import Image from "next/image"
 import { motion } from "framer-motion"
-import { Star, MapPin, Phone, Mail, Clock, Check, ArrowRight, Scissors, Users, Calendar, MessageCircle } from "lucide-react"
+import { Star, MapPin, Phone, Mail, Clock, ArrowRight, Scissors, Users, MessageCircle } from "lucide-react"
 
 export default function LandingPage() {
   const services = [
@@ -180,9 +181,11 @@ export default function LandingPage() {
                 }}
               >
                 <div className="w-full h-40 sm:h-48 overflow-hidden bg-gray-100 relative">
-                  <img 
+                  <Image 
                     src={service.imageUrl} 
                     alt={service.name}
+                    width={400}
+                    height={192}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent"></div>
@@ -228,9 +231,11 @@ export default function LandingPage() {
                 }}
               >
                 <div className="w-full h-40 sm:h-48 md:h-56 overflow-hidden bg-gray-100 relative">
-                  <img 
+                  <Image 
                     src={prof.imageUrl} 
                     alt={prof.name}
+                    width={400}
+                    height={224}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/30 to-transparent"></div>
@@ -320,7 +325,7 @@ export default function LandingPage() {
                     <Star key={i} className="w-4 sm:w-5 h-4 sm:h-5 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
-                <p className="text-gray-700 mb-3 sm:mb-4 italic text-sm sm:text-base">"{testimonial.text}"</p>
+                <p className="text-gray-700 mb-3 sm:mb-4 italic text-sm sm:text-base">&quot;{testimonial.text}&quot;</p>
                 <p className="font-semibold text-gray-900 text-sm sm:text-base">— {testimonial.name}</p>
               </motion.div>
             ))}

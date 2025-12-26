@@ -19,7 +19,7 @@ import { toast } from 'sonner'
 
 interface ReportData {
   type: 'service' | 'professional' | 'period'
-  data: any[]
+  data: Array<Record<string, unknown>>
   totalRevenue: number
 }
 
@@ -52,7 +52,7 @@ export default function ReportsPageClient() {
 
       const data = await response.json()
       setReportData(data)
-    } catch (error: any) {
+    } catch (error: Record<string, unknown>) {
       toast.error(error.message || 'Erro ao carregar relatório')
     } finally {
       setLoading(false)
@@ -60,7 +60,7 @@ export default function ReportsPageClient() {
   }
 
   const handleReportTypeChange = (type: string) => {
-    setReportType(type as any)
+    setReportType(type as Record<string, unknown>)
   }
 
 
@@ -178,7 +178,7 @@ export default function ReportsPageClient() {
 
             <div>
               <label className="text-sm font-medium mb-2 block">Período</label>
-              <Select value={dateRange} onValueChange={(value: any) => setDateRange(value)}>
+              <Select value={dateRange} onValueChange={(value: Record<string, unknown>) => setDateRange(value)}>
                 <SelectTrigger suppressHydrationWarning>
                   <SelectValue />
                 </SelectTrigger>
@@ -277,7 +277,7 @@ export default function ReportsPageClient() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip formatter={(value: any) => `R$ ${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
                     <Legend />
                     <Line type="monotone" dataKey="value" stroke="#10b981" name="Faturamento" />
                   </LineChart>
@@ -286,7 +286,7 @@ export default function ReportsPageClient() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip formatter={(value: any) => `R$ ${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
                     <Legend />
                     <Bar dataKey="value" fill="#10b981" name="Faturamento" />
                   </BarChart>
@@ -310,7 +310,7 @@ export default function ReportsPageClient() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: any) => `${entry.percentage?.toFixed(1) || '0'}%`}
+                      label={(entry: Record<string, unknown>) => `${entry.percentage?.toFixed(1) || '0'}%`}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -319,7 +319,7 @@ export default function ReportsPageClient() {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: any) => `R$ ${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>

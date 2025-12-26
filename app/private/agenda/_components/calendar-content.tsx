@@ -3,13 +3,11 @@
 import { useState, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '@/utils/supabase/client'
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -19,9 +17,10 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, Plus } from 'lucide-react'
+import { Calendar, Clock } from 'lucide-react'
 import { Suspense } from 'react'
 import { deleteAppointment } from '../_actions/delete-appointment'
+import type { AppointmentWithService } from '../appointments/appointment-list'
 
 const CalendarMonth = dynamic(
   () => import('./calendar-month'),
@@ -29,7 +28,7 @@ const CalendarMonth = dynamic(
     ssr: false,
     loading: () => <div className="p-4 text-sm text-muted-foreground">Carregando calendário...</div>,
   }
-) as any
+)
 
 const CalendarWeek = dynamic(
   () => import('./calendar-week'),
@@ -37,7 +36,7 @@ const CalendarWeek = dynamic(
     ssr: false,
     loading: () => <div className="p-4 text-sm text-muted-foreground">Carregando visualização semanal...</div>,
   }
-) as any
+)
 
 const DialogAppointment = dynamic(
   () => import('../appointments/dialog-appointment').then(mod => mod.DialogAppointment),
@@ -46,29 +45,6 @@ const DialogAppointment = dynamic(
     loading: () => <div className="p-4 text-sm text-muted-foreground">Carregando detalhes...</div>,
   }
 )
-
-interface AppointmentData {
-  id: string
-  appointmentdate: string
-  durationhours?: number
-  childname?: string
-  contractorname: string
-  phone: string
-  email?: string
-  name?: string
-  time: string
-  service?: {
-    duration: number
-    name: string
-    price: number
-  }
-  proof_url?: string | null
-  contract_url?: string | null
-  eventname?: string | null
-  color_index?: number | null
-  created_by?: string | null
-  [key: string]: any
-}
 
 const COLORS = ['#B794F3', '#F2F27C', '#F3DD94', '#ED7E7E']
 
@@ -81,10 +57,10 @@ export function CalendarContent() {
   const [currentMonth, setCurrentMonth] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [visibleStart, setVisibleStart] = useState<string | null>(null)
   const [visibleEnd, setVisibleEnd] = useState<string | null>(null)
-  const [detailAppointment, setDetailAppointment] = useState<AppointmentData | null>(null)
+  const [detailAppointment, setDetailAppointment] = useState<AppointmentWithService | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [toDeleteAppointment, setToDeleteAppointment] = useState<AppointmentData | null>(null)
+  const [toDeleteAppointment, setToDeleteAppointment] = useState<AppointmentWithService | null>(null)
   const [appointmentColors, setAppointmentColors] = useState<Record<string, number>>({})
   const [loadingColors, setLoadingColors] = useState<Set<string>>(new Set())
 
@@ -110,7 +86,7 @@ export function CalendarContent() {
           throw new Error(`Failed to fetch appointments: ${response.status} - ${errorText}`)
         }
         const json = await response.json()
-        return json as AppointmentData[]
+        return json as AppointmentWithService[]
       } catch (error) {
         console.error('Error fetching appointments:', error)
         throw error
@@ -122,28 +98,24 @@ export function CalendarContent() {
   })
 
   // Normalize API response to the shape expected by CalendarMonth and CalendarWeek
-  const mappedAppointments = (allAppointments || []).map((a: any) => {
-    // appointment_date (API) -> appointmentdate (calendar components)
-    const appointmentdate = a.appointment_date || a.appointmentdate || null
-    // time normalization: prefer appointment_time then time
-    const timeRaw = a.appointment_time ?? a.time ?? ''
-    const time = typeof timeRaw === 'string' ? timeRaw.slice(0, 5) : ''
+  const mappedAppointments = (allAppointments || [])
+    .map((a) => {
+      const appointmentdate = a.appointment_date || a.appointmentdate
+      const timeRaw = a.appointment_time ?? a.time ?? ''
+      const time = typeof timeRaw === 'string' ? timeRaw.slice(0, 5) : ''
 
-    return {
-      id: a.id,
-      appointmentdate,
-      time,
-      durationhours: a.durationhours ?? (a.service?.duration ? a.service.duration / 60 : undefined),
-      contractorname: a.name ?? a.contractorname ?? a.eventname ?? '',
-      phone: a.phone ?? a.phone_number ?? '',
-      email: a.email ?? null,
-      eventname: a.eventname ?? a.name ?? null,
-      color_index: a.color_index ?? 0,
-      service: a.service ?? null,
-      // include original payload for details dialog
-      __raw: a,
-    }
-  })
+      return {
+        id: String(a.id),
+        appointmentdate: String(appointmentdate),
+        time,
+        durationhours: a.durationhours ?? (a.service?.duration ? a.service.duration / 60 : undefined),
+        contractorname: String(a.name ?? a.contractorname ?? a.eventname ?? ''),
+        phone: String(a.phone ?? a.customer?.phone ?? ''),
+        color_index: typeof a.color_index === 'number' ? a.color_index : 0,
+        service: a.service ? { duration: a.service.duration } : null,
+      }
+    })
+    .filter((apt) => apt.appointmentdate)
 
   // Color cycle handler with optimistic update
   const handleColorChange = useCallback(
@@ -185,11 +157,11 @@ export function CalendarContent() {
         toast.error('Erro ao salvar cor')
       }
     },
-    [appointmentColors, queryClient, refetch]
+    [appointmentColors, queryClient, refetch, visibleStart, visibleEnd, selectedDate]
   )
 
   // Delete handler
-  const handleDelete = useCallback((appointment: AppointmentData) => {
+  const handleDelete = useCallback((appointment: AppointmentWithService) => {
     setToDeleteAppointment(appointment)
     setConfirmOpen(true)
   }, [])
@@ -209,7 +181,7 @@ export function CalendarContent() {
     queryClient.invalidateQueries({ queryKey: ['all-appointments', visibleStart, visibleEnd, selectedDate] })
     await refetch()
     toast.success(response.data)
-  }, [toDeleteAppointment, queryClient, refetch, selectedDate])
+  }, [toDeleteAppointment, queryClient, refetch, selectedDate, visibleStart, visibleEnd])
 
   // Refetch appointments when dialog closes (after editing) or when returning from new appointment
   useEffect(() => {
@@ -293,7 +265,7 @@ export function CalendarContent() {
         {/* Calendar Views */}
         {!isLoading && !isError && (
           <Card className="w-full mx-auto overflow-hidden border-0 shadow-lg">
-            <CardContent className="p-4 sm:p-6 h-[500px] sm:h-[600px] lg:h-[700px] overflow-y-auto overflow-x-hidden">
+            <CardContent className="p-4 sm:p-6 h-125 sm:h-150 lg:h-175 overflow-y-auto overflow-x-hidden">
               <Suspense fallback={<div className="p-4 text-muted-foreground">Carregando...</div>}>
                 {viewMode === 'month' ? (
                   <div className="p-2 sm:p-0">
@@ -350,7 +322,7 @@ export function CalendarContent() {
 
         {/* Appointment details dialog */}
         <DialogAppointment
-          appointment={detailAppointment as any}
+          appointment={detailAppointment}
           startEditing={false}
         />
 

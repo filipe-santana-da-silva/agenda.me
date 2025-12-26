@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfToday, parseISO, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, parseISO, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Clock, X, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
@@ -65,9 +64,9 @@ export function CalendarViewWithAppointments() {
     professional_id: string
   }>({ date: '', time: '', status: '', customer_id: '', service_id: '', professional_id: '' })
   const [isSaving, setIsSaving] = useState(false)
-  const [customers, setCustomers] = useState<any[]>([])
-  const [services, setServices] = useState<any[]>([])
-  const [professionals, setProfessionals] = useState<any[]>([])
+  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([])
+  const [services, setServices] = useState<{ id: string; name: string; price_in_cents: number }[]>([])
+  const [professionals, setProfessionals] = useState<{ id: string; name: string }[]>([])
 
   // Reset appointment index and editing state when selected date changes
   useEffect(() => {
@@ -88,11 +87,10 @@ export function CalendarViewWithAppointments() {
     queryClient.invalidateQueries({
       queryKey: ['appointments-month', format(monthStart, 'yyyy-MM')],
     })
-  }, [])
+  }, [currentMonth, queryClient])
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
-  const today = startOfToday()
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 })
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 0 })
 
@@ -178,12 +176,6 @@ export function CalendarViewWithAppointments() {
     const keys = Object.keys(appointmentsByDate)
     console.log('GroupedByDate keys:', keys)
   }
-  // Get days to display in calendar (including days from previous/next month)
-  const days = eachDayOfInterval({
-    start: monthStart,
-    end: monthEnd,
-  })
-
   // Use startOfWeek and endOfWeek to get the correct week boundaries
   const monthWeekStart = startOfWeek(monthStart, { weekStartsOn: 0 }) // 0 = Sunday
   const monthWeekEnd = endOfWeek(monthEnd, { weekStartsOn: 0 })
@@ -196,22 +188,6 @@ export function CalendarViewWithAppointments() {
   const weeks = Array.from({ length: Math.ceil(allDays.length / 7) }, (_, i) =>
     allDays.slice(i * 7, i * 7 + 7)
   )
-
-  const handlePrevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
-  }
-
-  const handleNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
-  }
-
-  const handlePrevWeek = () => {
-    setCurrentWeek(subWeeks(currentWeek, 1))
-  }
-
-  const handleNextWeek = () => {
-    setCurrentWeek(addWeeks(currentWeek, 1))
-  }
 
   return (
     <div className="space-y-4">
@@ -896,7 +872,7 @@ export function CalendarViewWithAppointments() {
                                     setIsSaving(true)
                                     try {
                                       const apt = appointmentsByDate[selectedDate][selectedAppointmentIndex]
-                                      const updateData: any = {
+                                      const updateData: Record<string, string> = {
                                         appointment_date: editData.date,
                                         appointment_time: `${editData.time}:00`,
                                         status: editData.status

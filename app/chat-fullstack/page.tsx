@@ -2,16 +2,21 @@
 
 import Header from "@/components/fullstack/header"
 import Footer from "@/components/fullstack/footer"
-import { useChat } from "@ai-sdk/react"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2 } from "lucide-react"
 
+interface Message {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export default function ChatPage() {
   const [inputValue, setInputValue] = useState("")
   const [loading, setLoading] = useState(false)
-  const [messages, setMessages] = useState<any[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -20,7 +25,7 @@ export default function ChatPage() {
 
     setLoading(true)
     try {
-      const userMessage = { id: Date.now().toString(), role: "user" as const, content: inputValue }
+      const userMessage: Message = { id: Date.now().toString(), role: "user", content: inputValue }
       setMessages([...messages, userMessage])
       setInputValue("")
 
@@ -30,9 +35,9 @@ export default function ChatPage() {
         body: JSON.stringify({ message: inputValue }),
       })
 
-      const data = await response.json()
-      const assistantMessage = { id: (Date.now() + 1).toString(), role: "assistant" as const, content: data.content || data.message }
-      setMessages((prev: any) => [...prev, assistantMessage])
+      const data = await response.json() as { content?: string, message?: string }
+      const assistantMessage: Message = { id: (Date.now() + 1).toString(), role: "assistant", content: (data.content || data.message) as string }
+      setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
       console.error("Error:", error)
     } finally {
@@ -66,7 +71,7 @@ export default function ChatPage() {
             </div>
           )}
 
-          {messages.map((message: any) => (
+          {messages.map((message: Message) => (
             <div
               key={message.id}
               className={`flex ${

@@ -37,8 +37,9 @@ export default function LoginForm() {
     try {
       await login(email, password)
       router.push('/private/agenda')
-    } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login')
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      setError(error.message || 'Erro ao fazer login')
     } finally {
       setLoading(false)
     }

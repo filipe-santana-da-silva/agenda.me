@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         .eq('catalog_id', c.id)
         .order('position')
 
-      const expanded = []
+      const expanded: Record<string, unknown>[] = []
       if (items) {
         for (const it of items) {
           let detail = null
@@ -44,8 +44,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ catalogs: results })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -65,13 +66,13 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
-    const catalogId = createdCatalog[0].id
+    const catalogId = (createdCatalog[0] as Record<string, unknown>).id
 
     if (items && items.length > 0) {
-      const insertItems = items.map((it: any, idx: number) => ({
+      const insertItems = items.map((it: Record<string, unknown>, idx: number) => ({
         catalog_id: catalogId,
-        item_type: it.item_type,
-        item_id: it.item_id,
+        item_type: (it as Record<string, unknown>).item_type,
+        item_id: (it as Record<string, unknown>).item_id,
         position: idx,
       }))
       const { error: itemsError } = await supabase.from('catalog_items').insert(insertItems)
@@ -79,8 +80,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, id: catalogId }, { status: 201 })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -106,9 +108,8 @@ export async function PATCH(request: NextRequest) {
     // Delete existing items
     await supabase.from('catalog_items').delete().eq('catalog_id', id)
 
-    // Insert new items
     if (items && items.length > 0) {
-      const insertItems = items.map((it: any, idx: number) => ({
+      const insertItems = items.map((it: Record<string, unknown>, idx: number) => ({
         catalog_id: id,
         item_type: it.item_type,
         item_id: it.item_id,
@@ -119,8 +120,9 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -135,7 +137,8 @@ export async function DELETE(request: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

@@ -18,29 +18,30 @@ export async function GET() {
     if (!usersRes.ok) return NextResponse.json({ error: await usersRes.text() }, { status: 500 })
     const usersRaw = await usersRes.json()
     // normalize users response: supabase admin may return an array or an object wrapper
-    let users: any[] = []
+    let users: Array<Record<string, unknown>> = []
     if (Array.isArray(usersRaw)) {
       users = usersRaw
-    } else if (usersRaw?.users && Array.isArray(usersRaw.users)) {
-      users = usersRaw.users
-    } else if (usersRaw?.data && Array.isArray(usersRaw.data)) {
-      users = usersRaw.data
+    } else if ((usersRaw as Record<string, unknown>)?.users && Array.isArray((usersRaw as Record<string, unknown>).users)) {
+      users = (usersRaw as Record<string, unknown>).users as Array<Record<string, unknown>>
+    } else if ((usersRaw as Record<string, unknown>)?.data && Array.isArray((usersRaw as Record<string, unknown>).data)) {
+      users = (usersRaw as Record<string, unknown>).data as Array<Record<string, unknown>>
     } else if (usersRaw) {
       // single user object -> wrap
       users = [usersRaw]
     }
 
-    const formatted = (users || []).map((u: any) => ({
-      email: u.email,
-      userId: u.id,
+    const formatted = (users || []).map((u) => ({
+      email: (u as Record<string, unknown>).email,
+      userId: (u as Record<string, unknown>).id,
       roles: [],
       pages: [],
     }))
 
     return NextResponse.json({ data: formatted })
-  } catch (e: any) {
-    console.error('admin/users GET error', e)
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+  } catch (e) {
+    const error = e instanceof Error ? e : new Error(String(e))
+    console.error('admin/users GET error', error)
+    return NextResponse.json({ error: (e as Record<string, unknown>)?.message || String(e) }, { status: 500 })
   }
 }
 
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ ok: true })
-  } catch (e: any) {
+  } catch (e: Record<string, unknown>) {
     console.error('admin/users POST error', e)
     return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
   }

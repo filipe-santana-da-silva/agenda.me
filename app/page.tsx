@@ -1,14 +1,10 @@
 'use client'
 
-import Header from "@/components/fullstack/header"
-import Footer from "@/components/fullstack/footer"
-import QuickSearch from "@/components/fullstack/quick-search"
-import BookingItem from "@/components/booking-item"
-import { getPopularBarbershops } from "@/data/barbershops"
-import { getUserBookings } from "@/data/bookings"
+import React from 'react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Calendar, Users, BarChart3, Smartphone, Mail, ArrowRight, Download, CheckCircle, Star, Globe, Chrome, Bot } from "lucide-react"
@@ -20,8 +16,6 @@ import Snowfall from 'react-snowfall'
  */
 export default function Home() {
   // TODO: Fetch dados em paralelo quando temos uma solução de server components
-  const barbershops: any[] = []
-  const confirmedBookings: any[] = []
 
   const features = [
     {
@@ -115,7 +109,7 @@ const staggerContainer = {
   }
 }
 
-function LandingPage({ features, testimonials, plans }: any) {
+function LandingPage({ features, testimonials, plans }: { features: Record<string, unknown>[]; testimonials: Record<string, unknown>[]; plans: Record<string, unknown>[] }) {
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 relative">
       <Snowfall />
@@ -298,9 +292,11 @@ function LandingPage({ features, testimonials, plans }: any) {
               
               {/* Mockup SVG */}
               <div className="flex justify-center lg:justify-start">
-                <img 
+                <Image 
                   src="/mockup-iphone.svg" 
                   alt="Mockup da aplicação" 
+                  width={320}
+                  height={640}
                   className="w-72 lg:w-80 h-auto drop-shadow-2xl"
                 />
               </div>
@@ -329,7 +325,7 @@ function LandingPage({ features, testimonials, plans }: any) {
             whileInView="animate"
             viewport={{ once: true }}
           >
-            {features.map((feature: any, index: number) => (
+            {features.map((feature: Record<string, unknown>, index: number) => (
               <motion.div key={index} variants={fadeInUp}>
                 <Card className="h-full hover:shadow-xl transition-all duration-300 group">
                   <CardContent className="p-6">
@@ -338,10 +334,12 @@ function LandingPage({ features, testimonials, plans }: any) {
                       whileHover={{ rotateY: 180 }}
                       style={{ transformStyle: 'preserve-3d' }}
                     >
-                      <feature.icon className="w-6 h-6 text-white" />
+                      {feature.icon && typeof feature.icon === 'function' ? (
+                        React.createElement(feature.icon as React.ComponentType<{className: string}>, {className: 'w-6 h-6 text-white'})
+                      ) : null}
                     </motion.div>
-                    <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                    <p className="text-gray-600">{feature.description}</p>
+                    <h3 className="text-xl font-semibold mb-2">{String(feature.title)}</h3>
+                    <p className="text-gray-600">{String(feature.description)}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -488,19 +486,19 @@ function LandingPage({ features, testimonials, plans }: any) {
             whileInView="animate"
             viewport={{ once: true }}
           >
-            {testimonials.map((testimonial: any, index: number) => (
+            {testimonials.map((testimonial: Record<string, unknown>, index: number) => (
               <motion.div key={index} variants={fadeInUp}>
                 <Card className="h-full hover:shadow-xl transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="flex mb-4">
-                      {[...Array(testimonial.rating)].map((_, i) => (
+                      {[...Array(testimonial.rating as number)].map((_, i) => (
                         <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
                       ))}
                     </div>
-                    <p className="text-gray-700 mb-4 italic">"{testimonial.content}"</p>
+                    <p className="text-gray-700 mb-4 italic">&quot;{String(testimonial.content)}&quot;</p>
                     <div>
-                      <p className="font-semibold">{testimonial.name}</p>
-                      <p className="text-sm text-gray-600">{testimonial.role}</p>
+                      <p className="font-semibold">{String(testimonial.name)}</p>
+                      <p className="text-sm text-gray-600">{String(testimonial.role)}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -534,10 +532,10 @@ function LandingPage({ features, testimonials, plans }: any) {
               </div>
               <CardContent className="p-8 text-center">
                 <div className="mb-6">
-                  <h3 className="text-3xl font-bold mb-2">{plans[0].name}</h3>
+                  <h3 className="text-3xl font-bold mb-2">{String((plans[0] as Record<string, unknown>).name)}</h3>
                   <div className="mb-4">
                     <span className="text-5xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                      R$ {plans[0].price.toFixed(2)}
+                      R$ {((plans[0] as Record<string, unknown>).price as number).toFixed(2)}
                     </span>
                     <span className="text-gray-600 text-lg">/mês</span>
                   </div>
@@ -545,7 +543,7 @@ function LandingPage({ features, testimonials, plans }: any) {
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3 mb-8 text-left">
-                  {plans[0].features.map((feature: any, i: number) => (
+                  {((plans[0] as Record<string, unknown>).features as string[]).map((feature: string, i: number) => (
                     <div key={i} className="flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
                       <span className="text-sm">{feature}</span>

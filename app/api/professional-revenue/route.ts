@@ -57,17 +57,18 @@ export async function GET(request: NextRequest) {
     let totalRevenue = 0
     let completedRevenue = 0
     let pendingRevenue = 0
-    const professionalStats: Record<string, any> = {}
+    const professionalStats: Record<string, Record<string, unknown>> = {}
 
-    revenues?.forEach((rev: any) => {
-      const profId = rev.professional_id
-      const amount = parseFloat(rev.revenue.toString())
+    revenues?.forEach((rev) => {
+      const r = rev as Record<string, unknown>
+      const profId = r.professional_id
+      const amount = parseFloat((r.revenue as Record<string, unknown>).toString())
 
       totalRevenue += amount
 
-      if (rev.status === 'completed') {
+      if (r.status === 'completed') {
         completedRevenue += amount
-      } else if (rev.status === 'pending') {
+      } else if (r.status === 'pending') {
         pendingRevenue += amount
       }
 
@@ -103,11 +104,12 @@ export async function GET(request: NextRequest) {
         recordCount: revenues?.length || 0,
       },
       professionalStats: Object.values(professionalStats).sort(
-        (a: any, b: any) => b.totalRevenue - a.totalRevenue
+        (a, b) => ((b as Record<string, unknown>).totalRevenue as number) - ((a as Record<string, unknown>).totalRevenue as number)
       ),
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -144,7 +146,7 @@ export async function PATCH(request: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ data: data?.[0] })
-  } catch (error: any) {
+  } catch (error: Record<string, unknown>) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

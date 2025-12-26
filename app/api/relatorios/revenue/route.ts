@@ -54,12 +54,12 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    let reportData: any = {}
+    let reportData: Record<string, unknown> = {}
 
     if (reportType === 'service') {
-      const serviceMap: Record<string, any> = {}
+      const serviceMap: Record<string, Record<string, unknown>> = {}
 
-      appointments?.forEach((apt: any) => {
+      appointments?.forEach((apt: Record<string, unknown>) => {
         if (apt.services) {
           const serviceId = apt.services.id
           const serviceName = apt.services.name
@@ -80,20 +80,20 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      const totalRevenue = Object.values(serviceMap).reduce((sum: number, s: any) => sum + s.total, 0)
+      const totalRevenue = Object.values(serviceMap).reduce((sum: number, s: Record<string, unknown>) => sum + (s.total as number), 0)
       Object.keys(serviceMap).forEach((key) => {
         serviceMap[key].percentage = totalRevenue > 0 ? (serviceMap[key].total / totalRevenue) * 100 : 0
       })
 
       reportData = {
         type: 'service',
-        data: Object.values(serviceMap).sort((a: any, b: any) => b.total - a.total),
+        data: Object.values(serviceMap).sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.total as number) - (a.total as number)),
         totalRevenue,
       }
     } else if (reportType === 'professional') {
-      const professionalMap: Record<string, any> = {}
+      const professionalMap: Record<string, Record<string, unknown>> = {}
 
-      appointments?.forEach((apt: any) => {
+      appointments?.forEach((apt: Record<string, unknown>) => {
         if (apt.employees && apt.services) {
           const profId = apt.employees.id
           const profName = apt.employees.name
@@ -114,21 +114,21 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      const totalRevenue = Object.values(professionalMap).reduce((sum: number, p: any) => sum + p.total, 0)
+      const totalRevenue = Object.values(professionalMap).reduce((sum: number, p: Record<string, unknown>) => sum + (p.total as number), 0)
       Object.keys(professionalMap).forEach((key) => {
         professionalMap[key].percentage = totalRevenue > 0 ? (professionalMap[key].total / totalRevenue) * 100 : 0
       })
 
       reportData = {
         type: 'professional',
-        data: Object.values(professionalMap).sort((a: any, b: any) => b.total - a.total),
+        data: Object.values(professionalMap).sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.total as number) - (a.total as number)),
         totalRevenue,
       }
     } else if (reportType === 'period') {
-      const periodMap: Record<string, any> = {}
+      const periodMap: Record<string, Record<string, unknown>> = {}
 
-      appointments?.forEach((apt: any) => {
-        const date = apt.appointment_date
+      appointments?.forEach((apt: Record<string, unknown>) => {
+        const date = apt.appointment_date as string
         const price = apt.services?.price || 0
         
         if (!periodMap[date]) {
@@ -143,11 +143,11 @@ export async function GET(request: NextRequest) {
         periodMap[date].count += 1
       })
 
-      const totalRevenue = Object.values(periodMap).reduce((sum: number, p: any) => sum + p.total, 0)
+      const totalRevenue = Object.values(periodMap).reduce((sum: number, p: Record<string, unknown>) => sum + (p.total as number), 0)
 
       reportData = {
         type: 'period',
-        data: Object.values(periodMap).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+        data: Object.values(periodMap).sort((a: Record<string, unknown>, b: Record<string, unknown>) => new Date(a.date as string).getTime() - new Date(b.date as string).getTime()),
         totalRevenue,
       }
     }
@@ -162,7 +162,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(reportData)
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

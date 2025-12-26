@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     console.log('Total appointments fetched:', data?.length || 0)
 
     // Map appointments to the shape expected by the UI
-    const mapped = (data || []).map((a: any) => {
+    const mapped = (data || []).map((a: Record<string, unknown>) => {
       // Process service duration from HH:MM:SS to minutes
       let durationMinutes = null
       if (a.service?.duration) {

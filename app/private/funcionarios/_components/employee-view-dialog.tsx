@@ -28,7 +28,7 @@ type Employee = {
   work_end?: string;
   lunch_start?: string;
   lunch_end?: string;
-  break_intervals?: any;
+  break_intervals?: Record<string, unknown>;
 };
 
 interface EmployeeViewDialogProps {
@@ -58,11 +58,11 @@ export function EmployeeViewDialog({ open, onOpenChange, employee }: EmployeeVie
     }
   };
 
-  const formatBreakIntervals = (intervals: any) => {
+  const formatBreakIntervals = (intervals: Record<string, unknown>) => {
     try {
       const parsed = typeof intervals === 'string' ? JSON.parse(intervals) : intervals;
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((interval: any) => 
+        return parsed.map((interval: Record<string, unknown>) => 
           `${interval.start} - ${interval.end} (${interval.name || 'Intervalo'})`
         ).join(', ');
       }

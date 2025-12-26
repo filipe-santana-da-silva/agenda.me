@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     // Filter by date range
     const now = new Date()
     let startDate: Date | null = null
-    let endDate: Date | null = null
+    const endDate: Date | null = null
 
     switch (dateRange) {
       case 'today':
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
     if (error) throw error
 
     return NextResponse.json({ data })
-  } catch (error: any) {
+  } catch (error: Record<string, unknown>) {
     return NextResponse.json(
       { error: error.message || 'Error fetching transactions' },
       { status: 500 }
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ data: data?.[0] })
-  } catch (error: any) {
+  } catch (error: Record<string, unknown>) {
     console.error('POST /api/financeiro/transactions error:', error)
     
     // Check if it's a table not found error

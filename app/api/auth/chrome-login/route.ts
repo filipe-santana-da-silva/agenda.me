@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: Record<string, unknown>) {
     console.error('Erro no login da extensão:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },

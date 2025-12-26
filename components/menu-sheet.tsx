@@ -16,6 +16,7 @@ import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { User } from "@supabase/supabase-js";
 
 const categories = [
   { label: "Cabelo", search: "cabelo" },
@@ -28,7 +29,7 @@ const categories = [
 
 const MenuSheet = () => {
   const [bookingUser, setBookingUser] = useState<{ name: string; phone: string } | null>(null);
-  const [authUser, setAuthUser] = useState<any>(null);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();

@@ -88,7 +88,7 @@ export function EmployeesPageClient() {
         new Set((data || []).map((e) => e.department).filter(Boolean))
       ) as string[]
       setDepartments(depts.sort())
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao carregar funcionários')
     } finally {
       setLoading(false)
@@ -103,7 +103,7 @@ export function EmployeesPageClient() {
       toast.success('Funcionário removido com sucesso')
       setDeleteConfirm(null)
       loadEmployees()
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao remover funcionário')
     }
   }
@@ -254,7 +254,7 @@ export function EmployeesPageClient() {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Select value={selectedStatus} onValueChange={(value: any) => setSelectedStatus(value)}>
+          <Select value={selectedStatus} onValueChange={(value: Record<string, unknown>) => setSelectedStatus(value)}>
             <SelectTrigger className="text-xs sm:text-sm" suppressHydrationWarning>
               <SelectValue placeholder="Status" />
             </SelectTrigger>

@@ -3,8 +3,8 @@ import Header from "@/components/header";
 import Image from "next/image";
 import banner from "@/public/banner.png";
 import BookingItem from "@/components/booking-item";
-import { getBarbershops } from "@/data/barbershops";
-import { getUserBookings } from "@/data/bookings";
+import { Barbershop } from "@/data/barbershops";
+import { BookingWithRelations } from "@/data/bookings";
 import {
   PageContainer,
   PageSectionContent,
@@ -23,8 +23,8 @@ import { CAROUSEL_IMAGES } from "@/data/carousel-images";
 const BookingLogin = dynamic(() => import("./booking-login"), { ssr: false });
 
 interface BookingPageContentProps {
-  barbershops: any[];
-  confirmedBookings: any[];
+  barbershops: Barbershop[];
+  confirmedBookings: BookingWithRelations[];
   serviceImages: Record<string, string>;
 }
 
@@ -36,19 +36,27 @@ export function BookingPageContent({
   const searchParams = useSearchParams();
   const [user, setUser] = useState<{ name: string; phone: string } | null>(null);
   const [showLogin, setShowLogin] = useState(false);
-  const [services, setServices] = useState<any[]>([]);
+  const [services, setServices] = useState<Array<{ id: string; name: string; description: string; price_in_cents: number; image_url: string }>>([]);
   const supabase = createClient();
 
   // Carregar usuário do localStorage ao iniciar
   useEffect(() => {
     const savedUser = localStorage.getItem("bookingUser");
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        const parsed = JSON.parse(savedUser);
+        Promise.resolve().then(() => setUser(parsed));
+      } catch {
+        localStorage.removeItem("bookingUser");
+      }
     }
+  }, []);
 
-    // Verificar se deve mostrar login via URL
-    if (searchParams.get("login") === "true") {
-      setShowLogin(true);
+  // Handle login query param separately
+  useEffect(() => {
+    const shouldShowLogin = searchParams.get("login") === "true";
+    if (shouldShowLogin) {
+      Promise.resolve().then(() => setShowLogin(true));
     }
   }, [searchParams]);
 
@@ -134,10 +142,10 @@ export function BookingPageContent({
                     >
                       <Image
                         src={
-                          serviceImages[service.name?.toLowerCase()] ||
+                          serviceImages[service.name?.toLowerCase() || ''] ||
                           "https://images.unsplash.com/photo-1585747860715-cd4628902d4a?w=300&h=300&fit=crop"
                         }
-                        alt={service.name}
+                        alt={service.name || 'Service'}
                         width={200}
                         height={150}
                         className="w-full h-40 object-cover"
@@ -148,7 +156,7 @@ export function BookingPageContent({
                           {service.description}
                         </p>
                         <p className="text-sm font-bold mt-2">
-                          R${(service.price).toFixed(2)}
+                          R${((service.price_in_cents || 0) / 100).toFixed(2)}
                         </p>
                       </div>
                     </Card>
@@ -162,7 +170,7 @@ export function BookingPageContent({
               <PageSectionContent>
                 <PageSectionTitle>Barbearias Populares</PageSectionTitle>
                 <div className="w-full">
-                  {initialBarbershops.slice(0, 1).map((barbershop) => (
+                  {initialBarbershops.slice(0, 1).map((barbershop: Barbershop) => (
                     <BarbershopCarousel
                       key={barbershop.id}
                       barbershop={barbershop}

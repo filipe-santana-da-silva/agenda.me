@@ -42,7 +42,7 @@ export const getUserBookings = async (): Promise<{
   }
 
   // Obter customer vinculado ao auth_id
-  let customerData: any = null;
+  let customerData: unknown = null;
 
   const { data: customerByAuth } = await supabase
     .from("customers")
@@ -194,7 +194,7 @@ export const getUserBookings = async (): Promise<{
 };
 
 // Função auxiliar para converter appointment do Supabase para BookingWithRelations
-const convertAppointment = (appointment: any): BookingWithRelations => {
+const convertAppointment = (appointment: Record<string, unknown>): BookingWithRelations => {
   return {
     id: appointment.id,
     customer_id: appointment.customer_id,

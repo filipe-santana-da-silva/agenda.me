@@ -27,7 +27,7 @@ const categories = [
 ]
 
 const MenuSheet = () => {
-  const [session, setSession] = useState<any>(null)
+  const [session, setSession] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()

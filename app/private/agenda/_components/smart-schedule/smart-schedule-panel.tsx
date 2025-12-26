@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,27 +13,41 @@ interface SmartSchedulePanelProps {
   onOptimizationApplied: () => void;
 }
 
+interface Optimization {
+  id: string;
+  [key: string]: unknown;
+}
+
+interface Suggestion {
+  id: string;
+  [key: string]: unknown;
+}
+
+interface OptimizationStats {
+  [key: string]: unknown;
+}
+
 export function SmartSchedulePanel({ selectedDate, professionalId, onOptimizationApplied }: SmartSchedulePanelProps) {
   const [loading, setLoading] = useState(false);
-  const [optimizations, setOptimizations] = useState<any[]>([]);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>({});
+  const [optimizations, setOptimizations] = useState<Optimization[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [stats, setStats] = useState<OptimizationStats>({});
+
+  const loadOptimizationStats = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/schedule/optimize?date=${selectedDate}&professionalId=${professionalId}`);
+      const data = await response.json();
+      setStats(data);
+    } catch {
+      console.error('Erro ao carregar estatísticas');
+    }
+  }, [selectedDate, professionalId]);
 
   useEffect(() => {
     if (selectedDate && professionalId) {
       loadOptimizationStats();
     }
-  }, [selectedDate, professionalId]);
-
-  const loadOptimizationStats = async () => {
-    try {
-      const response = await fetch(`/api/schedule/optimize?date=${selectedDate}&professionalId=${professionalId}`);
-      const data = await response.json();
-      setStats(data);
-    } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
-    }
-  };
+  }, [selectedDate, professionalId, loadOptimizationStats]);
 
   const createAutomaticBlocks = async () => {
     try {
@@ -51,7 +65,7 @@ export function SmartSchedulePanel({ selectedDate, professionalId, onOptimizatio
       } else {
         toast.error('Erro ao criar bloqueios automáticos');
       }
-    } catch (error) {
+    } catch {
       toast.error('Erro ao processar bloqueios');
     } finally {
       setLoading(false);
@@ -75,31 +89,8 @@ export function SmartSchedulePanel({ selectedDate, professionalId, onOptimizatio
       } else {
         toast.error('Erro ao otimizar agenda');
       }
-    } catch (error) {
+    } catch {
       toast.error('Erro ao processar otimização');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateSuggestions = async (appointmentId: string) => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/schedule/suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appointmentId, reason: 'Otimização de agenda' })
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        setSuggestions(result.suggestions);
-        toast.success(result.message);
-      } else {
-        toast.error('Erro ao gerar sugestões');
-      }
-    } catch (error) {
-      toast.error('Erro ao processar sugestões');
     } finally {
       setLoading(false);
     }
@@ -121,19 +112,19 @@ export function SmartSchedulePanel({ selectedDate, professionalId, onOptimizatio
           {/* Estatísticas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{stats.appointmentsAnalyzed || 0}</div>
+              <div className="text-2xl font-bold text-blue-600">{(stats.appointmentsAnalyzed as number) || 0}</div>
               <div className="text-xs text-gray-600">Agendamentos</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{stats.avgGap || 0}min</div>
+              <div className="text-2xl font-bold text-orange-600">{(stats.avgGap as number) || 0}min</div>
               <div className="text-xs text-gray-600">Gap Médio</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{stats.totalOptimizationScore || 0}</div>
+              <div className="text-2xl font-bold text-green-600">{(stats.totalOptimizationScore as number) || 0}</div>
               <div className="text-xs text-gray-600">Score Otimização</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{stats.totalGaps || 0}min</div>
+              <div className="text-2xl font-bold text-purple-600">{(stats.totalGaps as number) || 0}min</div>
               <div className="text-xs text-gray-600">Gaps Totais</div>
             </div>
           </div>
@@ -173,14 +164,14 @@ export function SmartSchedulePanel({ selectedDate, professionalId, onOptimizatio
                 <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium">{opt.customerName}</p>
-                      <p className="text-sm text-gray-600">{opt.reason}</p>
+                      <p className="font-medium">{opt.customerName as string}</p>
+                      <p className="text-sm text-gray-600">{opt.reason as string}</p>
                       <p className="text-xs text-gray-500">
-                        {opt.currentTime} → {opt.suggestedTime}
+                        {opt.currentTime as string} → {opt.suggestedTime as string}
                       </p>
                     </div>
                     <Badge variant="secondary">
-                      -{opt.gapReduction}min
+                      -{opt.gapReduction as string}min
                     </Badge>
                   </div>
                 </div>
@@ -200,12 +191,12 @@ export function SmartSchedulePanel({ selectedDate, professionalId, onOptimizatio
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="font-medium">
-                        {new Date(suggestion.suggested_date).toLocaleDateString('pt-BR')}
+                        {new Date(suggestion.suggested_date as string | number | Date).toLocaleDateString('pt-BR')}
                       </p>
-                      <p className="text-sm text-gray-600">{suggestion.suggested_time}</p>
+                      <p className="text-sm text-gray-600">{suggestion.suggested_time as string}</p>
                     </div>
                     <Badge variant="outline">
-                      Score: {suggestion.priority_score}
+                      Score: {suggestion.priority_score as string | number}
                     </Badge>
                   </div>
                 </div>

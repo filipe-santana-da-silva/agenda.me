@@ -130,8 +130,8 @@ export function AppointmentsList({ times }: AppointmentListProps) {
         // This helps recovery when the refresh token expired or auth state is invalid.
         try {
           const supabase = createClient()
-          const msg = String((e as any)?.message || '').toLowerCase()
-          if ((e as any)?.code === 'PGRST303' || msg.includes('jwt expired') || msg.includes('token expired')) {
+          const msg = String((e as Record<string, unknown>)?.message || '').toLowerCase()
+          if ((e as Record<string, unknown>)?.code === 'PGRST303' || msg.includes('jwt expired') || msg.includes('token expired')) {
             console.warn('Detected expired JWT/session for Supabase — signing out local session and reloading.')
             try {
               await supabase.auth.signOut()
@@ -161,7 +161,7 @@ export function AppointmentsList({ times }: AppointmentListProps) {
   const recreatorNameMap = useMemo(() => {
     const map: Record<string, string> = {}
     if (!recreators) return map
-    for (const r of recreators as any[]) {
+    for (const r of recreators as Array<Record<string, unknown>>) {
       if (r && r.id) map[String(r.id)] = r.name ?? ''
     }
     return map
@@ -315,12 +315,11 @@ export function AppointmentsList({ times }: AppointmentListProps) {
                         {hasOccupants ? (
                           // If there are starters in this slot, render them stacked and
                           // do NOT mix in continued appointments that started earlier.
-                          occupants.map((occ, occIndex) => {
+                          occupants.map((occ: Record<string, unknown>, occIndex: number) => {
                             const isFirstSlot = occ.time === slot
-                            const anyOcc: any = occ as any
-                            const responsibleId = anyOcc.responsible_recreatorid || anyOcc.responsibleRecreatorId || anyOcc.responsible_recreator_id || anyOcc.recreatorid || null
+                            const responsibleId = (occ.responsible_recreatorid || occ.responsibleRecreatorId || occ.responsible_recreator_id || occ.recreatorid) as string | null || null
                             const resolvedFromMap = responsibleId ? (recreatorNameMap[String(responsibleId)] ?? null) : null
-                            const fallbackName = anyOcc.responsible_recreatorname || anyOcc.responsibleRecreatorName || anyOcc.responsible_recreator_name || anyOcc.recreatorname || anyOcc.recreator_name || null
+                            const fallbackName = (occ.responsible_recreatorname || occ.responsibleRecreatorName || occ.responsible_recreator_name || occ.recreatorname || occ.recreator_name) as string || null
                             const responsibleName = resolvedFromMap || fallbackName
 
                             return (

@@ -189,7 +189,7 @@ export function TransactionDialog({
       }
 
       onSaved()
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao salvar transação')
     } finally {
       setLoading(false)
@@ -219,7 +219,7 @@ export function TransactionDialog({
             <Label htmlFor="type">Tipo *</Label>
             <Select
               value={formData.type}
-              onValueChange={(value: any) =>
+              onValueChange={(value: Record<string, unknown>) =>
                 setFormData({ ...formData, type: value, category: '' })
               }
             >
@@ -345,7 +345,7 @@ export function TransactionDialog({
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value: any) =>
+                onValueChange={(value: Record<string, unknown>) =>
                   setFormData({ ...formData, status: value })
                 }
               >

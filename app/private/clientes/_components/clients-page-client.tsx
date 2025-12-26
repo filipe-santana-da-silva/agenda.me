@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -36,11 +36,7 @@ export function ClientsPageClient() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
 
-  useEffect(() => {
-    loadCustomers()
-  }, [])
-
-  const loadCustomers = async () => {
+  const loadCustomers = useCallback(async () => {
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -50,12 +46,17 @@ export function ClientsPageClient() {
 
       if (error) throw error
       setCustomers(data || [])
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao carregar clientes')
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>
+      toast.error((error.message as string) || 'Erro ao carregar clientes')
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    loadCustomers()
+  }, [loadCustomers])
 
   const handleDelete = async (id: string) => {
     try {
@@ -68,8 +69,9 @@ export function ClientsPageClient() {
       toast.success('Cliente removido com sucesso')
       setDeleteConfirm(null)
       loadCustomers()
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao remover cliente')
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>
+      toast.error((error.message as string) || 'Erro ao remover cliente')
     }
   }
 

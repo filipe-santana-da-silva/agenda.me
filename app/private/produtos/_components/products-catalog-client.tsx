@@ -92,7 +92,7 @@ export function ProductsCatalogClient() {
 
       setCategories(categoriesData || [])
       setProducts(productsData || [])
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao carregar dados')
     } finally {
       setLoading(false)
@@ -121,7 +121,7 @@ export function ProductsCatalogClient() {
 
       setDeleteConfirm(null)
       loadData()
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao remover')
     }
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -22,7 +22,6 @@ type Professional = { id: string; name: string; position?: string }
 
 export default function CatalogPageClient() {
   const supabase = createClient()
-  const [loading, setLoading] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
 
@@ -34,19 +33,13 @@ export default function CatalogPageClient() {
   const [selectedServices, setSelectedServices] = useState<Record<string, boolean>>({})
   const [selectedProfessionals, setSelectedProfessionals] = useState<Record<string, boolean>>({})
 
-  const [catalogs, setCatalogs] = useState<any[]>([])
+  const [catalogs, setCatalogs] = useState<{ id: string; name: string; description?: string; items: Record<string, unknown>[] }[]>([])
   const [selectedCatalogId, setSelectedCatalogId] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editingCatalogId, setEditingCatalogId] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadData()
-    loadCatalogs()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      setLoading(true)
       const [{ data: productsData }, { data: servicesData }, { data: professionalsData }] = await Promise.all([
         supabase.from('products').select('id, name, price').order('name'),
         supabase.from('services').select('id, name, price').order('name'),
@@ -56,14 +49,12 @@ export default function CatalogPageClient() {
       setProducts(productsData || [])
       setServices(servicesData || [])
       setProfessionals(professionalsData || [])
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao carregar dados')
-    } finally {
-      setLoading(false)
+    } catch {
+      toast.error('Erro ao carregar dados')
     }
-  }
+  }, [supabase])
 
-  const loadCatalogs = async () => {
+  const loadCatalogs = useCallback(async () => {
     try {
       const res = await fetch('/api/catalogs')
       const json = await res.json()
@@ -71,29 +62,35 @@ export default function CatalogPageClient() {
       if (!selectedCatalogId && json.catalogs && json.catalogs.length > 0) {
         setSelectedCatalogId(json.catalogs[0].id)
       }
-    } catch (e) {
-      console.error(e)
+    } catch {
+      // silently fail
     }
-  }
+  }, [selectedCatalogId])
 
-  const toggle = (id: string, setState: any, state: Record<string, boolean>) => {
+  useEffect(() => {
+    loadData()
+    loadCatalogs()
+  }, [loadData, loadCatalogs])
+
+  const toggle = (id: string, setState: (state: Record<string, boolean>) => void, state: Record<string, boolean>) => {
     setState({ ...state, [id]: !state[id] })
   }
 
-  const handleEdit = (catalog: any) => {
+  const handleEdit = (catalog: Record<string, unknown>) => {
     setIsEditing(true)
-    setEditingCatalogId(catalog.id)
-    setName(catalog.name)
-    setDescription(catalog.description || '')
+    setEditingCatalogId(catalog.id as string)
+    setName(catalog.name as string)
+    setDescription((catalog.description as string) || '')
     
     const prods: Record<string, boolean> = {}
     const servs: Record<string, boolean> = {}
     const profs: Record<string, boolean> = {}
     
-    catalog.items?.forEach((item: any) => {
-      if (item.item_type === 'product') prods[item.item_id] = true
-      if (item.item_type === 'service') servs[item.item_id] = true
-      if (item.item_type === 'professional') profs[item.item_id] = true
+    const items = catalog.items as Array<Record<string, unknown>>
+    items?.forEach((item) => {
+      if (item.item_type === 'product') prods[item.item_id as string] = true
+      if (item.item_type === 'service') servs[item.item_id as string] = true
+      if (item.item_type === 'professional') profs[item.item_id as string] = true
     })
     
     setSelectedProducts(prods)
@@ -115,7 +112,7 @@ export default function CatalogPageClient() {
     try {
       if (!name) return toast.error('Defina um nome para o catálogo')
 
-      const items: any[] = []
+      const items: Array<Record<string, unknown>> = []
       Object.keys(selectedProducts).forEach((k) => {
         if (selectedProducts[k]) items.push({ item_type: 'product', item_id: k })
       })
@@ -156,8 +153,9 @@ export default function CatalogPageClient() {
 
       handleCancelEdit()
       loadCatalogs()
-    } catch (error: any) {
-      toast.error(error.message || 'Erro')
+    } catch (error: unknown) {
+      const err = error as Record<string, unknown>
+      toast.error((err.message as string) || 'Erro')
     }
   }
 
@@ -167,8 +165,9 @@ export default function CatalogPageClient() {
       if (!res.ok) throw new Error('Erro ao remover catálogo')
       toast.success('Catálogo removido')
       loadCatalogs()
-    } catch (e: any) {
-      toast.error(e.message || 'Erro')
+    } catch (e: unknown) {
+      const err = e as Record<string, unknown>
+      toast.error((err.message as string) || 'Erro')
     }
   }
 
@@ -211,7 +210,7 @@ export default function CatalogPageClient() {
               <CardDescription>Marque itens para incluir no novo catálogo</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              <div className="space-y-2 max-h-75 overflow-y-auto">
                 <div className="text-sm font-medium mb-2">Produtos</div>
                 {products.map((p) => (
                   <label key={p.id} className="flex items-center justify-between gap-3 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded">
@@ -259,17 +258,17 @@ export default function CatalogPageClient() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {catalogs.map((c: any) => (
-                  <div key={c.id} className="flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-slate-800">
-                    <div className="flex-1 cursor-pointer" onClick={() => setSelectedCatalogId(c.id)}>
-                      <div className="font-medium">{c.name}</div>
-                      <div className="text-xs text-muted-foreground">{c.description}</div>
+                {catalogs.map((c: Record<string, unknown>) => (
+                  <div key={c.id as string} className="flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-slate-800">
+                    <div className="flex-1 cursor-pointer" onClick={() => setSelectedCatalogId(c.id as string)}>
+                      <div className="font-medium">{c.name as string}</div>
+                      <div className="text-xs text-muted-foreground">{c.description as string}</div>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}>
                         <Pencil className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id as string)}>
                         <span className="text-red-500">×</span>
                       </Button>
                     </div>
@@ -284,30 +283,32 @@ export default function CatalogPageClient() {
         <div className="lg:col-span-3">
           <Card>
             <CardHeader>
-              <CardTitle>{selectedCatalog ? selectedCatalog.name : 'Visualização do Catálogo'}</CardTitle>
-              <CardDescription>{selectedCatalog ? selectedCatalog.description : 'Selecione um catálogo no painel à esquerda ou crie um novo.'}</CardDescription>
+              <CardTitle>{selectedCatalog ? (selectedCatalog.name as string) : 'Visualização do Catálogo'}</CardTitle>
+              <CardDescription>{selectedCatalog ? (selectedCatalog.description as string) : 'Selecione um catálogo no painel à esquerda ou crie um novo.'}</CardDescription>
             </CardHeader>
             <CardContent>
               {selectedCatalog && selectedCatalog.items && selectedCatalog.items.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {selectedCatalog.items.map((it: any) => (
-                    <div key={it.id} className="border rounded overflow-hidden bg-white dark:bg-slate-800 dark:border-slate-700">
-                      <div className="h-36 bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
-                        {/* try to show thumbnail if available */}
-                        {it.detail?.image_url ? (
-                          // @ts-ignore
-                          <Image src={it.detail.image_url} alt={it.detail.name || it.detail.title} width={320} height={180} className="object-cover w-full h-full" />
-                        ) : (
-                          <div className="text-sm text-gray-500 dark:text-slate-400">{it.detail?.name?.slice(0, 1) || it.item_type}</div>
-                        )}
+                  {selectedCatalog.items.map((it: Record<string, unknown>) => {
+                    const detail = it.detail as Record<string, unknown>
+                    return (
+                      <div key={it.id as string} className="border rounded overflow-hidden bg-white dark:bg-slate-800 dark:border-slate-700">
+                        <div className="h-36 bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
+                          {/* try to show thumbnail if available */}
+                          {detail?.image_url ? (
+                            <Image src={detail.image_url as string} alt={(detail.name as string) || (detail.title as string)} width={320} height={180} className="object-cover w-full h-full" />
+                          ) : (
+                            <div className="text-sm text-gray-500 dark:text-slate-400">{((detail?.name as string)?.slice(0, 1) || it.item_type as string)}</div>
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <div className="font-medium mb-1">{String((detail?.name) || (detail?.title) || (it.item_type))}</div>
+                          <div className="text-xs text-muted-foreground mb-2">{String(it.item_type)}</div>
+                          {detail?.price ? <div className="font-semibold">R$ {String(Number(detail.price).toFixed(2))}</div> : null}
+                        </div>
                       </div>
-                      <div className="p-3">
-                        <div className="font-medium mb-1">{it.detail?.name || it.detail?.title || it.item_type}</div>
-                        <div className="text-xs text-muted-foreground mb-2">{it.item_type}</div>
-                        {it.detail?.price && <div className="font-semibold">R$ {Number(it.detail.price).toFixed(2)}</div>}
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="py-16 text-center text-muted-foreground">Nenhum item no catálogo selecionado.</div>

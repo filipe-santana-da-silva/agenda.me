@@ -14,8 +14,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'server not configured' }, { status: 500 })
     }
 
-    const body = await request.json()
-    const rows: any[] = Array.isArray(body.rows) ? body.rows : []
+    const body = await request.json() as { rows?: Array<Record<string, unknown>>, deleteAppointmentId?: string }
+    const rows: Array<Record<string, unknown>> = Array.isArray(body.rows) ? body.rows : []
     const deleteAppointmentId: string | undefined = body.deleteAppointmentId
 
     // Get authenticated user from server
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         .eq('id', deleteAppointmentId)
         .single()
 
-      if (checkError || !appointment || appointment.userid !== user.id) {
+      if (checkError || !appointment || (appointment as Record<string, unknown>).userid !== user.id) {
         console.error('User does not own appointment:', deleteAppointmentId)
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
       }
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     // basic validation: ensure each row has required keys
-    const invalid = rows.find((r) => !r || !r.recreatorid || !r.appointmentid)
+    const invalid = rows.find((r) => !r || !(r as Record<string, unknown>).recreatorid || !(r as Record<string, unknown>).appointmentid)
     if (invalid) {
       console.error('Invalid ranking row payload (missing keys):', invalid)
       return NextResponse.json({ error: 'Invalid row payload; each row must include recreatorid and appointmentid' }, { status: 400 })
@@ -74,13 +74,13 @@ export async function POST(request: Request) {
     }
 
     // result data should be an array of inserted rows with ids
-    const insData = insertRes.data as any[] | null
+    const insData = insertRes.data as Array<Record<string, unknown>> | null
     const insertedCount = Array.isArray(insData) ? insData.length : 0
-    // eslint-disable-next-line no-console
+     
     console.debug('Inserted ranking rows count (admin):', insertedCount)
 
     return NextResponse.json({ inserted: insertedCount })
-  } catch (e: any) {
+  } catch (e: Record<string, unknown>) {
     console.error('appointments/ranking endpoint error', e)
     return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 })
   }

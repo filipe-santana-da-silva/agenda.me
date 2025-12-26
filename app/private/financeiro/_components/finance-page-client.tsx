@@ -94,7 +94,7 @@ export function FinancePageClient() {
 
       const { data } = await res.json()
       setTransactions(data || [])
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao carregar transações')
     } finally {
       setLoading(false)
@@ -115,7 +115,7 @@ export function FinancePageClient() {
       toast.success('Transação removida com sucesso')
       setDeleteConfirm(null)
       loadTransactions()
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao remover transação')
     } finally {
       setDeleteLoading(false)
@@ -162,7 +162,7 @@ export function FinancePageClient() {
       ]
 
       // Dados por categoria (Receitas)
-      const incomeCategoryData: any[] = [['Categoria', 'Valor (R$)']]
+      const incomeCategoryData: Array<Record<string, unknown>> = [['Categoria', 'Valor (R$)']]
       const incomeByCategory: Record<string, number> = {}
       filteredTransactions
         .filter(tx => tx.type === 'income' && tx.status === 'completed')
@@ -174,7 +174,7 @@ export function FinancePageClient() {
       })
 
       // Dados por categoria (Despesas)
-      const expenseCategoryData: any[] = [['Categoria', 'Valor (R$)']]
+      const expenseCategoryData: Array<Record<string, unknown>> = [['Categoria', 'Valor (R$)']]
       const expenseByCategory: Record<string, number> = {}
       filteredTransactions
         .filter(tx => tx.type === 'expense' && tx.status === 'completed')
@@ -412,7 +412,7 @@ export function FinancePageClient() {
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <Select value={selectedType} onValueChange={(value: any) => setSelectedType(value)}>
+          <Select value={selectedType} onValueChange={(value: Record<string, unknown>) => setSelectedType(value)}>
             <SelectTrigger className="text-xs sm:text-sm" suppressHydrationWarning>
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
@@ -423,7 +423,7 @@ export function FinancePageClient() {
             </SelectContent>
           </Select>
 
-          <Select value={selectedStatus} onValueChange={(value: any) => setSelectedStatus(value)}>
+          <Select value={selectedStatus} onValueChange={(value: Record<string, unknown>) => setSelectedStatus(value)}>
             <SelectTrigger className="text-xs sm:text-sm" suppressHydrationWarning>
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -435,7 +435,7 @@ export function FinancePageClient() {
             </SelectContent>
           </Select>
 
-          <Select value={dateRange} onValueChange={(value: any) => setDateRange(value)}>
+          <Select value={dateRange} onValueChange={(value: Record<string, unknown>) => setDateRange(value)}>
             <SelectTrigger className="text-xs sm:text-sm" suppressHydrationWarning>
               <SelectValue placeholder="Período" />
             </SelectTrigger>
@@ -482,7 +482,7 @@ export function FinancePageClient() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: any) => `R$ ${value.toFixed(2)}`} />
+                  <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>
@@ -521,7 +521,7 @@ export function FinancePageClient() {
                       <Cell key={`cell-${index}`} fill={EXPENSE_COLORS[index % EXPENSE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: any) => `R$ ${value.toFixed(2)}`} />
+                  <Tooltip formatter={(value: Record<string, unknown>) => `R$ ${value.toFixed(2)}`} />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>

@@ -34,6 +34,14 @@ interface BookingClientProps {
   barbershops: Barbershop[]
 }
 
+interface LastBooking {
+  barbershop_name: string
+  service_name: string
+  appointment_date: string
+  service_price: number
+  [key: string]: unknown
+}
+
 export function BookingClient({ barbershops }: BookingClientProps) {
   const [selectedBarbershop, setSelectedBarbershop] = useState<string>('')
   const [selectedService, setSelectedService] = useState<string>('')
@@ -41,7 +49,7 @@ export function BookingClient({ barbershops }: BookingClientProps) {
   const [selectedTime, setSelectedTime] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
-  const [lastBooking, setLastBooking] = useState<any>(null)
+  const [lastBooking, setLastBooking] = useState<LastBooking | null>(null)
   const [customerPhone, setCustomerPhone] = useState<string>('')
   const [customerName, setCustomerName] = useState<string>('')
   
@@ -117,10 +125,10 @@ export function BookingClient({ barbershops }: BookingClientProps) {
         setSelectedDate('')
         setSelectedTime('')
       } else {
-        const error = await response.json()
-        toast.error(error.message || 'Erro ao realizar agendamento')
+        const errorData = await response.json()
+        toast.error(errorData.message || 'Erro ao realizar agendamento')
       }
-    } catch (error) {
+    } catch {
       toast.error('Erro ao realizar agendamento')
     } finally {
       setSubmitting(false)
@@ -145,7 +153,7 @@ export function BookingClient({ barbershops }: BookingClientProps) {
                   className="cursor-pointer hover:shadow-lg transition-shadow"
                   onClick={() => setSelectedBarbershop(barbershop.id)}
                 >
-                  <div className="relative h-[150px] rounded-t-lg overflow-hidden bg-muted">
+                  <div className="relative h-37.5 rounded-t-lg overflow-hidden bg-muted">
                     {barbershop.image_url && (
                       <Image
                         src={barbershop.image_url}
@@ -214,7 +222,7 @@ export function BookingClient({ barbershops }: BookingClientProps) {
                           onClick={() => setSelectedService(service.id)}
                         >
                           <CardContent className="flex gap-4 p-4">
-                            <div className="relative w-20 h-20 flex-shrink-0 bg-muted rounded-md">
+                            <div className="relative w-20 h-20 shrink-0 bg-muted rounded-md">
                               {service.image_url && (
                                 <Image
                                   src={service.image_url}

@@ -135,7 +135,7 @@ export function ServiceDialog({
       }
 
       onSaved()
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao salvar serviço')
     } finally {
       setLoading(false)

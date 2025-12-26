@@ -38,7 +38,7 @@ const ReminderListLazy = dynamic(
 )
 
 export default function Agenda() {
-  const [reminders, setReminders] = useState<any[]>([])
+  const [reminders, setReminders] = useState<{ id: string; [key: string]: unknown }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

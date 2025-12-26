@@ -41,7 +41,7 @@ export const getBarbershops = async (): Promise<Barbershop[]> => {
   const supabase = await createClient()
 
   // Buscar barbearias
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("barbershop")
     .select(
       `
@@ -88,16 +88,16 @@ export const getBarbershops = async (): Promise<Barbershop[]> => {
       return []
     }
 
-    return (oldData as any[]).map((shop) => ({
+    return (oldData || []).map((shop) => ({
       ...shop,
       services: [],
     }))
   }
 
-  return (data as any[]).map((shop) => ({
+  return (data || []).map((shop) => ({
     ...shop,
     services: (shop.services || []).filter(
-      (s: any) => s.deleted_at === null
+      (s: Service) => s.deleted_at === null
     ),
   }))
 }
@@ -105,7 +105,7 @@ export const getBarbershops = async (): Promise<Barbershop[]> => {
 export const getPopularBarbershops = async (): Promise<Barbershop[]> => {
   const supabase = await createClient()
 
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("barbershop")
     .select(
       `
@@ -145,16 +145,16 @@ export const getPopularBarbershops = async (): Promise<Barbershop[]> => {
       return []
     }
 
-    return (oldData as any[]).map((shop) => ({
+    return (oldData || []).map((shop) => ({
       ...shop,
       services: [],
     }))
   }
 
-  return (data as any[]).map((shop) => ({
+  return (data || []).map((shop) => ({
     ...shop,
     services: (shop.services || []).filter(
-      (s: any) => s.deleted_at === null
+      (s: Service) => s.deleted_at === null
     ),
   }))
 }
@@ -214,7 +214,7 @@ export const getBarbershopById = async (
     ...data,
     professionals: data.employees || [],
     services: (data.services || []).filter(
-      (s: any) => s.deleted_at === null
+      (s: Service) => s.deleted_at === null
     ),
   }
 }
@@ -224,7 +224,7 @@ export const getBarbershopsByServiceName = async (
 ): Promise<Barbershop[]> => {
   const supabase = await createClient()
 
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("barbershop")
     .select(
       `
@@ -260,7 +260,7 @@ export const getBarbershopsByServiceName = async (
       return []
     }
 
-    return (oldData as any[]).map((shop) => ({
+    return (oldData || []).map((shop) => ({
       ...shop,
       services: [],
     }))
@@ -271,10 +271,10 @@ export const getBarbershopsByServiceName = async (
   }
 
   // Filter on client side - barbershops that have at least one service matching the search
-  const filtered = (data as any[])
+  const filtered = (data || [])
     .filter((shop) =>
       (shop.services || []).some(
-        (service: any) =>
+        (service: Service) =>
           service.deleted_at === null &&
           service.name.toLowerCase().includes(serviceName.toLowerCase())
       )
@@ -282,7 +282,7 @@ export const getBarbershopsByServiceName = async (
     .map((shop) => ({
       ...shop,
       services: (shop.services || []).filter(
-        (s: any) => s.deleted_at === null
+        (s: Service) => s.deleted_at === null
       ),
     }))
 

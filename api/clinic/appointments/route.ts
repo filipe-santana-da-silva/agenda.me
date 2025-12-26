@@ -81,7 +81,7 @@ export async function GET(request: Request) {
     }
 
     // Transform data to include customer and service info at top level
-    const transformedAppointments = appointments.map((apt: any) => {
+    const transformedAppointments = appointments.map((apt: Record<string, unknown>) => {
       // Normalize appointment_date to YYYY-MM-DD string so frontend grouping matches
       const appointmentDateStr = apt.appointment_date ? new Date(apt.appointment_date).toISOString().split('T')[0] : null
 

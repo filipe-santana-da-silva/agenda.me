@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    let subscription: any = null;
+    let subscription: ReturnType<typeof Object.prototype.constructor> | null = null;
 
     async function init() {
       setIsLoading(true);
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           init().catch(() => {});
         });
         // data may contain a subscription depending on SDK
-        subscription = (data as any)?.subscription ?? null;
+        subscription = (data as { subscription?: unknown })?.subscription ?? null;
       } catch (e) {
         // ignore
       }
@@ -98,9 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
-      if (subscription && typeof subscription.unsubscribe === "function") {
+      if (subscription && typeof (subscription as { unsubscribe: () => void })?.unsubscribe === "function") {
         try {
-          subscription.unsubscribe();
+          (subscription as { unsubscribe: () => void }).unsubscribe();
         } catch (e) {
           // ignore
         }

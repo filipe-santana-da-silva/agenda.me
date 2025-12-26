@@ -23,8 +23,8 @@ export async function POST(req: Request) {
 
     let customer = null;
     let customerId = "guest";
-    let guestName = bookingUser?.name;
-    let guestPhone = bookingUser?.phone;
+    const guestName = bookingUser?.name;
+    const guestPhone = bookingUser?.phone;
 
     // Se o usuário está autenticado, tenta buscar seus dados de cliente
     if (user) {

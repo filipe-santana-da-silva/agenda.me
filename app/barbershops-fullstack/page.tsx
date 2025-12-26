@@ -17,7 +17,7 @@ export default async function BarbershopsPage({ searchParams }: SearchPageProps)
   const params = await searchParams
   const search = params.search || ""
 
-  let barbershops = search
+  const barbershops = search
     ? await getBarbershopsByServiceName(search)
     : await getBarbershops()
 

@@ -17,7 +17,8 @@ export default function BookingLogin({ onLogin }: { onLogin: (user: { name: stri
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
-  const { setUser } = useAuth ? useAuth() : { setUser: undefined };
+  const authContext = useAuth();
+  const { setUser } = authContext || { setUser: undefined };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,8 +67,9 @@ export default function BookingLogin({ onLogin }: { onLogin: (user: { name: stri
       if (setUser) setUser({ id: "", email: "", role: "", name: customerData.name, phone: customerData.phone });
       onLogin(customerData);
       router.push("/booking");
-    } catch (err: any) {
-      setError(err.message || "Erro ao processar login");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao processar login";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Extrair horários ocupados
     const occupiedTimes = new Set(
-      (bookings || []).map((booking: any) =>
+      (bookings || []).map((booking: Record<string, unknown>) =>
         format(new Date(booking.appointment_date), "HH:mm")
       )
     );

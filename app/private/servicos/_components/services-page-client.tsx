@@ -51,7 +51,7 @@ export function ServicesPageClient() {
 
       if (error) throw error
       setServices(data || [])
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao carregar serviços')
     } finally {
       setLoading(false)
@@ -69,7 +69,7 @@ export function ServicesPageClient() {
       toast.success('Serviço removido com sucesso')
       setDeleteConfirm(null)
       loadServices()
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao remover serviço')
     }
   }

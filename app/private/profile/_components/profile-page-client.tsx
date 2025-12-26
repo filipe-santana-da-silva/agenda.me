@@ -144,7 +144,7 @@ export function ProfilePageClient() {
         address: profileData.address || '',
         bio: profileData.bio || ''
       })
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       const message = err?.message || 'Erro ao carregar perfil'
       setError(message)
       toast.error(message)
@@ -203,7 +203,7 @@ export function ProfilePageClient() {
       setAvatarUrl(publicUrl)
       localStorage.setItem(`avatar_${user?.id}`, publicUrl)
       toast.success('Foto atualizada com sucesso!')
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao fazer upload')
     } finally {
       setUploading(false)
@@ -228,7 +228,7 @@ export function ProfilePageClient() {
 
       toast.success('Perfil atualizado com sucesso!')
       fetchUserProfile()
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error(err.message || 'Erro ao atualizar perfil')
     } finally {
       setSaving(false)
@@ -240,7 +240,7 @@ export function ProfilePageClient() {
       logout()
       toast.success('Desconectado com sucesso')
       router.push('/login')
-    } catch (err: any) {
+    } catch (err: Record<string, unknown>) {
       toast.error('Erro ao sair da conta')
     }
   }

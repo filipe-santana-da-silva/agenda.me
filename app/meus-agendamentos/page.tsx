@@ -88,7 +88,7 @@ const MeusAgendamentosPage = () => {
 
         // Buscar agendamentos do cliente - TODOS os agendamentos (passados e futuros)
         // Usar paginação para garantir que carrega TODOS os registros
-        let allAppointments: any[] = [];
+        let allAppointments: Record<string, unknown>[] = [];
         let hasMore = true;
         let from = 0;
         const pageSize = 500;
@@ -134,23 +134,25 @@ const MeusAgendamentosPage = () => {
 
         // Log para debug - DETALHADO
         console.log(`Total de agendamentos encontrados: ${appointmentsData.length}`, appointmentsData);
-        console.log("Datas dos agendamentos:", appointmentsData.map((a: any) => a.appointment_date));
+        console.log("Datas dos agendamentos:", appointmentsData.map((a) => (a as Record<string, unknown>).appointment_date));
         
         // Separar por data
-        const byDate: Record<string, any[]> = {};
-        appointmentsData.forEach((a: any) => {
-          if (!byDate[a.appointment_date]) byDate[a.appointment_date] = [];
-          byDate[a.appointment_date].push(a);
+        const byDate: Record<string, Record<string, unknown>[]> = {};
+        appointmentsData.forEach((a) => {
+          const appointment = a as Record<string, unknown>;
+          const date = appointment.appointment_date as string;
+          if (!byDate[date]) byDate[date] = [];
+          byDate[date].push(a);
         });
         console.log("Agendamentos agrupados por data:", byDate);
 
         // Extrair IDs únicos
-        const serviceIds = [...new Set(appointmentsData.map((a: any) => a.service_id).filter(Boolean))];
-        const professionalIds = [...new Set(appointmentsData.map((a: any) => a.professional_id).filter(Boolean))];
+        const serviceIds = [...new Set(appointmentsData.map((a) => (a as Record<string, unknown>).service_id).filter(Boolean))];
+        const professionalIds = [...new Set(appointmentsData.map((a) => (a as Record<string, unknown>).professional_id).filter(Boolean))];
 
-        let servicesMap: any = {};
-        let barbershopsMap: any = {};
-        let employeesMap: any = {};
+        let servicesMap: Record<string, Record<string, unknown>> = {};
+        let barbershopsMap: Record<string, Record<string, unknown>> = {};
+        let employeesMap: Record<string, Record<string, unknown>> = {};
 
         // Buscar serviços específicos (apenas os usados nos agendamentos)
         if (serviceIds.length > 0) {
@@ -164,12 +166,12 @@ const MeusAgendamentosPage = () => {
               console.error("Erro ao buscar serviços:", servicesError);
             } else if (servicesData && servicesData.length > 0) {
               servicesMap = Object.fromEntries(
-                servicesData.map((s: any) => [s.id, s])
+                servicesData.map((s) => [s.id, s])
               );
               console.log(`Serviços carregados: ${servicesData.length}`, servicesData);
 
               // Buscar barbearias dos serviços encontrados
-              const barbershopIds = [...new Set(servicesData.map((s: any) => s.barbershop_id).filter(Boolean))];
+              const barbershopIds = [...new Set(servicesData.map((s) => s.barbershop_id).filter(Boolean))];
               if (barbershopIds.length > 0) {
                 const { data: barbershopsData, error: barbershopsError } = await supabase
                   .from("barbershops")
@@ -180,7 +182,7 @@ const MeusAgendamentosPage = () => {
                   console.error("Erro ao buscar barbearias:", barbershopsError);
                 } else if (barbershopsData && barbershopsData.length > 0) {
                   barbershopsMap = Object.fromEntries(
-                    barbershopsData.map((b: any) => [b.id, b])
+                    barbershopsData.map((b) => [b.id, b])
                   );
                   console.log(`Barbearias carregadas: ${barbershopsData.length}`, barbershopsData);
                 }
@@ -203,7 +205,7 @@ const MeusAgendamentosPage = () => {
               console.error("Erro ao buscar profissionais:", employeesError);
             } else if (employeesData && employeesData.length > 0) {
               employeesMap = Object.fromEntries(
-                employeesData.map((e: any) => [e.id, e])
+                employeesData.map((e) => [e.id, e])
               );
               console.log(`Profissionais carregados: ${employeesData.length}`, employeesData);
             }
@@ -212,37 +214,39 @@ const MeusAgendamentosPage = () => {
           }
         }
 
-        const formattedBookings = (appointmentsData || []).map((booking: any) => {
-          const serviceData = servicesMap[booking.service_id];
-          const barbershopData = barbershopsMap[serviceData?.barbershop_id];
-          const employeeData = employeesMap[booking.professional_id];
+        const formattedBookings = (appointmentsData || []).map((booking) => {
+          const b = booking as Record<string, unknown>;
+          const serviceData = servicesMap[b.service_id as string] as Record<string, unknown> | undefined;
+          const barbershopData = barbershopsMap[(serviceData?.barbershop_id as string) ?? ""] as Record<string, unknown> | undefined;
+          const employeeData = employeesMap[b.professional_id as string] as Record<string, unknown> | undefined;
           
           return {
-            id: booking.id,
+            id: b.id,
             barbershop: {
-              name: barbershopData?.name || "Barbearia",
-              image_url: barbershopData?.image_url || "/default-barbershop.png",
+              name: (barbershopData?.name as string) || "Barbearia",
+              image_url: (barbershopData?.image_url as string) || "/default-barbershop.png",
             },
             service: {
-              name: serviceData?.name || "Serviço",
+              name: (serviceData?.name as string) || "Serviço",
               image_url: "/default-service.png",
-              price: serviceData?.price || 0,
+              price: (serviceData?.price as number) || 0,
             },
             professional: {
-              name: employeeData?.name || "Profissional",
+              name: (employeeData?.name as string) || "Profissional",
             },
-            appointment_date: booking.appointment_date,
-            appointment_time: booking.appointment_time,
-            status: booking.status || "pending",
+            appointment_date: b.appointment_date,
+            appointment_time: b.appointment_time,
+            status: b.status || "pending",
           };
         });
         
         console.log(`Agendamentos formatados (${formattedBookings.length}):`, formattedBookings);
         
         setBookings(formattedBookings);
-      } catch (err: any) {
-        console.error("Erro fatal ao buscar agendamentos:", err);
-        setError(err?.message || "Erro ao buscar agendamentos");
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        console.error("Erro fatal ao buscar agendamentos:", error);
+        setError(error.message || "Erro ao buscar agendamentos");
         setBookings([]);
       } finally {
         setLoading(false);

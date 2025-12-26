@@ -114,7 +114,7 @@ export default function PlanosPage() {
       } else {
         throw new Error('URL do checkout não retornada')
       }
-    } catch (error: any) {
+    } catch (error: Record<string, unknown>) {
       console.error('Payment error:', error)
       toast.error(error.message || 'Erro ao processar pagamento')
     } finally {

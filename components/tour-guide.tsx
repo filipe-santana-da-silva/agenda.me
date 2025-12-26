@@ -38,18 +38,10 @@ export function TourGuide() {
   const [isActive, setIsActive] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [position, setPosition] = useState({ top: 0, left: 0 })
-  const [mounted, setMounted] = useState(false)
-  const [checkCount, setCheckCount] = useState(0)
-
-  useEffect(() => {
-    setMounted(true)
-    console.log('TourGuide montado')
-  }, [])
+  const [mounted, setMounted] = useState(true)
 
   // Verificar flag periodicamente quando montado
   useEffect(() => {
-    if (!mounted) return
-
     const interval = setInterval(() => {
       const startTour = localStorage.getItem('start_tour')
       if (startTour === 'true') {
@@ -186,12 +178,12 @@ export function TourGuide() {
   return (
     <>
       {/* Overlay escuro */}
-      <div className="fixed inset-0 bg-black/50 z-[9998]" onClick={handleClose} />
+      <div className="fixed inset-0 bg-black/50 z-9998" onClick={handleClose} />
       
       {/* Destaque do elemento */}
       {targetElement && (
         <div
-          className="fixed z-[9999] pointer-events-none"
+          className="fixed z-9999 pointer-events-none"
           style={{
             top: targetElement.getBoundingClientRect().top - 4,
             left: targetElement.getBoundingClientRect().left - 4,
@@ -206,7 +198,7 @@ export function TourGuide() {
 
       {/* Card flutuante */}
       <Card
-        className="fixed z-[10000] w-[300px] shadow-2xl animate-in fade-in slide-in-from-bottom-4"
+        className="fixed z-10000 w-75 shadow-2xl animate-in fade-in slide-in-from-bottom-4"
         style={{ top: position.top, left: position.left }}
       >
         <CardContent className="p-4">

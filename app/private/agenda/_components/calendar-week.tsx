@@ -18,12 +18,12 @@ interface CalendarWeekProps {
     id: string
     appointmentdate: string
     time: string
-    durationhours?: number
+    durationhours?: number | undefined
     contractorname: string
     phone: string
     eventname?: string | null
     color_index?: number | null
-    service?: { duration: number }
+    service?: { duration: number } | null
   }>
   onDateSelect: (date: string) => void
   selectedDate: string

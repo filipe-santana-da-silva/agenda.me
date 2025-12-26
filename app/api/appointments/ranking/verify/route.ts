@@ -13,9 +13,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'server not configured' }, { status: 500 })
     }
 
-    const body = await request.json().catch(() => ({})) as any
-    const appointmentId: string | undefined = body.appointmentId
-    const limit: number = body.limit && Number(body.limit) > 0 ? Number(body.limit) : 50
+    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const appointmentId: string | undefined = (body as Record<string, unknown>).appointmentId as string | undefined
+    const limit: number = (body as Record<string, unknown>).limit && Number((body as Record<string, unknown>).limit) > 0 ? Number((body as Record<string, unknown>).limit) : 50
 
     const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
@@ -33,9 +33,10 @@ export async function POST(request: Request) {
 
     const rawCount = Array.isArray(data) ? data.length : 0
     return NextResponse.json({ rawCount, sample: data ?? [] })
-  } catch (e: any) {
-    console.error('appointments/ranking/verify endpoint error', e)
-    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 })
+  } catch (e) {
+    const error = e instanceof Error ? e : new Error(String(e))
+    console.error('appointments/ranking/verify endpoint error', error)
+    return NextResponse.json({ error: (e as Record<string, unknown>)?.message ?? String(e) }, { status: 500 })
   }
 }
 

@@ -102,7 +102,7 @@ export async function POST(req: Request) {
       .eq("appointment_time", appointmentTime)
       .eq("status", "confirmed")
 
-    if ((existingAppointments as any[] || []).length > 0) {
+    if ((existingAppointments as Array<Record<string, unknown>> || []).length > 0) {
       return NextResponse.json(
         { message: "Horário não disponível" },
         { status: 409 }

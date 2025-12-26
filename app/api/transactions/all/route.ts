@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(transactions)
-  } catch (error: any) {
+  } catch (error: Record<string, unknown>) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

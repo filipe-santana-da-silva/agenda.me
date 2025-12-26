@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { createClient } from "@/utils/supabase/client"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
@@ -12,8 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, CheckCircle2, User, Scissors, Clock, MapPin } from "lucide-react"
-import { AppointmentCalendar } from "@/app/components/appointment-calendar"
+import { AlertCircle, CheckCircle2, User, Scissors, MapPin } from "lucide-react"
 import { CalendarWithAppointments } from "@/app/components/calendar-with-appointments"
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -22,7 +20,7 @@ type Customer = { id: string; name: string; phone: string }
 type Service = { id: string; name: string; duration: number; price: number; commission_rate?: number }
 type Professional = { id: string; name: string; email: string; position?: string }
 
-export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
+export function NewAppointmentClient() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const supabase = createClient()
@@ -39,32 +37,14 @@ export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [professionals, setProfessionals] = useState<Professional[]>([])
-  const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Time options (30-minute intervals from 08:00 to 19:00)
-  const timeOptions = Array.from({ length: 23 }, (_, i) => {
-    const hour = 8 + Math.floor(i / 2)
-    const minute = i % 2 === 0 ? "00" : "30"
-    return `${String(hour).padStart(2, "0")}:${minute}`
-  })
-
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setFetching(true)
       setError(null)
-
-      // Use localStorage userId
-      const localUserId = localStorage.getItem('userId')
-      if (localUserId) {
-        setUserId(localUserId)
-      }
 
       // Load customers
       const { data: customersData, error: customersError } = await supabase
@@ -94,14 +74,18 @@ export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
       setCustomers(customersData || [])
       setServices(servicesData || [])
       setProfessionals(professionalsData || [])
-    } catch (err: any) {
-      const message = err?.message || "Erro ao carregar dados"
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao carregar dados"
       setError(message)
       toast.error(message)
     } finally {
       setFetching(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -223,8 +207,8 @@ export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
 
       toast.success("Agendamento criado com sucesso!")
       router.push("/private/agenda")
-    } catch (err: any) {
-      const message = err?.message || "Erro ao criar agendamento"
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao criar agendamento"
       setError(message)
       toast.error(message)
     } finally {
@@ -246,7 +230,7 @@ export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
   return (
     <>
       <Toaster />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 p-4 md:p-8">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 p-4 md:p-8">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="mb-8">
@@ -282,14 +266,14 @@ export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
             {/* Right Column - Form Fields */}
             <div className="space-y-4">
               {/* Summary Card */}
-              <Card className="border-2 border-blue-200 dark:border-slate-600 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 dark:bg-slate-800">
+              <Card className="border-2 border-blue-200 dark:border-slate-600 shadow-lg bg-linear-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 dark:bg-slate-800">
                 <CardHeader>
                   <CardTitle className="text-lg text-blue-900 dark:text-slate-100">Resumo</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {date && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-xs text-gray-600 dark:text-slate-300 uppercase font-semibold">Data</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
@@ -303,7 +287,7 @@ export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
                   )}
                   {time && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-xs text-gray-600 dark:text-slate-300 uppercase font-semibold">Horário</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{time.substring(0, 5)}</p>
@@ -312,7 +296,7 @@ export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
                   )}
                   {customerId && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-xs text-gray-600 dark:text-slate-300 uppercase font-semibold">Cliente</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
@@ -323,7 +307,7 @@ export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
                   )}
                   {serviceId && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-xs text-gray-600 dark:text-slate-300 uppercase font-semibold">Serviço</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
@@ -334,7 +318,7 @@ export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
                   )}
                   {professionalId && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-xs text-gray-600 dark:text-slate-300 uppercase font-semibold">Profissional</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
@@ -437,7 +421,7 @@ export function NewAppointmentClient({ clinicId }: { clinicId?: string }) {
                       <Button
                         type="submit"
                         disabled={loading || !date || !time || !customerId}
-                        className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-200"
+                        className="w-full h-12 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-200"
                       >
                         {loading ? "Salvando..." : "Agendar"}
                       </Button>
