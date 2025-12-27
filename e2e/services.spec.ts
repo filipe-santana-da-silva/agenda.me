@@ -4,32 +4,34 @@ test.describe('Services Page', () => {
   test('should load and display services', async ({ page }) => {
     await page.goto('/private/servicos')
     
-    // Esperar pela página de serviços carregar
-    await expect(page.locator('text=Serviços')).toBeVisible()
+    // Esperar pelo heading de serviços carregar (more specific locator)
+    await expect(page.getByRole('heading', { name: 'Serviços' })).toBeVisible()
     
-    // Verificar se há um botão de adicionar
-    const addButton = page.locator('button:has-text("Novo Serviço")')
+    // Verificar se há um botão de adicionar usando role
+    const addButton = page.getByRole('button', { name: 'Novo Serviço' })
     await expect(addButton).toBeVisible()
   })
 
   test('should open service dialog when clicking add', async ({ page }) => {
     await page.goto('/private/servicos')
     
-    // Esperar o botão aparecer
-    await page.locator('button:has-text("Novo Serviço")').first().waitFor({ state: 'visible' })
+    // Esperar o botão aparecer usando role (more reliable)
+    const addButton = page.getByRole('button', { name: 'Novo Serviço' })
+    await expect(addButton).toBeVisible()
     
     // Clicar no botão de adicionar
-    await page.locator('button:has-text("Novo Serviço")').first().click()
+    await addButton.click()
     
-    // Verificar se dialog abriu
-    await expect(page.locator('text=Novo Serviço')).toBeVisible()
+    // Verificar se dialog abriu (wait for dialog heading)
+    await expect(page.getByRole('heading', { name: 'Novo Serviço' })).toBeVisible()
   })
 
   test('should display services in table', async ({ page }) => {
     await page.goto('/private/servicos')
     
-    // Esperar pela tabela
-    await expect(page.locator('table')).toBeVisible()
+    // Esperar pela tabela com timeout aumentado
+    const table = page.getByRole('table')
+    await expect(table).toBeVisible({ timeout: 10000 })
   })
 })
 
