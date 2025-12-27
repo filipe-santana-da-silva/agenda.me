@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import AuthProviderWrapper from "@/contexts/AuthProviderWrapper";
 import { Toaster } from '@/components/ui/sonner'
@@ -7,7 +7,11 @@ import { Toaster } from '@/components/ui/sonner'
 export const metadata: Metadata = {
   title: "Dashboard - agenda.me",
   description: "app de gestão interno",
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
