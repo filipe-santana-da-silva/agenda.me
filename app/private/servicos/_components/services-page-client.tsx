@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Trash2, Edit2, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import Image from 'next/image'
 import { ServiceDialog } from './service-dialog'
 import { DeleteConfirmDialog } from './delete-confirm-dialog'
 import {
@@ -24,6 +25,7 @@ type Service = {
   name: string
   duration: string
   price: number | null
+  image_url?: string | null
   created_at?: string
 }
 
@@ -203,6 +205,7 @@ export function ServicesPageClient() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">Imagem</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Duração</TableHead>
                   <TableHead>Preço</TableHead>
@@ -212,6 +215,22 @@ export function ServicesPageClient() {
               <TableBody>
                 {filteredServices.map((service) => (
                   <TableRow key={service.id}>
+                    <TableCell className="text-xs">
+                      {service.image_url ? (
+                        <div className="relative w-10 h-10">
+                          <Image 
+                            src={service.image_url} 
+                            alt={service.name}
+                            fill
+                            className="rounded object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-xs text-gray-500">
+                          -
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{service.name}</TableCell>
                     <TableCell>{parseDuration(service.duration)}</TableCell>
                     <TableCell>

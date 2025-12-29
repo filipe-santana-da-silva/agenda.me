@@ -213,22 +213,21 @@ const ChatPage = () => {
       try {
         const { data, error } = await supabase
           .from("services")
-          .select("id, name, duration, price");
+          .select("id, name, duration, price, image_url");
         
         if (error) {
           console.error("Erro ao buscar serviços:", error);
           setServices(staticServices);
         } else if (data && data.length > 0) {
           console.log("Serviços encontrados no banco:", data);
-          // Mapear os serviços do banco com as imagens estáticas
-          const servicesWithData: Service[] = data.map((service, index: number) => {
-            const staticService = staticServices[index % staticServices.length];
+          // Mapear os serviços do banco com as imagens reais
+          const servicesWithData: Service[] = data.map((service: Record<string, unknown>) => {
             return {
               id: String(service.id),
               name: String(service.name),
-              price: typeof service.price === "number" ? service.price : staticService.price,
-              duration: String(service.duration || staticService.duration),
-              imageUrl: staticService.imageUrl,
+              price: typeof service.price === "number" ? service.price : 0,
+              duration: String(service.duration || ""),
+              imageUrl: service.image_url ? String(service.image_url) : undefined,
             };
           });
           console.log("Serviços mapeados:", servicesWithData);
@@ -248,20 +247,20 @@ const ChatPage = () => {
       try {
         const { data, error } = await supabase
           .from("employees")
-          .select("id, name, position, department");
+          .select("id, name, position, department, image_url");
         
         if (error) {
           console.error("Erro ao buscar profissionais:", error);
           setProfessionals(staticProfessionals);
         } else if (data && data.length > 0) {
           console.log("Profissionais encontrados no banco:", data);
-          // Mapear os profissionais do banco com as imagens estáticas
-          const professionalsWithImages: Professional[] = data.map((prof, index: number) => ({
+          // Mapear os profissionais do banco com as imagens reais
+          const professionalsWithImages: Professional[] = data.map((prof: Record<string, unknown>) => ({
             id: String(prof.id),
             name: String(prof.name),
             position: prof.position ? String(prof.position) : undefined,
             department: prof.department ? String(prof.department) : undefined,
-            imageUrl: staticProfessionals[index % staticProfessionals.length].imageUrl,
+            imageUrl: prof.image_url ? String(prof.image_url) : undefined,
           }));
           console.log("Profissionais mapeados:", professionalsWithImages);
           setProfessionals(professionalsWithImages);

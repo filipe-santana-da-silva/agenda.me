@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
@@ -22,6 +22,14 @@ const BarbershopCarousel = ({
   carouselImages,
 }: BarbershopCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Precarregar todas as imagens do carrossel
+  useEffect(() => {
+    carouselImages.forEach((image) => {
+      const img = new window.Image();
+      img.src = image.imageUrl;
+    });
+  }, [carouselImages]);
 
   const handlePrevious = () => {
     setCurrentIndex((prev) =>
@@ -47,11 +55,11 @@ const BarbershopCarousel = ({
           alt={currentImage.name}
           fill
           priority
-          quality={95}
+          quality={75}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover group-hover:opacity-80 transition-opacity"
+          className="object-cover group-hover:opacity-80 transition-opacity duration-300"
         />
-        <div className="absolute top-0 left-0 z-10 h-full w-full bg-linear-to-t from-black to-transparent" />
+        <div className="absolute top-0 left-0 z-10 h-full w-full bg-gradient-to-t from-black to-transparent" />
       </div>
 
       {/* Info */}

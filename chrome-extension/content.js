@@ -1,76 +1,87 @@
-// Content Script para WhatsApp Web
-let draggedCatalog = null;
-let draggedElement = null;
-let dragMode = false;
-let currentCatalogId = null;
 
-console.log(' Content Script carregado na página');
+console.log('✅ Content Script carregado na página');
 
 // Variável global para armazenar o catálogo atual
 let currentCatalogForSending = null;
 
 // Escutar mensagens do popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log(' Mensagem recebida:', request);
+    console.log('📨 Mensagem recebida:', request);
     
-    if (request.action === 'enableDragMode') {
-        console.log('Ativando modo drag para catálogo:', request.catalog?.id);
-        enableDragMode(request.catalog);
-        sendResponse({ success: true });
-    }
-    
-    if (request.action === 'sendCatalogMessage') {
-        console.log(' Enviando mensagem do catálogo...');
-        sendCatalogMessage(request.message, request.encodedMessage);
-        sendResponse({ success: true });
-    }
-    
-    if (request.action === 'confirmSendToContact') {
-        console.log(' Confirmação de envio para contato');
-        sendCatalogToCurrentContact(request.message);
-        sendResponse({ success: true });
-    }
-    
-    if (request.action === 'showAppointments') {
-        console.log(' Mostrando agendamentos do dia:', request.date);
-        showAppointmentsCard(request.appointments, request.date);
-        sendResponse({ success: true });
-    }
-    
-    if (request.action === 'showNewAppointmentForm') {
-        console.log('➕ Mostrando formulário de novo agendamento');
-        showNewAppointmentForm(request.formData);
-        sendResponse({ success: true });
+    try {
+        if (request.action === 'enableDragMode') {
+            console.log('Ativando modo drag para catálogo:', request.catalog?.id);
+            enableDragMode(request.catalog);
+            sendResponse({ success: true });
+            return true;
+        }
+        
+        if (request.action === 'sendCatalogMessage') {
+            console.log('📤 Enviando mensagem do catálogo...');
+            // Armazenar o catálogo completo com imagens
+            currentCatalogForSending = {
+                message: request.message,
+                encodedMessage: request.encodedMessage,
+                catalog: request.catalog
+            };
+            sendCatalogMessage(request.message, request.encodedMessage, request.catalog);
+            sendResponse({ success: true });
+            return true;
+        }
+        
+        if (request.action === 'confirmSendToContact') {
+            console.log('✅ Confirmação de envio para contato');
+            sendCatalogToCurrentContact(request.message);
+            sendResponse({ success: true });
+            return true;
+        }
+        
+        if (request.action === 'showAppointments') {
+            console.log('📅 Mostrando agendamentos do dia:', request.date);
+            console.log('📊 Total de agendamentos:', request.appointments?.length || 0);
+            if (request.appointments && request.appointments.length > 0) {
+                console.log('📝 Primeiro agendamento:', request.appointments[0]);
+            }
+            showAppointmentsCard(request.appointments, request.date);
+            sendResponse({ success: true, message: 'Agendamentos carregados com sucesso' });
+            return true;
+        }
+        
+        if (request.action === 'showNewAppointmentForm') {
+            console.log('➕ Mostrando formulário de novo agendamento');
+            showNewAppointmentForm(request.formData);
+            sendResponse({ success: true });
+            return true;
+        }
+    } catch (error) {
+        console.error('❌ Erro ao processar mensagem:', error);
+        sendResponse({ success: false, error: error.message });
+        return true;
     }
 });
 
 // Função para formatar mensagem do catálogo para envio
 function formatCatalogMessageForCard(catalog) {
-    let message = `*${catalog.name.toUpperCase()}*\n`;
-    message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+    let message = `${catalog.name}\n`;
     
     if (catalog.description) {
         message += `${catalog.description}\n\n`;
     }
     
     if (catalog.items && catalog.items.length > 0) {
-        message += `*ITENS DISPONÍVEIS:*\n\n`;
-        catalog.items.forEach((item, index) => {
-            message += `${index + 1}. *${item.name || 'Item'}*\n`;
-            if (item.description) {
-                message += `   ${item.description}\n`;
-            }
+        catalog.items.forEach((item) => {
+            message += `| ${item.name || 'Item'}\n`;
             if (item.price) {
-                message += `   R$ ${parseFloat(item.price).toFixed(2)}\n`;
+                message += `  R$ ${parseFloat(item.price).toFixed(2)}\n`;
+            }
+            if (item.description) {
+                message += `  ${item.description}\n`;
             }
             message += `\n`;
         });
     }
     
-    message += `━━━━━━━━━━━━━━━━━━━━\n`;
-    message += `_Criado com Agenda.me_`;
-    
-    return message;
+    return message.trim();
 }
 
 // Modo drag para inserir catálogo na tela
@@ -150,11 +161,17 @@ function enableDragMode(catalog) {
 }
 
 // Enviar mensagem do catálogo no WhatsApp
-function sendCatalogMessage(message, encodedMessage) {
+function sendCatalogMessage(message, encodedMessage, catalog) {
     console.log('Abrindo funcionalidade de envio no WhatsApp...');
     
-    // Armazenar a mensagem para depois enviar
-    currentCatalogForSending = { message, encodedMessage };
+    // Armazenar a mensagem e catálogo para depois enviar
+    currentCatalogForSending = { 
+        message, 
+        encodedMessage,
+        catalog: catalog || null
+    };
+    
+    console.log('📦 Catálogo armazenado para envio:', currentCatalogForSending.catalog);
     
     // Mostrar overlay instruindo o usuário
     showContactSelectionOverlay();
@@ -365,7 +382,6 @@ function sendCatalogToCurrentContact(message) {
     console.log('Carregando catálogo no input de mensagem...');
     console.log('📝 Mensagem a carregar:', message.substring(0, 50) + '...');
     
-    let messageInput = null;
     
     // Usar a função auxiliar para aguardar o input
     waitForMessageInput()
@@ -434,10 +450,27 @@ function sendCatalogToCurrentContact(message) {
                                     console.log(' execCommand falhou, tentando método alternativo');
                                 }
                                 
-                                // Método 2: Inserção direta com eventos
+                                // Método 2: Inserção com formatação de quebra de linhas preservadas
                                 try {
-                                    messageInput.textContent = message;
-                                    messageInput.innerText = message;
+                                    // Limpar o input primeiro
+                                    messageInput.innerHTML = '';
+                                    
+                                    // Dividir mensagem em linhas e criar nós DOM preservando quebras
+                                    const lines = message.split('\n');
+                                    
+                                    lines.forEach((line, index) => {
+                                        // Adicionar o texto da linha
+                                        if (line.trim()) {
+                                            const textNode = document.createTextNode(line);
+                                            messageInput.appendChild(textNode);
+                                        }
+                                        
+                                        // Adicionar <br> entre linhas (menos na última)
+                                        if (index < lines.length - 1) {
+                                            const br = document.createElement('br');
+                                            messageInput.appendChild(br);
+                                        }
+                                    });
                                     
                                     // Posicionar cursor no final
                                     const range = document.createRange();
@@ -457,10 +490,10 @@ function sendCatalogToCurrentContact(message) {
                                     
                                     events.forEach(event => messageInput.dispatchEvent(event));
                                     
-                                    console.log('Texto inserido via método direto');
+                                    console.log('✅ Texto inserido com quebras de linha preservadas');
                                     return true;
                                 } catch (e) {
-                                    console.log(' Método direto falhou, usando simulação de digitação');
+                                    console.log(' Inserção com HTML falhou:', e.message);
                                     return false;
                                 }
                             }
@@ -472,14 +505,14 @@ function sendCatalogToCurrentContact(message) {
                             }
                             
                             // Se falhou, usar simulação de digitação como fallback
-                            console.log('Iniciando simulação de digitação como fallback...');
+                            console.log('Iniciando simulação de digitação com quebras de linha...');
                             
-                            let currentText = '';
-                            const chars = message.split('');
+                            const lines = message.split('\n');
+                            let lineIndex = 0;
                             
-                            function typeNextChar(index) {
-                                if (index >= chars.length) {
-                                    console.log(' SUCESSO! Mensagem carregada no input via simulação!');
+                            function typeNextLine() {
+                                if (lineIndex >= lines.length) {
+                                    console.log(' SUCESSO! Mensagem completa digitada!');
                                     
                                     // Disparar eventos finais
                                     const finalInputEvent = new Event('input', { bubbles: true });
@@ -494,34 +527,94 @@ function sendCatalogToCurrentContact(message) {
                                     return;
                                 }
                                 
-                                const char = chars[index];
-                                currentText += char;
+                                const line = lines[lineIndex];
+                                const chars = line.split('');
+                                let charIndex = 0;
                                 
-                                // Atualizar o conteúdo
-                                messageInput.textContent = currentText;
-                                messageInput.innerText = currentText;
-                                
-                                // Posicionar cursor no final
-                                try {
-                                    const range = document.createRange();
-                                    const selection = window.getSelection();
-                                    range.selectNodeContents(messageInput);
-                                    range.collapse(false);
-                                    selection.removeAllRanges();
-                                    selection.addRange(range);
-                                } catch (e) {
-                                    // Ignorar erros de cursor
+                                function typeNextChar() {
+                                    if (charIndex >= chars.length) {
+                                        // Fim da linha, adicionar quebra de linha
+                                        if (lineIndex < lines.length - 1) {
+                                            // Usar Shift+Enter para quebra de linha no WhatsApp
+                                            const shiftEnterEvent = new KeyboardEvent('keydown', {
+                                                key: 'Enter',
+                                                code: 'Enter',
+                                                shiftKey: true,
+                                                bubbles: true,
+                                                cancelable: true
+                                            });
+                                            messageInput.dispatchEvent(shiftEnterEvent);
+                                            
+                                            const shiftEnterEventUp = new KeyboardEvent('keyup', {
+                                                key: 'Enter',
+                                                code: 'Enter',
+                                                shiftKey: true,
+                                                bubbles: true
+                                            });
+                                            messageInput.dispatchEvent(shiftEnterEventUp);
+                                            
+                                            // Inserir uma quebra de linha de forma manual
+                                            try {
+                                                const br = document.createElement('br');
+                                                const sel = window.getSelection();
+                                                if (sel.rangeCount > 0) {
+                                                    const range = sel.getRangeAt(0);
+                                                    range.insertNode(br);
+                                                    range.setStartAfter(br);
+                                                    range.collapse(true);
+                                                    sel.removeAllRanges();
+                                                    sel.addRange(range);
+                                                }
+                                            } catch(e) {
+                                                // Fallback
+                                                messageInput.innerHTML += '<br>';
+                                            }
+                                            
+                                            const inputEvent = new Event('input', { bubbles: true });
+                                            messageInput.dispatchEvent(inputEvent);
+                                        }
+                                        
+                                        lineIndex++;
+                                        setTimeout(typeNextLine, 50);
+                                        return;
+                                    }
+                                    
+                                    const char = chars[charIndex];
+                                    
+                                    // Adicionar caractere como nó de texto (mantém a estrutura de <br>)
+                                    try {
+                                        const textNode = document.createTextNode(char);
+                                        messageInput.appendChild(textNode);
+                                    } catch (e) {
+                                        // Fallback: adicionar ao textContent
+                                        messageInput.textContent += char;
+                                    }
+                                    
+                                    // Posicionar cursor no final
+                                    try {
+                                        const range = document.createRange();
+                                        const selection = window.getSelection();
+                                        range.selectNodeContents(messageInput);
+                                        range.collapse(false);
+                                        selection.removeAllRanges();
+                                        selection.addRange(range);
+                                    } catch (e) {
+                                        // Ignorar erros de cursor
+                                    }
+                                    
+                                    // Disparar eventos de digitação
+                                    const inputEvent = new Event('input', { bubbles: true });
+                                    messageInput.dispatchEvent(inputEvent);
+                                    
+                                    // Continuar com o próximo caractere
+                                    charIndex++;
+                                    setTimeout(typeNextChar, 1);
                                 }
                                 
-                                // Disparar eventos de digitação
-                                const inputEvent = new Event('input', { bubbles: true });
-                                messageInput.dispatchEvent(inputEvent);
-                                
-                                // Continuar com o próximo caractere
-                                setTimeout(() => typeNextChar(index + 1), 5);
+                                typeNextChar();
                             }
                             
-                            typeNextChar(0);
+                            typeNextLine();
                             
                         }, 50);
                     }, 100);
@@ -546,6 +639,225 @@ function sendCatalogToCurrentContact(message) {
             
             alert('Erro: Não foi possível encontrar o campo de mensagem do WhatsApp.\n\nDicas:\n1. Certifique-se de ter selecionado um contato\n2. Verifique se a conversa está aberta\n3. Aguarde a página carregar completamente\n4. Tente recarregar a página do WhatsApp');
         });
+    
+    // Preparar imagens para envio após um tempo (para que a mensagem seja enviada primeiro)
+    if (currentCatalogForSending && currentCatalogForSending.catalog) {
+        console.log('⏳ Agendando envio de imagens...');
+        setTimeout(() => {
+            prepareCatalogImages(currentCatalogForSending.catalog);
+        }, 2000);
+    }
+}
+
+// Função para preparar e enviar as imagens do catálogo
+function prepareCatalogImages(catalog) {
+    if (!catalog) {
+        console.log('Nenhum catálogo com imagens para enviar');
+        return;
+    }
+    
+    console.log('🖼️ Preparando imagens do catálogo...');
+    
+    const imagesToSend = [];
+    
+    // Adicionar imagem do catálogo se existir
+    if (catalog.image_url) {
+        imagesToSend.push({
+            url: catalog.image_url,
+            name: catalog.name,
+            isHeader: true
+        });
+    }
+    
+    // Adicionar imagens dos produtos
+    if (catalog.items && catalog.items.length > 0) {
+        catalog.items.forEach((item, idx) => {
+            if (item.image_url) {
+                imagesToSend.push({
+                    url: item.image_url,
+                    name: item.name,
+                    price: item.price,
+                    isHeader: false,
+                    itemIndex: idx + 1
+                });
+            }
+        });
+    }
+    
+    console.log(`📸 Total de imagens encontradas: ${imagesToSend.length}`);
+    
+    if (imagesToSend.length === 0) {
+        console.log('Nenhuma imagem para enviar');
+        return;
+    }
+    
+    // Enviar as imagens de forma sequencial
+    sendImagesSequentially(imagesToSend);
+}
+
+// Função para enviar as imagens de forma sequencial
+function sendImagesSequentially(imagesToSend) {
+    let imageIndex = 0;
+    
+    function sendNextImage() {
+        if (imageIndex >= imagesToSend.length) {
+            console.log('✅ Todas as imagens foram enviadas!');
+            return;
+        }
+        
+        const imageData = imagesToSend[imageIndex];
+        console.log(`📸 [${imageIndex + 1}/${imagesToSend.length}] Enviando: ${imageData.name}`);
+        
+        sendImageFile(imageData, () => {
+            imageIndex++;
+            setTimeout(sendNextImage, 2000);
+        });
+    }
+    
+    sendNextImage();
+}
+
+// Função para enviar uma imagem como arquivo
+function sendImageFile(imageData, callback) {
+    try {
+        console.log(`⏳ Buscando imagem: ${imageData.url}`);
+        
+        // Fazer download da imagem
+        fetch(imageData.url)
+            .then(response => response.blob())
+            .then(blob => {
+                console.log(`✅ Imagem carregada (${(blob.size / 1024).toFixed(2)}KB)`);
+                
+                const fileName = `${imageData.name.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
+                const file = new File([blob], fileName, { type: 'image/jpeg' });
+                
+                // Injetar a imagem no campo de mensagem
+                injectImageToMessage(file, imageData, callback);
+                
+            })
+            .catch(error => {
+                console.error(`❌ Erro ao fazer download da imagem:`, error);
+                if (callback) callback();
+            });
+            
+    } catch (error) {
+        console.error('❌ Erro ao processar imagem:', error);
+        if (callback) callback();
+    }
+}
+
+// Função para injetar imagem na mensagem
+function injectImageToMessage(file, imageData, callback) {
+    try {
+        // Encontrar o input de arquivo do WhatsApp
+        const fileInput = document.querySelector('input[type="file"]');
+        
+        if (!fileInput) {
+            console.warn('⚠️ Input de arquivo não encontrado, criando um...');
+            createAndUseFileInput(file, imageData, callback);
+            return;
+        }
+        
+        console.log('📁 Injetando imagem no input de arquivo...');
+        
+        // Criar DataTransfer com a imagem
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        
+        // Atribuir os arquivos
+        fileInput.files = dataTransfer.files;
+        
+        // Disparar eventos para simular mudança de arquivo
+        const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+        const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+        
+        fileInput.dispatchEvent(changeEvent);
+        fileInput.dispatchEvent(inputEvent);
+        
+        console.log(`✅ Imagem injetada: ${file.name}`);
+        
+        // Aguardar o WhatsApp processar a imagem
+        setTimeout(() => {
+            // Encontrar o botão de envio e clicar
+            const sendButton = findSendButton();
+            if (sendButton) {
+                console.log('📤 Clicando no botão de envio...');
+                sendButton.click();
+            } else {
+                console.warn('⚠️ Botão de envio não encontrado');
+            }
+            
+            if (callback) callback();
+        }, 1200);
+        
+    } catch (error) {
+        console.error('❌ Erro ao injetar imagem:', error);
+        if (callback) callback();
+    }
+}
+
+// Função para criar e usar um input de arquivo
+function createAndUseFileInput(file, imageData, callback) {
+    try {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.style.display = 'none';
+        
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        input.files = dataTransfer.files;
+        
+        document.body.appendChild(input);
+        
+        const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+        input.dispatchEvent(changeEvent);
+        
+        setTimeout(() => {
+            document.body.removeChild(input);
+            if (callback) callback();
+        }, 1500);
+        
+    } catch (error) {
+        console.error('❌ Erro ao criar input de arquivo:', error);
+        if (callback) callback();
+    }
+}
+
+// Função para encontrar o botão de envio
+function findSendButton() {
+    const selectors = [
+        '[data-testid="send"]',
+        'button[aria-label="Enviar"]',
+        'button[title="Enviar"]',
+        '[role="button"][aria-label*="Enviar"]'
+    ];
+    
+    for (let selector of selectors) {
+        const btn = document.querySelector(selector);
+        if (btn && isElementVisible(btn)) {
+            return btn;
+        }
+    }
+    
+    // Procurar por botão com ícone de envio
+    const buttons = document.querySelectorAll('button');
+    for (let btn of buttons) {
+        if (isElementVisible(btn)) {
+            const ariaLabel = btn.getAttribute('aria-label') || '';
+            if (ariaLabel.includes('Enviar') || btn.innerHTML.includes('send')) {
+                return btn;
+            }
+        }
+    }
+    
+    return null;
+}
+
+// Função para clicar no botão de envio
+// Função auxiliar para verificar visibilidade
+function isElementVisible(el) {
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
 }
 
 // Criar card do catálogo
@@ -568,13 +880,13 @@ function createCatalogCard(catalog, x, y) {
         border-radius: 12px;
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
         z-index: 9999;
-        min-width: 320px;
+        min-width: 340px;
         max-width: 500px;
         user-select: none;
         border: 2px solid #667eea;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         overflow: hidden;
-        max-height: 80vh;
+        max-height: 85vh;
         display: flex;
         flex-direction: column;
     `;
@@ -584,28 +896,103 @@ function createCatalogCard(catalog, x, y) {
     console.log(' Estrutura do item:', items[0]);
     
     const itemsHTML = items.length > 0 ? `
-        <div style="flex: 1; overflow-y: auto; padding: 0 16px;">
-            <div style="margin: 12px 0; border-bottom: 1px solid #f0f0f0;">
+        <div style="flex: 1; overflow-y: auto; padding: 12px 16px;">
+            <div style="margin: 0;">
                 <h4 style="margin: 0 0 12px 0; color: #666; font-size: 12px; font-weight: 600; text-transform: uppercase;">Itens do Catálogo (${items.length}):</h4>
-                <div style="padding-bottom: 12px;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding-bottom: 12px;">
                     ${items.map((item, idx) => {
                         const itemName = item.name || item.title || item.product_name || 'Item sem nome';
                         const itemDesc = item.description || item.desc || '';
                         const itemPrice = item.price || item.valor || item.cost || '';
+                        const itemImage = item.image_url || '';
                         console.log(`Item ${idx}:`, item);
+                        console.log(`Item ${idx} image_url:`, itemImage);
+                        
+                        const uniqueId = `item-img-${Date.now()}-${idx}`;
                         return `
                             <div style="
-                                margin-bottom: 10px;
                                 padding: 10px;
                                 background: #f9f9f9;
-                                border-radius: 6px;
-                                border-left: 3px solid #667eea;
+                                border-radius: 8px;
+                                border: 1px solid #e8e8e8;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                text-align: center;
                             ">
-                                <div style="font-weight: 600; color: #333; font-size: 13px; margin-bottom: 4px;">
-                                    ${idx + 1}. ${itemName}
+                                <div id="${uniqueId}-wrapper" style="
+                                    width: 60px; 
+                                    height: 60px; 
+                                    border-radius: 6px; 
+                                    margin-bottom: 8px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    overflow: hidden;
+                                ">
+                                    ${itemImage && itemImage.trim() ? `
+                                        <img id="${uniqueId}" 
+                                             src="${itemImage}" 
+                                             alt="${itemName}" 
+                                             style="
+                                                width: 100%; 
+                                                height: 100%; 
+                                                border-radius: 6px; 
+                                                object-fit: cover;
+                                             "
+                                             crossorigin="anonymous"
+                                        />
+                                    ` : `
+                                        <div style="
+                                            width: 100%;
+                                            height: 100%;
+                                            border-radius: 6px; 
+                                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            color: white;
+                                            font-size: 24px;
+                                            font-weight: bold;
+                                        ">
+                                            ${itemName.charAt(0).toUpperCase()}
+                                        </div>
+                                    `}
                                 </div>
-                                ${itemDesc ? `<div style="color: #666; font-size: 12px; margin-bottom: 4px;">${itemDesc}</div>` : ''}
-                                ${itemPrice ? `<div style="color: #25d366; font-weight: 600; font-size: 13px;">R$ ${parseFloat(itemPrice).toFixed(2)}</div>` : ''}
+                                <script>
+                                    (function() {
+                                        const img = document.getElementById('${uniqueId}');
+                                        const wrapper = document.getElementById('${uniqueId}-wrapper');
+                                        if (img) {
+                                            img.onerror = function() {
+                                                console.log('Imagem falhou, mostrando placeholder');
+                                                wrapper.innerHTML = \`
+                                                    <div style="
+                                                        width: 100%;
+                                                        height: 100%;
+                                                        border-radius: 6px; 
+                                                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                                        display: flex;
+                                                        align-items: center;
+                                                        justify-content: center;
+                                                        color: white;
+                                                        font-size: 24px;
+                                                        font-weight: bold;
+                                                    ">
+                                                        ${itemName.charAt(0).toUpperCase()}
+                                                    </div>
+                                                \`;
+                                            };
+                                            img.onload = function() {
+                                                console.log('Imagem carregada com sucesso');
+                                            };
+                                        }
+                                    })();
+                                </script>
+                                <div style="font-weight: 600; color: #333; font-size: 12px; margin-bottom: 4px; line-height: 1.2;">
+                                    ${itemName}
+                                </div>
+                                ${itemPrice ? `<div style="color: #25d366; font-weight: 700; font-size: 12px;">R$ ${parseFloat(itemPrice).toFixed(2)}</div>` : ''}
                             </div>
                         `;
                     }).join('')}
@@ -686,11 +1073,15 @@ function createCatalogCard(catalog, x, y) {
         // Usar o mesmo fluxo do "Enviar 📱"
         console.log('📱 Enviando catálogo para WhatsApp:', catalog.name);
         
-        // Armazenar o catálogo para envio
+        // Armazenar o catálogo para envio - incluindo o catalog completo para as imagens
+        const message = formatCatalogMessageForCard(catalog);
         currentCatalogForSending = {
-            message: formatCatalogMessageForCard(catalog),
-            encodedMessage: encodeURIComponent(formatCatalogMessageForCard(catalog))
+            message: message,
+            encodedMessage: encodeURIComponent(message),
+            catalog: catalog
         };
+        
+        console.log('📦 Catálogo armazenado com imagens:', currentCatalogForSending.catalog);
         
         // Mostrar o overlay e botão flutuante
         showContactSelectionOverlay();
@@ -877,14 +1268,6 @@ function showAppointmentsCard(appointments, selectedDate) {
             const customerName = apt.customer?.name || apt.customer_name || apt.name || 'Cliente não informado';
             const serviceName = apt.service?.name || apt.service_name || 'Serviço não informado';
             const customerPhone = apt.customer?.phone || apt.phone || '';
-            const status = apt.status || 'pending';
-            
-            const statusText = {
-                'confirmed': 'Confirmado',
-                'completed': 'Concluído',
-                'cancelled': 'Cancelado',
-                'pending': 'Pendente'
-            }[status] || 'Pendente';
             
             const formattedDate = new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', {
                 weekday: 'long',
@@ -893,18 +1276,19 @@ function showAppointmentsCard(appointments, selectedDate) {
                 year: 'numeric'
             });
             
-            let message = `*AGENDAMENTO*\n`;
-            message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-            message += `*Data:* ${formattedDate}\n`;
-            message += `*Horário:* ${time}\n\n`;
-            message += `*Cliente:* ${customerName}\n`;
+            let lines = [];
+            lines.push('Agendamento                             .');
+            lines.push(`Data: ${formattedDate}                                               .`);
+            lines.push(`Horário: ${time}                                       .`);
+            lines.push('');
+            lines.push(`| ${customerName}`);
             if (customerPhone) {
-                message += `*Telefone:* ${customerPhone}\n`;
+                lines.push(`  ${customerPhone}`);
             }
-            message += `*Serviço:* ${serviceName}\n`;
-            message += `*Status:* ${statusText}\n\n`;
-            message += `━━━━━━━━━━━━━━━━━━━━\n`;
-            message += `_Criado com Agenda.me_`;
+            lines.push('');
+            lines.push(`|                                        ${serviceName}`);
+            
+            const message = lines.join('\n').trim();
             
             currentCatalogForSending = {
                 message: message,

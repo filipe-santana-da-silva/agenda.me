@@ -8,7 +8,6 @@ export type PagePermission =
   | "catalogos"
   | "financeiro"
   | "funcionarios"
-  | "avaliacoes"
   | "permissoes"
   | "profile"
   | "suporte"
@@ -32,8 +31,8 @@ export interface UserPermissions {
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, PagePermission[]> = {
-  ADMIN: ["agenda", "clientes", "servicos", "produtos", "catalogos", "financeiro", "funcionarios", "avaliacoes", "permissoes", "profile", "suporte", "planos"],
-  FUNCIONARIO: ["agenda", "clientes", "servicos", "produtos", "catalogos", "avaliacoes", "profile", "suporte"]
+  ADMIN: ["agenda", "clientes", "servicos", "produtos", "catalogos", "financeiro", "funcionarios", "permissoes", "profile", "suporte", "planos"],
+  FUNCIONARIO: ["agenda", "clientes", "servicos", "produtos", "catalogos", "profile", "suporte"]
 };
 
 export const ALL_PAGES: { id: PagePermission; label: string; category: string }[] = [
@@ -44,7 +43,6 @@ export const ALL_PAGES: { id: PagePermission; label: string; category: string }[
   { id: "catalogos", label: "Catálogos", category: "Operacional" },
   { id: "financeiro", label: "Financeiro", category: "Administração" },
   { id: "funcionarios", label: "Funcionários", category: "Administração" },
-  { id: "avaliacoes", label: "Avaliações", category: "Administração" },
   { id: "permissoes", label: "Permissões", category: "Administração" },
   { id: "planos", label: "Planos", category: "Configurações" },
   { id: "suporte", label: "Suporte de TI", category: "Configurações" },

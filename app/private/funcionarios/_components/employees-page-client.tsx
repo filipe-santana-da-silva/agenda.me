@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -50,6 +51,7 @@ type Employee = {
   lunch_start?: string
   lunch_end?: string
   break_intervals?: string
+  image_url?: string | null
   created_at?: string
 }
 
@@ -306,6 +308,7 @@ export function EmployeesPageClient() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">Foto</TableHead>
                     <TableHead className="text-xs">Nome</TableHead>
                     <TableHead className="text-xs hidden sm:table-cell">Email</TableHead>
                     <TableHead className="text-xs hidden md:table-cell">Telefone</TableHead>
@@ -318,6 +321,21 @@ export function EmployeesPageClient() {
                 <TableBody>
                   {filteredEmployees.map((employee) => (
                     <TableRow key={employee.id}>
+                      <TableCell className="w-12">
+                        {employee.image_url ? (
+                          <Image
+                            src={employee.image_url}
+                            alt={employee.name}
+                            width={40}
+                            height={40}
+                            className="w-10 h-10 rounded-md object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-md bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                            -
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium text-xs">{employee.name}</TableCell>
                       <TableCell className="text-xs hidden sm:table-cell">{employee.email}</TableCell>
                       <TableCell className="text-xs hidden md:table-cell">{employee.phone || '-'}</TableCell>

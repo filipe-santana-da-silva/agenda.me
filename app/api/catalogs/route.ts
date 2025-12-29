@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         for (const it of items) {
           let detail = null
           if (it.item_type === 'product') {
-            const { data } = await supabase.from('products').select('id, name, price').eq('id', it.item_id).single()
+            const { data } = await supabase.from('products').select('id, name, price, image_url').eq('id', it.item_id).single()
             detail = data
           } else if (it.item_type === 'service') {
             const { data } = await supabase.from('services').select('id, name, price, duration').eq('id', it.item_id).single()
@@ -55,13 +55,13 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
 
     const body = await request.json()
-    const { name, description, items } = body
+    const { name, description, image_url, items } = body
 
     if (!name) return NextResponse.json({ error: 'Missing catalog name' }, { status: 400 })
 
     const { data: createdCatalog, error } = await supabase
       .from('catalogs')
-      .insert([{ name, description }])
+      .insert([{ name, description, image_url }])
       .select()
 
     if (error) throw error
@@ -94,13 +94,13 @@ export async function PATCH(request: NextRequest) {
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
     const body = await request.json()
-    const { name, description, items } = body
+    const { name, description, image_url, items } = body
 
     if (!name) return NextResponse.json({ error: 'Missing catalog name' }, { status: 400 })
 
     const { error: updateError } = await supabase
       .from('catalogs')
-      .update({ name, description })
+      .update({ name, description, image_url })
       .eq('id', id)
 
     if (updateError) throw updateError

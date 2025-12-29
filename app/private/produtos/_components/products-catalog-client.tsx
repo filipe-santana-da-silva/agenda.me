@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Trash2, Edit2, Search, Layers } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import Image from 'next/image'
 import { ProductDialog } from './product-dialog'
 import { CategoryDialog } from './category-dialog'
 import { DeleteConfirmDialog } from './delete-confirm-dialog'
@@ -41,6 +42,7 @@ type Product = {
   description: string | null
   price: number
   stock: number
+  image_url?: string | null
   created_at?: string
   updated_at?: string
   categories?: { name: string }
@@ -281,6 +283,7 @@ export function ProductsCatalogClient() {
                   <Table>
                     <TableHeader>
                       <TableRow className="text-xs">
+                        <TableHead className="w-12 text-xs">Imagem</TableHead>
                         <TableHead className="text-xs">Nome</TableHead>
                         <TableHead className="hidden md:table-cell text-xs">Categoria</TableHead>
                         <TableHead className="text-xs">Preço</TableHead>
@@ -296,6 +299,22 @@ export function ProductsCatalogClient() {
                             product.stock <= 5 ? 'bg-orange-50 dark:bg-orange-950/20' : ''
                           }
                         >
+                          <TableCell className="text-xs">
+                            {product.image_url ? (
+                              <div className="relative w-10 h-10">
+                                <Image 
+                                  src={product.image_url} 
+                                  alt={product.name}
+                                  fill
+                                  className="rounded object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 rounded bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-xs text-gray-500">
+                                -
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell className="font-medium text-xs">
                             <div>
                               <p className="text-xs sm:text-sm">{product.name}</p>

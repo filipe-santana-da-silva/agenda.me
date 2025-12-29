@@ -278,12 +278,29 @@ async function loadCatalogs() {
 
         // Transformar os dados para o formato esperado pela extensão
         catalogs = catalogs.map(catalog => {
-            const items = (catalog.items || []).map(item => ({
-                id: item.id,
-                name: item.detail?.name || 'Item sem nome',
-                description: item.detail?.description || '',
-                price: item.detail?.price || null
-            }));
+            const items = (catalog.items || []).map(item => {
+                // Tentar encontrar a imagem em vários lugares possíveis
+                const imageUrl = item.detail?.image_url || 
+                                item.detail?.imageUrl || 
+                                item.image_url || 
+                                item.imageUrl || 
+                                item.image || 
+                                null;
+                
+                console.log('🔍 Item mapeado:', {
+                    name: item.detail?.name,
+                    image_url: imageUrl,
+                    detail: item.detail
+                });
+                
+                return {
+                    id: item.id,
+                    name: item.detail?.name || 'Item sem nome',
+                    description: item.detail?.description || '',
+                    price: item.detail?.price || null,
+                    image_url: imageUrl
+                };
+            });
             return {
                 ...catalog,
                 items: items
@@ -327,19 +344,40 @@ function renderCatalogs(catalogs) {
     }
 
     catalogsList.innerHTML = catalogs.map((catalog, index) => {
+        const imageHtml = catalog.image_url ? 
+            `<img src="${catalog.image_url}" alt="${catalog.name}" class="catalog-image" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-family=%22sans-serif%22 font-size=%2214%22 fill=%22%23999%22%3ENão disponível%3C/text%3E%3C/svg%3E'"/>` :
+            `<div class="catalog-image-placeholder">${catalog.name.charAt(0).toUpperCase()}</div>`;
+        
         return `
             <div class="catalog-card" data-catalog-id="${catalog.id}" data-catalog-index="${index}">
-                <h3>${catalog.name}</h3>
-                <p>${catalog.description || 'Sem descrição'}</p>
+                <div class="catalog-header">
+                    ${imageHtml}
+                    <div class="catalog-info">
+                        <h3>${catalog.name}</h3>
+                        <p>${catalog.description || 'Sem descrição'}</p>
+                    </div>
+                </div>
                 
                 ${catalog.items && catalog.items.length > 0 ? `
-                    <div class="catalog-card-items">
-                        ${catalog.items.slice(0, 3).map(item => `
-                            <span class="item-tag">${item.name || 'Item'}</span>
-                        `).join('')}
-                        ${catalog.items.length > 3 ? `<span class="item-tag">+${catalog.items.length - 3}</span>` : ''}
+                    <div class="catalog-items-grid">
+                        <div class="items-container">
+                            ${catalog.items.map(item => `
+                                <div class="catalog-item">
+                                    <div class="item-image-wrapper">
+                                        ${item.image_url ?
+                                            `<img src="${item.image_url}" alt="${item.name}" class="item-image" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2250%22 height=%2250%22%3E%3Crect fill=%22%23ddd%22 width=%2250%22 height=%2250%22/%3E%3C/svg%3E'"/>` :
+                                            `<div class="item-image-placeholder">${item.name.charAt(0)}</div>`
+                                        }
+                                    </div>
+                                    <div class="item-details">
+                                        <div class="item-name">${item.name}</div>
+                                        ${item.price ? `<div class="item-price">R$ ${parseFloat(item.price).toFixed(2)}</div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
-                ` : '<div style="font-size: 12px; color: #999; margin: 8px 0;">Nenhum item</div>'}
+                ` : '<div style="font-size: 12px; color: #999; padding: 8px 12px;">Nenhum item</div>'}
 
                 <div class="catalog-card-actions">
                     <button class="btn-small btn-send">
@@ -375,27 +413,42 @@ function sendToWhatsApp(catalogId) {
                 const whatsappTab = tabs[0];
                 console.log('WhatsApp Web encontrado, aba ID:', whatsappTab.id);
                 
-                // Ativar a aba do WhatsApp
-                chrome.tabs.update(whatsappTab.id, { active: true, highlighted: true });
-                
-                // Aguardar um pouco antes de enviar a mensagem
-                setTimeout(() => {
-                    console.log(' Enviando mensagem para WhatsApp Web...');
-                    chrome.tabs.sendMessage(whatsappTab.id, {
-                        action: 'sendCatalogMessage',
-                        message: message,
-                        encodedMessage: encodedMessage
-                    }, (response) => {
-                        if (chrome.runtime.lastError) {
-                            console.error(' Erro ao enviar para content script:', chrome.runtime.lastError.message);
-                            alert('Erro: ' + chrome.runtime.lastError.message);
-                        } else {
-                            console.log(' Mensagem enviada ao content script');
-                        }
-                    });
-                }, 500);
+                // SEMPRE tentar injetar o content script primeiro
+                console.log('🔌 Injetando content script...');
+                chrome.scripting.executeScript({
+                    target: { tabId: whatsappTab.id },
+                    files: ['content.js']
+                }, () => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('⚠️ Aviso ao injetar script:', chrome.runtime.lastError);
+                    } else {
+                        console.log('✅ Content script injetado');
+                    }
+                    
+                    // Aguardar um pouco e enviar a mensagem
+                    setTimeout(() => {
+                        console.log('📤 Enviando mensagem para WhatsApp Web...');
+                        
+                        // Ativar a aba do WhatsApp
+                        chrome.tabs.update(whatsappTab.id, { active: true, highlighted: true });
+                        
+                        chrome.tabs.sendMessage(whatsappTab.id, {
+                            action: 'sendCatalogMessage',
+                            message: message,
+                            encodedMessage: encodedMessage,
+                            catalog: catalog
+                        }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.error('❌ Erro ao enviar para content script:', chrome.runtime.lastError.message);
+                                alert('Erro: Recarregue o WhatsApp Web e tente novamente');
+                            } else {
+                                console.log('✅ Mensagem enviada ao content script');
+                            }
+                        });
+                    }, 300);
+                });
             } else {
-                alert(' Por favor, abra o WhatsApp Web (https://web.whatsapp.com) em uma aba primeiro!');
+                alert('⚠️ Por favor, abra o WhatsApp Web (https://web.whatsapp.com) em uma aba primeiro!');
             }
         });
 
@@ -415,71 +468,106 @@ function enableDragMode(catalogId, catalogName) {
         return;
     }
     
-    console.log(' Catálogo encontrado:', catalog);
+    console.log('📦 Catálogo encontrado:', catalog);
+    console.log('📦 Items do catálogo:', catalog.items);
+    console.log('📦 Primeiro item:', catalog.items && catalog.items[0]);
     
     // Primeiro, abrir WhatsApp Web se não estiver aberto
     chrome.tabs.query({ url: 'https://web.whatsapp.com/*' }, (tabs) => {
         if (tabs && tabs.length > 0) {
-            // WhatsApp já está aberto, ativar drag mode nessa aba
-            console.log(' WhatsApp Web já aberto, enviando mensagem...');
-            chrome.tabs.sendMessage(tabs[0].id, {
-                action: 'enableDragMode',
-                catalog: catalog
-            }, (response) => {
+            // WhatsApp já está aberto
+            const tabId = tabs[0].id;
+            console.log('🟢 WhatsApp Web já aberto, injetando script...');
+            
+            // Injetar o content script
+            chrome.scripting.executeScript({
+                target: { tabId: tabId },
+                files: ['content.js']
+            }, () => {
                 if (chrome.runtime.lastError) {
-                    console.error(' Erro ao enviar mensagem:', chrome.runtime.lastError.message);
-                    alert('Erro: Abra o WhatsApp Web (https://web.whatsapp.com) para usar esta função');
-                } else {
-                    console.log(' Mensagem enviada com sucesso');
+                    console.warn('⚠️ Aviso ao injetar:', chrome.runtime.lastError);
                 }
-            });
-        } else {
-            // Abrir WhatsApp Web e depois ativar drag mode
-            console.log(' Abrindo WhatsApp Web...');
-            chrome.tabs.create({ url: 'https://web.whatsapp.com/' }, (tab) => {
-                // Aguardar um pouco para o WhatsApp carregar
+                
+                // Aguardar um pouco e enviar mensagem
                 setTimeout(() => {
-                    console.log(' Enviando mensagem para novo tab...');
-                    chrome.tabs.sendMessage(tab.id, {
+                    console.log('🔄 Enviando ativação de drag mode...');
+                    console.log('🔄 Dados completos do catálogo:', JSON.stringify(catalog));
+                    chrome.tabs.sendMessage(tabId, {
                         action: 'enableDragMode',
                         catalog: catalog
                     }, (response) => {
                         if (chrome.runtime.lastError) {
-                            console.error(' Erro ao enviar mensagem:', chrome.runtime.lastError.message);
-                            alert('Aguarde o WhatsApp Web carregar completamente e tente novamente');
+                            console.error('❌ Erro:', chrome.runtime.lastError.message);
+                            alert('Erro: Recarregue o WhatsApp Web');
+                        } else {
+                            console.log('✅ Modo drag ativado');
                         }
                     });
-                }, 2000);
+                }, 300);
+            });
+        } else {
+            // Abrir WhatsApp Web e depois ativar drag mode
+            console.log('🔵 Abrindo WhatsApp Web...');
+            chrome.tabs.create({ url: 'https://web.whatsapp.com/' }, (tab) => {
+                // Aguardar para o WhatsApp carregar
+                setTimeout(() => {
+                    console.log('⏳ Injetando content script em nova aba...');
+                    chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        files: ['content.js']
+                    }, () => {
+                        if (chrome.runtime.lastError) {
+                            console.warn('⚠️ Aviso ao injetar:', chrome.runtime.lastError);
+                        }
+                        
+                        // Aguardar e enviar mensagem
+                        setTimeout(() => {
+                            console.log('🔄 Enviando ativação de drag mode...');
+                            chrome.tabs.sendMessage(tab.id, {
+                                action: 'enableDragMode',
+                                catalog: catalog
+                            }, (response) => {
+                                if (chrome.runtime.lastError) {
+                                    console.error('❌ Erro:', chrome.runtime.lastError.message);
+                                    alert('Aguarde o WhatsApp Web carregar');
+                                } else {
+                                    console.log('✅ Modo drag ativado');
+                                }
+                            });
+                        }, 500);
+                    });
+                }, 3000);
             });
         }
     });
 }
 
 function formatCatalogMessage(catalog) {
-    let message = `*${catalog.name}*\n`;
+    // Formato com separador visual |
+    let lines = [];
+    
+    lines.push(catalog.name);
     
     if (catalog.description) {
-        message += `${catalog.description}\n`;
+        lines.push(catalog.description);
     }
-    
-    message += '\n';
+
+    lines.push('');
 
     if (catalog.items && catalog.items.length > 0) {
-        catalog.items.forEach((item, index) => {
-            message += `${index + 1}. *${item.name || 'Item'}*\n`;
-            if (item.description) {
-                message += `   ${item.description}\n`;
-            }
+        catalog.items.forEach((item) => {
+            lines.push(`| ${item.name || 'Item'}`);
             if (item.price) {
-                message += `   R$ ${parseFloat(item.price).toFixed(2)}\n`;
+                lines.push(`  R$ ${parseFloat(item.price).toFixed(2)}`);
             }
-            message += '\n';
+            if (item.description) {
+                lines.push(`  ${item.description}`);
+            }
+            lines.push('');
         });
     }
-
-    message += ' Criado com Agenda.me';
     
-    return message;
+    return lines.join('\n').trim();
 }
 
 function showError(message) {
@@ -529,34 +617,13 @@ async function handleLoadAppointments() {
         }
         
         const appointments = await response.json();
-        console.log(' Agendamentos carregados:', appointments.length);
-        console.log(' Primeiro agendamento:', appointments[0]);
+        console.log('✅ Agendamentos carregados:', appointments.length);
+        if (appointments.length > 0) {
+            console.log('📝 Primeiro agendamento:', appointments[0]);
+        }
         
-        // Enviar para WhatsApp Web
-        chrome.tabs.query({ url: 'https://web.whatsapp.com/*' }, (tabs) => {
-            if (tabs && tabs.length > 0) {
-                chrome.tabs.update(tabs[0].id, { active: true });
-                setTimeout(() => {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'showAppointments',
-                        appointments: appointments,
-                        date: selectedDate
-                    });
-                }, 500);
-                hideAppointmentsModal();
-            } else {
-                chrome.tabs.create({ url: 'https://web.whatsapp.com/' }, (tab) => {
-                    setTimeout(() => {
-                        chrome.tabs.sendMessage(tab.id, {
-                            action: 'showAppointments',
-                            appointments: appointments,
-                            date: selectedDate
-                        });
-                    }, 2000);
-                    hideAppointmentsModal();
-                });
-            }
-        });
+        // Enviar para WhatsApp Web com retry
+        sendAppointmentsToWhatsApp(appointments, selectedDate, 0);
         
     } catch (error) {
         console.error('Erro ao carregar agendamentos:', error);
@@ -565,6 +632,62 @@ async function handleLoadAppointments() {
         loadAppointments.disabled = false;
         loadAppointments.textContent = 'Carregar Agendamentos';
     }
+}
+
+function sendAppointmentsToWhatsApp(appointments, selectedDate, retryCount = 0) {
+    const maxRetries = 3;
+    
+    chrome.tabs.query({ url: 'https://web.whatsapp.com/*' }, (tabs) => {
+        let targetTab = null;
+        let isNewTab = false;
+        
+        if (tabs && tabs.length > 0) {
+            targetTab = tabs[0];
+            console.log('📱 Usando aba WhatsApp existente:', targetTab.id);
+        }
+        
+        function sendMessage(tab) {
+            chrome.tabs.update(tab.id, { active: true });
+            console.log(`📤 [Tentativa ${retryCount + 1}/${maxRetries + 1}] Enviando agendamentos para tab ${tab.id}`);
+            
+            chrome.tabs.sendMessage(tab.id, {
+                action: 'showAppointments',
+                appointments: appointments,
+                date: selectedDate
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    const error = chrome.runtime.lastError.message;
+                    console.error('❌ Erro ao enviar mensagem:', error);
+                    
+                    if (retryCount < maxRetries) {
+                        console.log(`🔄 Tentando novamente em 2 segundos... (${retryCount + 1}/${maxRetries})`);
+                        setTimeout(() => {
+                            sendAppointmentsToWhatsApp(appointments, selectedDate, retryCount + 1);
+                        }, 2000);
+                    } else {
+                        showAppointmentsError('Erro ao conectar com WhatsApp. Certifique-se de que a página está carregada e tente novamente.');
+                    }
+                } else {
+                    console.log('✅ Agendamentos enviados com sucesso!');
+                    hideAppointmentsModal();
+                }
+            });
+        }
+        
+        if (targetTab) {
+            sendMessage(targetTab);
+        } else {
+            console.log('📱 Abrindo WhatsApp Web...');
+            isNewTab = true;
+            chrome.tabs.create({ url: 'https://web.whatsapp.com/' }, (tab) => {
+                console.log('✨ Nova aba criada:', tab.id);
+                // Esperar mais tempo para nova aba carregar
+                setTimeout(() => {
+                    sendMessage(tab);
+                }, 4000);
+            });
+        }
+    });
 }
 
 function showAppointmentsError(message) {

@@ -7,7 +7,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('employees')
-      .select('id, name, email, position')
+      .select('id, name, email, position, image_url')
       .eq('status', 'active')
       .order('name')
 

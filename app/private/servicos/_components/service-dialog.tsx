@@ -13,12 +13,14 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ProductImageUploader } from '@/app/private/produtos/_components/product-image-uploader'
 
 type Service = {
   id: string
   name: string
   duration: string
   price: number | null
+  image_url?: string | null
   created_at?: string
 }
 
@@ -43,6 +45,7 @@ export function ServiceDialog({
     name: '',
     durationMinutes: '',
     price: '',
+    image_url: '',
   })
   const [errors, setErrors] = useState<{
     name?: string
@@ -69,9 +72,10 @@ export function ServiceDialog({
         name: service.name,
         durationMinutes: minutes,
         price: service.price ? String(service.price) : '',
+        image_url: service.image_url || '',
       })
     } else {
-      setFormData({ name: '', durationMinutes: '', price: '' })
+      setFormData({ name: '', durationMinutes: '', price: '', image_url: '' })
     }
     setErrors({})
   }, [service, open])
@@ -115,6 +119,7 @@ export function ServiceDialog({
         name: formData.name,
         duration: durationInterval,
         price: formData.price ? parseFloat(formData.price) : null,
+        image_url: formData.image_url || null,
       }
 
       if (service) {
@@ -190,6 +195,19 @@ export function ServiceDialog({
               <p className="text-sm text-red-500 mt-1">{errors.durationMinutes}</p>
             )}
           </div>
+
+          {/* Image */}
+          {formData.name && (
+            <div>
+              <Label>Imagem do Serviço</Label>
+              <ProductImageUploader 
+                onUpload={(url) => setFormData({ ...formData, image_url: url })}
+                currentImage={formData.image_url}
+                itemName={formData.name}
+                itemType="service"
+              />
+            </div>
+          )}
 
           {/* Price */}
           <div>

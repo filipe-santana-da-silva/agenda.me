@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ProductImageUploader } from './product-image-uploader'
 
 type Category = {
   id: string
@@ -34,6 +35,7 @@ type Product = {
   description: string | null
   price: number
   stock: number
+  image_url?: string | null
 }
 
 interface ProductDialogProps {
@@ -61,6 +63,7 @@ export function ProductDialog({
     price: '',
     stock: '',
     category_id: '',
+    image_url: '',
   })
   const [errors, setErrors] = useState<{
     name?: string
@@ -76,6 +79,7 @@ export function ProductDialog({
         price: String(product.price),
         stock: String(product.stock),
         category_id: product.category_id || '',
+        image_url: product.image_url || '',
       })
     } else {
       setFormData({
@@ -84,6 +88,7 @@ export function ProductDialog({
         price: '',
         stock: '',
         category_id: '',
+        image_url: '',
       })
     }
     setErrors({})
@@ -126,6 +131,7 @@ export function ProductDialog({
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
         category_id: formData.category_id || null,
+        image_url: formData.image_url || null,
       }
 
       if (product) {
@@ -221,6 +227,19 @@ export function ProductDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Image */}
+          {formData.name && (
+            <div>
+              <Label>Imagem do Produto</Label>
+              <ProductImageUploader 
+                onUpload={(url) => setFormData({ ...formData, image_url: url })}
+                currentImage={formData.image_url}
+                itemName={formData.name}
+                itemType="product"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             {/* Price */}

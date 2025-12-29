@@ -15,40 +15,37 @@ import { toast } from 'sonner'
 import { createClient } from '@/utils/supabase/client'
 import Image from 'next/image'
 import { Pencil } from 'lucide-react'
+import { ImageUploader } from './image-uploader'
 
 type Product = { id: string; name: string; price?: number }
 type Service = { id: string; name: string; price?: number }
-type Professional = { id: string; name: string; position?: string }
 
 export default function CatalogPageClient() {
   const supabase = createClient()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
 
   const [products, setProducts] = useState<Product[]>([])
   const [services, setServices] = useState<Service[]>([])
-  const [professionals, setProfessionals] = useState<Professional[]>([])
 
   const [selectedProducts, setSelectedProducts] = useState<Record<string, boolean>>({})
   const [selectedServices, setSelectedServices] = useState<Record<string, boolean>>({})
-  const [selectedProfessionals, setSelectedProfessionals] = useState<Record<string, boolean>>({})
 
-  const [catalogs, setCatalogs] = useState<{ id: string; name: string; description?: string; items: Record<string, unknown>[] }[]>([])
+  const [catalogs, setCatalogs] = useState<{ id: string; name: string; description?: string; image_url?: string; items: Record<string, unknown>[] }[]>([])
   const [selectedCatalogId, setSelectedCatalogId] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editingCatalogId, setEditingCatalogId] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     try {
-      const [{ data: productsData }, { data: servicesData }, { data: professionalsData }] = await Promise.all([
+      const [{ data: productsData }, { data: servicesData }] = await Promise.all([
         supabase.from('products').select('id, name, price').order('name'),
         supabase.from('services').select('id, name, price').order('name'),
-        supabase.from('employees').select('id, name, position').eq('status', 'active').order('name'),
       ])
 
       setProducts(productsData || [])
       setServices(servicesData || [])
-      setProfessionals(professionalsData || [])
     } catch {
       toast.error('Erro ao carregar dados')
     }
@@ -81,21 +78,19 @@ export default function CatalogPageClient() {
     setEditingCatalogId(catalog.id as string)
     setName(catalog.name as string)
     setDescription((catalog.description as string) || '')
+    setImageUrl((catalog.image_url as string) || '')
     
     const prods: Record<string, boolean> = {}
     const servs: Record<string, boolean> = {}
-    const profs: Record<string, boolean> = {}
     
     const items = catalog.items as Array<Record<string, unknown>>
     items?.forEach((item) => {
       if (item.item_type === 'product') prods[item.item_id as string] = true
       if (item.item_type === 'service') servs[item.item_id as string] = true
-      if (item.item_type === 'professional') profs[item.item_id as string] = true
     })
     
     setSelectedProducts(prods)
     setSelectedServices(servs)
-    setSelectedProfessionals(profs)
   }
 
   const handleCancelEdit = () => {
@@ -103,9 +98,9 @@ export default function CatalogPageClient() {
     setEditingCatalogId(null)
     setName('')
     setDescription('')
+    setImageUrl('')
     setSelectedProducts({})
     setSelectedServices({})
-    setSelectedProfessionals({})
   }
 
   const handleSave = async () => {
@@ -119,15 +114,12 @@ export default function CatalogPageClient() {
       Object.keys(selectedServices).forEach((k) => {
         if (selectedServices[k]) items.push({ item_type: 'service', item_id: k })
       })
-      Object.keys(selectedProfessionals).forEach((k) => {
-        if (selectedProfessionals[k]) items.push({ item_type: 'professional', item_id: k })
-      })
 
       if (isEditing && editingCatalogId) {
         const res = await fetch(`/api/catalogs?id=${editingCatalogId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description, items }),
+          body: JSON.stringify({ name, description, image_url: imageUrl, items }),
         })
 
         if (!res.ok) {
@@ -140,7 +132,7 @@ export default function CatalogPageClient() {
         const res = await fetch('/api/catalogs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description, items }),
+          body: JSON.stringify({ name, description, image_url: imageUrl, items }),
         })
 
         if (!res.ok) {
@@ -194,6 +186,7 @@ export default function CatalogPageClient() {
               <div className="space-y-3">
                 <Input placeholder="Nome do catálogo" value={name} onChange={(e) => setName(e.target.value)} />
                 <Input placeholder="Descrição (opcional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+                {name && <ImageUploader onUpload={setImageUrl} currentImage={imageUrl} catalogName={name} />}
                 <div className="flex gap-2">
                   <Button onClick={handleSave} className="flex-1">{isEditing ? 'Salvar' : 'Criar'}</Button>
                   {isEditing && (
@@ -237,16 +230,7 @@ export default function CatalogPageClient() {
                   </label>
                 ))}
 
-                <div className="text-sm font-medium mt-3 mb-2">Profissionais</div>
-                {professionals.map((p) => (
-                  <label key={p.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded">
-                    <Checkbox checked={!!selectedProfessionals[p.id]} onCheckedChange={() => toggle(p.id, setSelectedProfessionals, selectedProfessionals)} />
-                    <div>
-                      <div className="font-medium">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">{p.position}</div>
-                    </div>
-                  </label>
-                ))}
+
               </div>
             </CardContent>
           </Card>
@@ -288,27 +272,40 @@ export default function CatalogPageClient() {
             </CardHeader>
             <CardContent>
               {selectedCatalog && selectedCatalog.items && selectedCatalog.items.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {selectedCatalog.items.map((it: Record<string, unknown>) => {
-                    const detail = it.detail as Record<string, unknown>
-                    return (
-                      <div key={it.id as string} className="border rounded overflow-hidden bg-white dark:bg-slate-800 dark:border-slate-700">
-                        <div className="h-36 bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
-                          {/* try to show thumbnail if available */}
-                          {detail?.image_url ? (
-                            <Image src={detail.image_url as string} alt={(detail.name as string) || (detail.title as string)} width={320} height={180} className="object-cover w-full h-full" />
-                          ) : (
-                            <div className="text-sm text-gray-500 dark:text-slate-400">{((detail?.name as string)?.slice(0, 1) || it.item_type as string)}</div>
-                          )}
+                <div className="space-y-4">
+                  {selectedCatalog.image_url && (
+                    <div className="rounded overflow-hidden max-h-96">
+                      <Image 
+                        src={selectedCatalog.image_url} 
+                        alt={selectedCatalog.name as string} 
+                        width={600} 
+                        height={300} 
+                        className="object-cover w-full h-auto max-h-96"
+                      />
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {selectedCatalog.items.map((it: Record<string, unknown>) => {
+                      const detail = it.detail as Record<string, unknown>
+                      return (
+                        <div key={it.id as string} className="border rounded overflow-hidden bg-white dark:bg-slate-800 dark:border-slate-700">
+                          <div className="h-36 bg-gray-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
+                            {/* try to show thumbnail if available */}
+                            {detail?.image_url ? (
+                              <Image src={detail.image_url as string} alt={(detail.name as string) || (detail.title as string)} width={320} height={180} className="object-cover w-full h-full max-w-full max-h-full" />
+                            ) : (
+                              <div className="text-sm text-gray-500 dark:text-slate-400">{((detail?.name as string)?.slice(0, 1) || it.item_type as string)}</div>
+                            )}
+                          </div>
+                          <div className="p-3">
+                            <div className="font-medium mb-1">{String((detail?.name) || (detail?.title) || (it.item_type))}</div>
+                            <div className="text-xs text-muted-foreground mb-2">{String(it.item_type)}</div>
+                            {detail?.price ? <div className="font-semibold">R$ {String(Number(detail.price).toFixed(2))}</div> : null}
+                          </div>
                         </div>
-                        <div className="p-3">
-                          <div className="font-medium mb-1">{String((detail?.name) || (detail?.title) || (it.item_type))}</div>
-                          <div className="text-xs text-muted-foreground mb-2">{String(it.item_type)}</div>
-                          {detail?.price ? <div className="font-semibold">R$ {String(Number(detail.price).toFixed(2))}</div> : null}
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
               ) : (
                 <div className="py-16 text-center text-muted-foreground">Nenhum item no catálogo selecionado.</div>

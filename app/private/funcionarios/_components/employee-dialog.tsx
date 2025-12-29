@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createClient } from '@/utils/supabase/client'
+import { ProductImageUploader } from '@/app/private/produtos/_components/product-image-uploader'
 
 type Employee = {
   id: string
@@ -47,6 +48,7 @@ type Employee = {
   lunch_start?: string
   lunch_end?: string
   break_intervals?: string
+  image_url?: string | null
 }
 
 interface EmployeeDialogProps {
@@ -117,7 +119,8 @@ export function EmployeeDialog({
         work_end: employee.work_end || '18:00',
         lunch_start: employee.lunch_start || '12:00',
         lunch_end: employee.lunch_end || '13:00',
-        break_intervals: employee.break_intervals || '[]'
+        break_intervals: employee.break_intervals || '[]',
+        image_url: employee.image_url || ''
       })
     } else {
       setFormData({
@@ -142,7 +145,8 @@ export function EmployeeDialog({
         work_end: '18:00',
         lunch_start: '12:00',
         lunch_end: '13:00',
-        break_intervals: '[]'
+        break_intervals: '[]',
+        image_url: ''
       })
     }
     setErrors({})
@@ -207,7 +211,8 @@ export function EmployeeDialog({
         work_end: formData.work_end,
         lunch_start: formData.lunch_start,
         lunch_end: formData.lunch_end,
-        break_intervals: formData.break_intervals
+        break_intervals: formData.break_intervals,
+        image_url: formData.image_url || null
       }
 
       if (employee) {
@@ -351,6 +356,19 @@ export function EmployeeDialog({
                   />
                 </div>
               </div>
+
+              {/* Image */}
+              {formData.name && (
+                <div>
+                  <Label>Foto do Funcionário</Label>
+                  <ProductImageUploader 
+                    onUpload={(url) => setFormData({ ...formData, image_url: url })}
+                    currentImage={formData.image_url}
+                    itemName={formData.name}
+                    itemType="professional"
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 {/* Hire Date */}
