@@ -91,7 +91,8 @@ export function EmployeeDialog({
     work_end: '18:00',
     lunch_start: '12:00',
     lunch_end: '13:00',
-    break_intervals: '[]'
+    break_intervals: '[]',
+    image_url: ''
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
