@@ -1,13 +1,16 @@
+'use client'
+
 import Image from "next/image"
 import { Smartphone } from "lucide-react"
 import Link from "next/link"
 import Header from "@/components/fullstack/header"
 import Footer from "@/components/fullstack/footer"
 import { Button } from "@/components/ui/button"
+import { useState, useEffect, useRef } from "react"
 
 /**
- * Detalhes da Barbearia - Server Component
- * Exibe informações completas da barbearia, serviços e contato
+ * Detalhes da Barbearia - Client Component
+ * Exibe informações completas da barbearia, serviços e contato com lazy loading
  */
 
 interface BarbershopDetailPageProps {
@@ -16,10 +19,48 @@ interface BarbershopDetailPageProps {
   }>
 }
 
-export default async function BarbershopDetailPage({
+export default function BarbershopDetailPage({
   params,
 }: BarbershopDetailPageProps) {
-  const { id } = await params
+  const [id, setId] = useState<string>('')
+  const [isProfessionalsVisible, setIsProfessionalsVisible] = useState(false)
+  const [isServicesVisible, setIsServicesVisible] = useState(false)
+  const [isContactVisible, setIsContactVisible] = useState(false)
+  
+  const professionalsRef = useRef<HTMLDivElement>(null)
+  const servicesRef = useRef<HTMLDivElement>(null)
+  const contactRef = useRef<HTMLDivElement>(null)
+
+  // Obter ID da params
+  useEffect(() => {
+    params.then(({ id }) => setId(id))
+  }, [params])
+
+  // Intersection Observer para lazy loading de seções
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (entry.target === professionalsRef.current) {
+            setIsProfessionalsVisible(true)
+          } else if (entry.target === servicesRef.current) {
+            setIsServicesVisible(true)
+          } else if (entry.target === contactRef.current) {
+            setIsContactVisible(true)
+          }
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (professionalsRef.current) observer.observe(professionalsRef.current)
+    if (servicesRef.current) observer.observe(servicesRef.current)
+    if (contactRef.current) observer.observe(contactRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   // Dados estáticos da barbearia
   const barbershop = {
@@ -109,6 +150,7 @@ export default async function BarbershopDetailPage({
             alt={barbershop.name}
             fill
             className="object-cover"
+            priority
           />
           {/* Botão voltar */}
           <Link
@@ -156,38 +198,43 @@ export default async function BarbershopDetailPage({
           {/* Seção: Profissionais */}
           {barbershop.professionals && barbershop.professionals.length > 0 && (
             <>
-              <section className="mb-8">
-                <h2 className="text-lg font-bold mb-4">Profissionais</h2>
-                <div className="space-y-4">
-                  {barbershop.professionals.map((professional: { id: string; name: string; specialty: string; bio?: string; image_url: string }) => (
-                    <div
-                      key={professional.id}
-                      className="flex gap-4 p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
-                    >
-                      {professional.image_url && (
-                        <div className="relative w-20 h-20 shrink-0">
-                          <Image
-                            src={professional.image_url}
-                            alt={professional.name}
-                            fill
-                            className="rounded object-cover"
-                          />
+              <section ref={professionalsRef} style={{ minHeight: barbershop.professionals.length > 0 ? 'auto' : 0 }}>
+                {isProfessionalsVisible && (
+                  <>
+                    <h2 className="text-lg font-bold mb-4">Profissionais</h2>
+                    <div className="space-y-4">
+                      {barbershop.professionals.map((professional: { id: string; name: string; specialty: string; bio?: string; image_url: string }) => (
+                        <div
+                          key={professional.id}
+                          className="flex gap-4 p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
+                        >
+                          {professional.image_url && (
+                            <div className="relative w-20 h-20 shrink-0">
+                              <Image
+                                src={professional.image_url}
+                                alt={professional.name}
+                                fill
+                                className="rounded object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{professional.name}</h3>
+                            <p className="text-sm text-primary font-medium mb-1">
+                              {professional.specialty}
+                            </p>
+                            {professional.bio && (
+                              <p className="text-sm text-muted-foreground">
+                                {professional.bio}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{professional.name}</h3>
-                        <p className="text-sm text-primary font-medium mb-1">
-                          {professional.specialty}
-                        </p>
-                        {professional.bio && (
-                          <p className="text-sm text-muted-foreground">
-                            {professional.bio}
-                          </p>
-                        )}
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
               </section>
 
               {/* Divider */}
@@ -196,76 +243,85 @@ export default async function BarbershopDetailPage({
           )}
 
           {/* Seção: Serviços */}
-          <section className="mb-8">
-            <h2 className="text-lg font-bold mb-4">Serviços</h2>
-            <div className="space-y-4">
-              {barbershop.services.map((service) => (
-                <div
-                  key={service.id}
-                  className="flex gap-4 p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
-                >
-                  {service.image_url && (
-                    <div className="relative w-20 h-20 shrink-0">
-                      <Image
-                        src={service.image_url}
-                        alt={service.name}
-                        fill
-                        className="rounded object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{service.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {service.description}
-                    </p>
-                    <p className="text-sm font-bold text-primary">
-                      R$ {(service.price_in_cents / 100).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center">
-                    <Link
-                      href={`/confirm?barbershopId=${barbershop.id}&serviceId=${service.id}`}
+          <section ref={servicesRef} style={{ minHeight: barbershop.services.length > 0 ? 'auto' : 0 }}>
+            {isServicesVisible && (
+              <>
+                <h2 className="text-lg font-bold mb-4">Serviços</h2>
+                <div className="space-y-4">
+                  {barbershop.services.map((service) => (
+                    <div
+                      key={service.id}
+                      className="flex gap-4 p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
                     >
-                      <Button size="sm">Agendar</Button>
-                    </Link>
-                  </div>
+                      {service.image_url && (
+                        <div className="relative w-20 h-20 shrink-0">
+                          <Image
+                            src={service.image_url}
+                            alt={service.name}
+                            fill
+                            className="rounded object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{service.name}</h3>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {service.description}
+                        </p>
+                        <p className="text-sm font-bold text-primary">
+                          R$ {(service.price_in_cents / 100).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <Link
+                          href={`/confirm?barbershopId=${barbershop.id}&serviceId=${service.id}`}
+                        >
+                          <Button size="sm">Agendar</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </section>
 
           {/* Divider */}
           <div className="my-6 border-t" />
 
           {/* Seção: Contato */}
-          <section className="mb-8">
-            <h2 className="text-lg font-bold mb-4">Contato</h2>
-            <div className="space-y-3">
-              {barbershop.phones && barbershop.phones.length > 0 ? (
-                barbershop.phones.map((phone, index) => (
-                  <a
-                    key={index}
-                    href={formatPhoneLink(phone)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-primary/5 hover:border-primary transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Smartphone className="w-5 h-5" />
-                      <p className="text-sm">{phone}</p>
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      WhatsApp
-                    </Button>
-                  </a>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum telefone disponível
-                </p>
-              )}
-            </div>
+          <section ref={contactRef} style={{ minHeight: barbershop.phones?.length > 0 ? 'auto' : 0 }}>
+            {isContactVisible && (
+              <>
+                <h2 className="text-lg font-bold mb-4">Contato</h2>
+                <div className="space-y-3">
+                  {barbershop.phones && barbershop.phones.length > 0 ? (
+                    barbershop.phones.map((phone, index) => (
+                      <a
+                        key={index}
+                        href={formatPhoneLink(phone)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-primary/5 hover:border-primary transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Smartphone className="w-5 h-5" />
+                          <p className="text-sm">{phone}</p>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          WhatsApp
+                        </Button>
+                      </a>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum telefone disponível
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
           </section>
 
           {/* Espaço para footer */}

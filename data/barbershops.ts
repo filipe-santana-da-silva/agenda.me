@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server"
+import { withCache, CACHE_KEYS } from "@/lib/cache"
 
 export interface Service {
   id: string
@@ -38,68 +39,75 @@ export interface Barbershop {
 }
 
 export const getBarbershops = async (): Promise<Barbershop[]> => {
-  const supabase = await createClient()
+  // Usar cache para requisição
+  return withCache(
+    CACHE_KEYS.BARBERSHOPS.key,
+    async () => {
+      const supabase = await createClient()
 
-  // Buscar barbearias
-  const { data, error } = await supabase
-    .from("barbershop")
-    .select(
-      `
-      id,
-      name,
-      address,
-      description,
-      image_url,
-      phones,
-      services (
-        id,
-        name,
-        description,
-        image_url,
-        price_in_cents,
-        duration_minutes,
-        barbershop_id,
-        deleted_at,
-        created_at,
-        updated_at
-      )
-    `
-    )
-    .order("name")
-
-  // Se falhar
-  if (error) {
-    const { data: oldData, error: oldError } = await supabase
-      .from("barbershop")
-      .select(
+      // Buscar barbearias
+      const { data, error } = await supabase
+        .from("barbershop")
+        .select(
+          `
+          id,
+          name,
+          address,
+          description,
+          image_url,
+          phones,
+          services (
+            id,
+            name,
+            description,
+            image_url,
+            price_in_cents,
+            duration_minutes,
+            barbershop_id,
+            deleted_at,
+            created_at,
+            updated_at
+          )
         `
-        id,
-        name,
-        address,
-        description,
-        image_url,
-        phones
-      `
-      )
-      .order("name")
+        )
+        .order("name")
 
-    if (oldError || !oldData) {
-      console.error("Erro ao carregar barbearias:", error)
-      return []
-    }
+      // Se falhar
+      if (error) {
+        const { data: oldData, error: oldError } = await supabase
+          .from("barbershop")
+          .select(
+            `
+            id,
+            name,
+            address,
+            description,
+            image_url,
+            phones
+          `
+          )
+          .order("name")
 
-    return (oldData || []).map((shop) => ({
-      ...shop,
-      services: [],
-    }))
-  }
+        if (oldError || !oldData) {
+          console.error("Erro ao carregar barbearias:", error)
+          return []
+        }
 
-  return (data || []).map((shop) => ({
-    ...shop,
-    services: (shop.services || []).filter(
-      (s: Service) => s.deleted_at === null
-    ),
-  }))
+        return (oldData || []).map((shop) => ({
+          ...shop,
+          services: [],
+        }))
+      }
+
+      return (data || []).map((shop) => ({
+        ...shop,
+        services: (shop.services || []).filter(
+          (s: Service) => s.deleted_at === null
+        ),
+      }))
+    },
+    CACHE_KEYS.BARBERSHOPS.ttl
+  )
 }
 
 export const getPopularBarbershops = async (): Promise<Barbershop[]> => {

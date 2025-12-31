@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { createClient } from '@/utils/supabase/client'
 import Image from 'next/image'
-import { Pencil } from 'lucide-react'
+import { Pencil, FileText, Download } from 'lucide-react'
 import { ImageUploader } from './image-uploader'
 
 type Product = { id: string; name: string; price?: number }
@@ -32,10 +32,173 @@ export default function CatalogPageClient() {
   const [selectedProducts, setSelectedProducts] = useState<Record<string, boolean>>({})
   const [selectedServices, setSelectedServices] = useState<Record<string, boolean>>({})
 
-  const [catalogs, setCatalogs] = useState<{ id: string; name: string; description?: string; image_url?: string; items: Record<string, unknown>[] }[]>([])
+  const [catalogs, setCatalogs] = useState<{ id: string; name: string; description?: string; image_url?: string; items: Record<string, unknown>[]; pdf_url?: string }[]>([])
   const [selectedCatalogId, setSelectedCatalogId] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editingCatalogId, setEditingCatalogId] = useState<string | null>(null)
+  const [generatingPDF, setGeneratingPDF] = useState(false)
+  
+  // Gerar PDF e salvar como base64 no localStorage
+  const generateAndSavePDF = async (catalog: Record<string, unknown>) => {
+    try {
+      setGeneratingPDF(true)
+      console.log('📄 Gerando PDF para:', catalog.name)
+      
+      // Importar jsPDF dinamicamente
+      const { jsPDF: jsPDFLib } = await import('jspdf')
+      
+      // Usar require para tipagem correta
+      const doc = new jsPDFLib({
+        orientation: 'portrait' as const,
+        unit: 'mm' as const,
+        format: 'a4' as const,
+      })
+      
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const margin = 15
+      let yPos = margin + 10
+      
+      // Título
+      doc.setFontSize(20)
+      doc.setTextColor(102, 126, 234)
+      doc.text(String(catalog.name), margin, yPos)
+      yPos += 12
+      
+      // Descrição
+      if (catalog.description) {
+        doc.setFontSize(10)
+        doc.setTextColor(100, 100, 100)
+        const lines = doc.splitTextToSize(String(catalog.description), pageWidth - 2 * margin) as string[]
+        doc.text(lines, margin, yPos)
+        yPos += lines.length * 4 + 5
+      }
+      
+      // Imagem (se houver)
+      if (catalog.image_url) {
+        try {
+          if (yPos > pageHeight - 60) {
+            doc.addPage()
+            yPos = margin
+          }
+          const imgWidth = pageWidth - 2 * margin
+          const imgHeight = 60 // altura fixa
+          doc.addImage(String(catalog.image_url), 'JPEG', margin, yPos, imgWidth, imgHeight)
+          yPos += imgHeight + 5
+        } catch {
+          console.warn('Aviso: Não foi possível adicionar imagem ao PDF')
+        }
+      }
+      
+      // Linha separadora
+      doc.setDrawColor(200, 200, 200)
+      doc.line(margin, yPos, pageWidth - margin, yPos)
+      yPos += 8
+      
+      // Itens
+      const items = catalog.items as Array<Record<string, unknown>>
+      if (items && items.length > 0) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i]
+          const detail = item.detail as Record<string, unknown>
+          
+          if (yPos > pageHeight - 20) {
+            doc.addPage()
+            yPos = margin
+          }
+          
+          // Nome
+          doc.setFontSize(12)
+          doc.setTextColor(50, 50, 50)
+          doc.text(`${i + 1}. ${String(detail?.name || detail?.title || item.item_type)}`, margin, yPos)
+          yPos += 6
+          
+          // Preço
+          if (detail?.price) {
+            doc.setFontSize(11)
+            doc.setTextColor(102, 126, 234)
+            doc.text(`R$ ${Number(detail.price).toFixed(2)}`, margin + 5, yPos)
+            yPos += 5
+          }
+          
+          // Tipo
+          doc.setFontSize(9)
+          doc.setTextColor(120, 120, 120)
+          doc.text(`Tipo: ${String(item.item_type)}`, margin + 5, yPos)
+          yPos += 5
+          
+          yPos += 3
+        }
+      }
+      
+      // Salvar PDF como data URL
+      const pdfData = doc.output('dataurlstring')
+      
+      // Salvar no localStorage
+      const storageKey = `catalog_pdf_${catalog.id}`
+      localStorage.setItem(storageKey, pdfData as string)
+      
+      // Tentar salvar no Chrome Storage se disponível
+      try {
+        const win = typeof window !== 'undefined' ? (window as unknown as Record<string, unknown>) : null
+        if (win && (win.chrome as Record<string, unknown>)?.storage) {
+          const chromeStorage = ((win.chrome as Record<string, unknown>).storage as Record<string, unknown>).local as Record<string, unknown>
+          const getter = chromeStorage.get as (keys: string[], callback: (result: Record<string, unknown>) => void) => void
+          getter(['savedPDFs'], (result: Record<string, unknown>) => {
+            const savedPDFs = (result.savedPDFs as Record<string, unknown>) || {}
+            ;(savedPDFs as Record<string, unknown>)[catalog.id as string] = {
+              name: catalog.name as string,
+              data: pdfData,
+              timestamp: new Date().toISOString()
+            }
+            const setter = chromeStorage.set as (items: Record<string, unknown>, callback?: () => void) => void
+            setter({ savedPDFs }, () => {
+              console.log('✅ PDF salvo no Chrome Storage:', catalog.id)
+            })
+          })
+        }
+      } catch (chromeError) {
+        console.warn('Chrome Storage não disponível:', chromeError)
+      }
+      
+      // Atualizar catálogos com URL do PDF
+      setCatalogs(prev => prev.map(c => 
+        c.id === catalog.id ? { ...c, pdf_url: pdfData as string } : c
+      ))
+      
+      toast.success('📄 PDF gerado e salvo com sucesso!')
+      console.log('✅ PDF salvo:', catalog.id)
+      
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      toast.error('Erro ao gerar PDF. Verifique o console.')
+    } finally {
+      setGeneratingPDF(false)
+    }
+  }
+
+  // Baixar PDF do catálogo
+  const downloadPDF = (catalog: Record<string, unknown>) => {
+    try {
+      const pdfUrl = catalog.pdf_url as string | undefined
+      if (!pdfUrl) {
+        toast.error(' Gere o PDF primeiro')
+        return
+      }
+
+      const link = document.createElement('a')
+      link.href = pdfUrl
+      link.download = `${String(catalog.name)}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast.success(' PDF baixado com sucesso!')
+    } catch (error) {
+      console.error('Erro ao baixar PDF:', error)
+      toast.error('Erro ao baixar PDF')
+    }
+  }
 
   const loadData = useCallback(async () => {
     try {
@@ -244,9 +407,14 @@ export default function CatalogPageClient() {
               <div className="space-y-2">
                 {catalogs.map((c: Record<string, unknown>) => (
                   <div key={c.id as string} className="flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-slate-800">
-                    <div className="flex-1 cursor-pointer" onClick={() => setSelectedCatalogId(c.id as string)}>
-                      <div className="font-medium">{c.name as string}</div>
-                      <div className="text-xs text-muted-foreground">{c.description as string}</div>
+                    <div className="flex-1 cursor-pointer flex items-center gap-2" onClick={() => setSelectedCatalogId(c.id as string)}>
+                      {(c.pdf_url as string | undefined) && (
+                        <FileText className="w-4 h-4 text-blue-500" />
+                      )}
+                      <div>
+                        <div className="font-medium">{c.name as string}</div>
+                        <div className="text-xs text-muted-foreground">{c.description as string}</div>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}>
@@ -267,8 +435,36 @@ export default function CatalogPageClient() {
         <div className="lg:col-span-3">
           <Card>
             <CardHeader>
-              <CardTitle>{selectedCatalog ? (selectedCatalog.name as string) : 'Visualização do Catálogo'}</CardTitle>
-              <CardDescription>{selectedCatalog ? (selectedCatalog.description as string) : 'Selecione um catálogo no painel à esquerda ou crie um novo.'}</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <CardTitle>{selectedCatalog ? (selectedCatalog.name as string) : 'Visualização do Catálogo'}</CardTitle>
+                    <CardDescription>{selectedCatalog ? (selectedCatalog.description as string) : 'Selecione um catálogo no painel à esquerda ou crie um novo.'}</CardDescription>
+                  </div>
+                  {selectedCatalog && (
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => generateAndSavePDF(selectedCatalog)}
+                        disabled={generatingPDF}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        {generatingPDF ? '⏳ Gerando...' : '📄 Gerar PDF'}
+                      </Button>
+                      <Button 
+                        onClick={() => downloadPDF(selectedCatalog)}
+                        disabled={!selectedCatalog.pdf_url}
+                        variant="default"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Baixar PDF
+                      </Button>
+                    </div>
+                  )}
+                </div>
             </CardHeader>
             <CardContent>
               {selectedCatalog && selectedCatalog.items && selectedCatalog.items.length > 0 ? (

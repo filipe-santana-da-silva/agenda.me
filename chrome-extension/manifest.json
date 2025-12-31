@@ -3,6 +3,9 @@
   "name": "Agenda.me",
   "description": "Compartilhe seus catálogos pelo WhatsApp Web",
   "version": "1.0.21",
+  "content_security_policy": {
+    "script-src": ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'", "'inline-speculation-rules'", "http://localhost:*", "http://127.0.0.1:*"]
+  },
   "permissions": [
     "storage",
     "tabs",
@@ -28,6 +31,12 @@
       "js": ["content.js"],
       "run_at": "document_start",
       "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["jspdf.min.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

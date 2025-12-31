@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -52,6 +52,8 @@ export function BookingClient({ barbershops }: BookingClientProps) {
   const [lastBooking, setLastBooking] = useState<LastBooking | null>(null)
   const [customerPhone, setCustomerPhone] = useState<string>('')
   const [customerName, setCustomerName] = useState<string>('')
+  const [isImagesVisible, setIsImagesVisible] = useState(false)
+  const imagesRef = useRef<HTMLDivElement>(null)
   
   // Buscar telefone e nome do cliente logado
   React.useEffect(() => {
@@ -60,6 +62,27 @@ export function BookingClient({ barbershops }: BookingClientProps) {
       const user = JSON.parse(savedUser)
       setCustomerPhone(user.phone)
       setCustomerName(user.name || '')
+    }
+  }, [])
+
+  // Intersection Observer para imagens do serviço
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsImagesVisible(true)
+          observer.unobserve(entry.target)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (imagesRef.current) {
+      observer.observe(imagesRef.current)
+    }
+
+    return () => {
+      observer.disconnect()
     }
   }, [])
   
@@ -210,7 +233,7 @@ export function BookingClient({ barbershops }: BookingClientProps) {
                   {/* Serviço */}
                   <div>
                     <label className="text-sm font-medium mb-2 block">Serviço *</label>
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 gap-3" ref={imagesRef}>
                       {currentBarbershop?.services.map((service) => (
                         <Card
                           key={service.id}
@@ -223,12 +246,13 @@ export function BookingClient({ barbershops }: BookingClientProps) {
                         >
                           <CardContent className="flex gap-4 p-4">
                             <div className="relative w-20 h-20 shrink-0 bg-muted rounded-md">
-                              {service.image_url && (
+                              {service.image_url && isImagesVisible && (
                                 <Image
                                   src={service.image_url}
                                   alt={service.name}
                                   fill
                                   className="object-cover rounded-md"
+                                  loading="lazy"
                                 />
                               )}
                             </div>
