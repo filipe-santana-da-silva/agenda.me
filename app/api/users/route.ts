@@ -1,26 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import bcrypt from 'bcryptjs'
+import { withCache, invalidateMultipleCache, getCacheKey } from '@/lib/cache'
+
+const USERS_CACHE_KEY = 'system_users:all'
+const USERS_CACHE_TTL = 1800 // 30 minutos
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    
-    // Temporariamente desabilitar RLS para debug
-    const { data: users, error } = await supabase
-      .from('system_users')
-      .select('id, email, name, role, is_active, created_at, updated_at, password_plain')
-      .order('created_at', { ascending: false })
+    const users = await withCache(
+      USERS_CACHE_KEY,
+      async () => {
+        const supabase = await createClient()
 
-    if (error) {
-      console.error('Erro ao buscar usuários:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+        // Temporariamente desabilitar RLS para debug
+        const { data: users, error } = await supabase
+          .from('system_users')
+          .select('id, email, name, role, is_active, created_at, updated_at, password_plain')
+          .order('created_at', { ascending: false })
 
-    console.log('Usuários encontrados:', users?.length)
-    console.log('Dados dos usuários:', users?.map(u => ({ email: u.email, password_plain: u.password_plain })))
+        if (error) {
+          console.error('Erro ao buscar usuários:', error)
+          throw error
+        }
 
-    return NextResponse.json(users || [])
+        console.log('Usuários encontrados:', users?.length)
+        console.log('Dados dos usuários:', users?.map(u => ({ email: u.email, password_plain: u.password_plain })))
+
+        return users || []
+      },
+      USERS_CACHE_TTL
+    )
+
+    const response = NextResponse.json(users)
+    response.headers.set('Cache-Control', 'public, max-age=1800')
+    return response
   } catch (error) {
     console.error('Erro na API:', error)
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })

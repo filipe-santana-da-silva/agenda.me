@@ -3,6 +3,8 @@ import { BookingPageContent } from "./booking-page-content";
 import { getBarbershops } from "@/data/barbershops";
 import { BookingWithRelations } from "@/data/bookings";
 
+export const dynamic = 'force-dynamic';
+
 const BookingsPage = async () => {
   const barbershops = await getBarbershops();
   const confirmedBookings: BookingWithRelations[] = [];

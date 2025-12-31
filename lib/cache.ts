@@ -1,8 +1,10 @@
-/**
- * Sistema de Cache com Redis
- * Implementa cache para requisições frequentes da aplicação
- */
+import { getRedisClient, isRedisConnected } from './redis'
+import { InMemoryCache, RedisCache } from './cache-classes'
+import type { ICache } from './cache-classes'
 
+/**
+ * Configuração de TTL para diferentes tipos de dados
+ */
 const CACHE_CONFIG = {
   BARBERSHOPS: { key: 'barbershops', ttl: 3600 }, // 1 hora
   SERVICES: { key: 'services', ttl: 3600 }, // 1 hora
@@ -10,107 +12,181 @@ const CACHE_CONFIG = {
   AVAILABLE_SLOTS: { key: 'available_slots', ttl: 300 }, // 5 minutos
   CATALOGS: { key: 'catalogs', ttl: 3600 }, // 1 hora
   PRODUCTS: { key: 'products', ttl: 3600 }, // 1 hora
-};
+  USERS: { key: 'users', ttl: 1800 }, // 30 minutos
+  BOOKINGS: { key: 'bookings', ttl: 600 }, // 10 minutos
+}
 
 /**
- * Cache em memória simples para ambientes sem Redis
- * Pode ser substituído por Redis em produção
+ * Instâncias globais de cache
  */
-class InMemoryCache {
-  private cache: Map<string, { data: unknown; expiresAt: number }> = new Map();
+let inMemoryCache: InMemoryCache | null = null
+let redisCache: RedisCache | null = null
+let cacheType: 'redis' | 'memory' = 'memory'
 
-  async get<T>(key: string): Promise<T | null> {
-    const item = this.cache.get(key);
-    if (!item) return null;
-
-    // Verificar se expirou
-    if (Date.now() > item.expiresAt) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    return item.data as T;
+/**
+ * Inicializa cache (Redis ou in-memory)
+ */
+async function initializeCache(): Promise<ICache> {
+  // Se já está inicializado, retorna
+  if (cacheType === 'redis' && redisCache) {
+    return redisCache
   }
 
-  async set<T>(key: string, data: T, ttl: number = 3600): Promise<void> {
-    const expiresAt = Date.now() + ttl * 1000;
-    this.cache.set(key, { data, expiresAt });
+  if (cacheType === 'memory' && inMemoryCache) {
+    return inMemoryCache
   }
 
-  async delete(key: string): Promise<void> {
-    this.cache.delete(key);
+  // Tentar Redis primeiro
+  const redisClient = await getRedisClient()
+  if (redisClient) {
+    redisCache = new RedisCache(redisClient)
+    cacheType = 'redis'
+    console.log('[CACHE] Usando Redis')
+    return redisCache
   }
 
-  async clear(): Promise<void> {
-    this.cache.clear();
+  // Fallback para in-memory
+  if (!inMemoryCache) {
+    inMemoryCache = new InMemoryCache()
   }
-
-  // Limpar itens expirados periodicamente
-  private startCleanup() {
-    setInterval(() => {
-      const now = Date.now();
-      for (const [key, item] of this.cache.entries()) {
-        if (now > item.expiresAt) {
-          this.cache.delete(key);
-        }
-      }
-    }, 60000); // A cada minuto
-  }
-
-  constructor() {
-    this.startCleanup();
-  }
-}
-
-// Instância global de cache
-let cacheInstance: InMemoryCache | null = null;
-
-function getCacheInstance(): InMemoryCache {
-  if (!cacheInstance) {
-    cacheInstance = new InMemoryCache();
-  }
-  return cacheInstance;
+  cacheType = 'memory'
+  console.log('[CACHE] Usando In-Memory (Redis não disponível)')
+  return inMemoryCache
 }
 
 /**
- * Wrapper para cache com fallback automático
+ * Obtém instância de cache
+ */
+async function getCacheInstance(): Promise<ICache> {
+  if (cacheType === 'redis' && redisCache) {
+    return redisCache
+  }
+
+  if (cacheType === 'memory' && inMemoryCache) {
+    return inMemoryCache
+  }
+
+  return initializeCache()
+}
+
+/**
+ * Wrapper para usar cache transparentemente
+ * Se dados estão em cache, retorna do cache
+ * Senão, executa fetcher e armazena em cache
  */
 export async function withCache<T>(
   key: string,
   fetcher: () => Promise<T>,
   ttl: number = 3600
 ): Promise<T> {
-  const cache = getCacheInstance();
+  try {
+    const cache = await getCacheInstance()
 
-  // Tentar obter do cache
-  const cached = await cache.get<T>(key);
-  if (cached) {
-    return cached;
+    // Tentar obter do cache
+    const cached = await cache.get<T>(key)
+    if (cached) {
+      console.log(`[CACHE HIT] ${key}`)
+      return cached
+    }
+
+    // Se não estiver em cache, buscar dados
+    console.log(`[CACHE MISS] ${key}`)
+    const data = await fetcher()
+
+    // Armazenar em cache
+    await cache.set(key, data, ttl)
+
+    return data
+  } catch (error) {
+    console.error(`[CACHE ERROR] ${key}:`, error)
+    // Se houver erro, apenas execute fetcher sem cache
+    return fetcher()
   }
-
-  // Se não estiver em cache, buscar dados
-  const data = await fetcher();
-
-  // Armazenar em cache
-  await cache.set(key, data, ttl);
-
-  return data;
 }
 
 /**
- * Invalidar cache por padrão de chave
+ * Invalidar cache para uma chave específica
  */
-export async function invalidateCache(pattern: string): Promise<void> {
-  const cache = getCacheInstance();
-  await cache.delete(pattern);
+export async function invalidateCache(key: string): Promise<void> {
+  try {
+    const cache = await getCacheInstance()
+    await cache.delete(key)
+    console.log(`[CACHE INVALIDATED] ${key}`)
+  } catch (error) {
+    console.error(`[CACHE ERROR] Erro ao invalidar ${key}:`, error)
+  }
+}
+
+/**
+ * Invalidar múltiplas chaves de cache
+ */
+export async function invalidateMultipleCache(keys: string[]): Promise<void> {
+  try {
+    const cache = await getCacheInstance()
+    await Promise.all(keys.map((key) => cache.delete(key)))
+    console.log(`[CACHE INVALIDATED] ${keys.length} chaves`)
+  } catch (error) {
+    console.error('[CACHE ERROR] Erro ao invalidar múltiplas chaves:', error)
+  }
+}
+
+/**
+ * Invalidar cache de barbearias
+ */
+export async function invalidateBarbershopsCache(): Promise<void> {
+  await invalidateCache(CACHE_CONFIG.BARBERSHOPS.key)
+}
+
+/**
+ * Invalidar cache de serviços
+ */
+export async function invalidateServicesCache(): Promise<void> {
+  await invalidateCache(CACHE_CONFIG.SERVICES.key)
+}
+
+/**
+ * Invalidar cache de funcionários
+ */
+export async function invalidateEmployeesCache(): Promise<void> {
+  await invalidateCache(CACHE_CONFIG.EMPLOYEES.key)
+}
+
+/**
+ * Invalidar cache de catálogos
+ */
+export async function invalidateCatalogsCache(): Promise<void> {
+  await invalidateCache(CACHE_CONFIG.CATALOGS.key)
+}
+
+/**
+ * Invalidar cache de produtos
+ */
+export async function invalidateProductsCache(): Promise<void> {
+  await invalidateCache(CACHE_CONFIG.PRODUCTS.key)
+}
+
+/**
+ * Invalidar cache de horários disponíveis
+ */
+export async function invalidateAvailableSlotsCache(barbershopId?: string): Promise<void> {
+  if (barbershopId) {
+    await invalidateCache(`${CACHE_CONFIG.AVAILABLE_SLOTS.key}:${barbershopId}`)
+  } else {
+    await invalidateCache(CACHE_CONFIG.AVAILABLE_SLOTS.key)
+  }
 }
 
 /**
  * Limpar todo o cache
  */
 export async function clearAllCache(): Promise<void> {
-  const cache = getCacheInstance();
-  await cache.clear();
+  try {
+    const cache = await getCacheInstance()
+    await cache.clear()
+    console.log('[CACHE] Todo o cache foi limpo')
+  } catch (error) {
+    console.error('[CACHE ERROR] Erro ao limpar cache:', error)
+  }
 }
 
 /**
@@ -121,15 +197,30 @@ export function getCacheKey(
   params?: Record<string, unknown>
 ): string {
   if (!params || Object.keys(params).length === 0) {
-    return baseKey;
+    return baseKey
   }
 
   const paramStr = Object.entries(params)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}:${JSON.stringify(value)}`)
-    .join('|');
+    .join('|')
 
-  return `${baseKey}:${paramStr}`;
+  return `${baseKey}:${paramStr}`
 }
 
-export const CACHE_KEYS = CACHE_CONFIG;
+/**
+ * Retorna informações sobre o cache
+ */
+export async function getCacheInfo(): Promise<{
+  type: 'redis' | 'memory'
+  connected: boolean
+  redisConnected?: boolean
+}> {
+  return {
+    type: cacheType,
+    connected: true,
+    redisConnected: isRedisConnected(),
+  }
+}
+
+export const CACHE_KEYS = CACHE_CONFIG
