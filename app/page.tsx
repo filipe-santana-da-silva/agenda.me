@@ -334,9 +334,9 @@ function LandingPage({ features, testimonials, plans }: { features: Record<strin
                       whileHover={{ rotateY: 180 }}
                       style={{ transformStyle: 'preserve-3d' }}
                     >
-                      {feature.icon && typeof feature.icon === 'function' ? (
+                      {feature.icon ? 
                         React.createElement(feature.icon as React.ComponentType<{className: string}>, {className: 'w-6 h-6 text-white'})
-                      ) : null}
+                      : null}
                     </motion.div>
                     <h3 className="text-xl font-semibold mb-2">{String(feature.title)}</h3>
                     <p className="text-gray-600">{String(feature.description)}</p>

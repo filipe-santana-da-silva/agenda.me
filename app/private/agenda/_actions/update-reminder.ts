@@ -5,13 +5,13 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 
 const formSchema = z.object({
+  reminderId: z.string().min(1, 'O id do lembrete é obrigatório'),
   description: z.string().min(1, 'A descrição do lembrete é obrigatória'),
-  appointmentId: z.string().uuid().optional().nullable(),
 })
 
 type FormSchema = z.infer<typeof formSchema>
 
-export async function createReminder(formData: FormSchema) {
+export async function updateReminder(formData: FormSchema) {
   try {
     const supabase = await createClient()
     const schema = formSchema.safeParse(formData)
@@ -23,33 +23,31 @@ export async function createReminder(formData: FormSchema) {
       }
     }
 
-    const { data, error: insertError } = await supabase
+    const { data, error: updateError } = await supabase
       .from('reminders')
-      .insert([
-        {
-          description: schema.data.description,
-          appointment_id: schema.data.appointmentId || null,
-        }
-      ])
+      .update({
+        description: schema.data.description,
+      })
+      .eq('id', schema.data.reminderId)
       .select()
 
-    if (insertError) {
-      console.error('Insert error:', insertError)
+    if (updateError) {
+      console.error('Update error:', updateError)
       return {
-        error: `Erro ao criar lembrete: ${insertError.message}`
+        error: `Erro ao atualizar lembrete: ${updateError.message}`
       }
     }
 
     revalidatePath('/private/agenda')
 
     return {
-      data: 'Lembrete cadastrado com sucesso!',
+      data: 'Lembrete atualizado com sucesso!',
       reminder: data
     }
   } catch (err) {
-    console.error('Unexpected error creating reminder:', err)
+    console.error('Unexpected error updating reminder:', err)
     return {
-      error: `Erro inesperado: ${err instanceof Error ? err.message : 'Falha ao cadastrar lembrete'}`
+      error: `Erro inesperado: ${err instanceof Error ? err.message : 'Falha ao atualizar lembrete'}`
     }
   }
 }

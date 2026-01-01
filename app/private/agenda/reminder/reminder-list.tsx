@@ -3,11 +3,29 @@
 import { Button } from "@/components/ui/button"
 import { useReminderForm, ReminderFormData } from "./reminder-form"
 import { Form, FormItem, FormField, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { createReminder } from "../_actions/create-reminder"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { getAppointmentsForReminders } from "../_data-access/get-appointments-for-reminders"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+interface Appointment {
+  id: string
+  appointment_date: string
+  appointment_time: string
+  status: string | null
+  customer?: Array<{
+    id: string
+    name: string
+    phone: string
+  }>
+  service?: Array<{
+    id: string
+    name: string
+    price: number
+  }>
+}
 
 interface ReminderContentProps {
     closeDialog: () => void;
@@ -16,11 +34,31 @@ interface ReminderContentProps {
 
 export function Reminderlist({ closeDialog, onRefresh } : ReminderContentProps){
     const form = useReminderForm()
-    const router = useRouter();
+    const [appointments, setAppointments] = useState<Appointment[]>([])
+    const [loadingAppointments, setLoadingAppointments] = useState(false)
+
+    useEffect(() => {
+        loadAppointments()
+    }, [])
+
+    async function loadAppointments() {
+        try {
+            setLoadingAppointments(true)
+            const data = await getAppointmentsForReminders()
+            setAppointments(data as Appointment[])
+        } catch (err) {
+            console.error('Erro ao carregar agendamentos:', err)
+        } finally {
+            setLoadingAppointments(false)
+        }
+    }
 
     async function onSubmit( formData: ReminderFormData){
         try {
-            const response = await createReminder({ description: formData.description})
+            const response = await createReminder({ 
+                description: formData.description,
+                appointmentId: formData.appointmentId
+            })
             
             if(!response) {
                 toast.error('Resposta vazia do servidor')
@@ -55,6 +93,34 @@ export function Reminderlist({ closeDialog, onRefresh } : ReminderContentProps){
                             </FormControl>
                         </FormItem>
                     )}/>
+                    
+                    <FormField control={form.control} name="appointmentId" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="font-semibold">Agendamento (Opcional)</FormLabel>
+                            <FormControl>
+                                <Select value={field.value || ""} onValueChange={(value) => field.onChange(value || null)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione um agendamento..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {loadingAppointments ? (
+                                            <SelectItem value="none" disabled>Carregando...</SelectItem>
+                                        ) : appointments.length === 0 ? (
+                                            <SelectItem value="none" disabled>Nenhum agendamento disponível</SelectItem>
+                                        ) : (
+                                            appointments.map((apt) => (
+                                                <SelectItem key={apt.id} value={apt.id}>
+                                                    {apt.customer?.[0]?.name} - {apt.service?.[0]?.name} ({new Date(apt.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR')} às {apt.appointment_time})
+                                                </SelectItem>
+                                            ))
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                    
                     <Button type="submit" disabled={!form.watch("description")}>
                         Cadastrar lembrete
                     </Button>

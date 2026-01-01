@@ -5,18 +5,10 @@ import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Trash2, Edit2, Search } from 'lucide-react'
+import { Plus, Trash2, Edit2, Search, Phone, Calendar } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { ClientDialog } from './client-dialog'
 import { DeleteConfirmDialog } from './delete-confirm-dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -160,7 +152,7 @@ export function ClientsPageClient() {
         </Card>
       </div>
 
-      {/* Clients Table */}
+      {/* Clients Grid */}
       <Card data-tour="customer-list">
         <CardHeader>
           <CardTitle>Listagem de Clientes</CardTitle>
@@ -180,54 +172,60 @@ export function ClientsPageClient() {
               </div>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Data de Criação</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.name}</TableCell>
-                    <TableCell>{customer.phone}</TableCell>
-                    <TableCell>
-                      {format(new Date(customer.created_at), 'dd/MM/yyyy HH:mm', {
-                        locale: ptBR,
-                      })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 sm:h-8 sm:w-8"
-                          onClick={() => {
-                            setEditingCustomer(customer)
-                            setIsDialogOpen(true)
-                          }}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 sm:h-8 sm:w-8"
-                          onClick={() =>
-                            setDeleteConfirm({ id: customer.id, name: customer.name })
-                          }
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredCustomers.map((customer) => (
+                <div
+                  key={customer.id}
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="font-semibold text-lg truncate text-gray-900">
+                      {customer.name}
+                    </h3>
+                    <div className="flex gap-2 ml-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-blue-50"
+                        onClick={() => {
+                          setEditingCustomer(customer)
+                          setIsDialogOpen(true)
+                        }}
+                        title="Editar"
+                      >
+                        <Edit2 className="w-4 h-4 text-blue-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-red-50"
+                        onClick={() =>
+                          setDeleteConfirm({ id: customer.id, name: customer.name })
+                        }
+                        title="Deletar"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-blue-500" />
+                      <span>{customer.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <span className="text-xs">
+                        {format(new Date(customer.created_at), 'dd/MM/yyyy HH:mm', {
+                          locale: ptBR,
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
