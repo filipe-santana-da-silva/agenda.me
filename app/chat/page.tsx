@@ -1796,7 +1796,7 @@ const ChatPage = () => {
                     onClick={() => {
                       router.push("/booking");
                     }}
-                    className="absolute top-3 lg:top-8 right-3 lg:right-8 text-gray-600 hover:text-gray-800 text-lg lg:text-2xl"
+                    className="absolute top-3 lg:top-8 right-3 lg:right-8 text-gray-600 hover:text-gray-800 text-2xl lg:text-2xl p-2"
                   >
                     ✕
                   </button>
