@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   format,
   startOfWeek,
+  endOfWeek,
   addDays,
   isSameDay,
 } from 'date-fns'
@@ -30,6 +31,7 @@ interface CalendarWeekProps {
   onAppointmentClick: (appointmentId: string) => void
   onColorChange: (appointmentId: string) => void
   onDelete: (appointmentId: string) => void
+  onRangeChange?: (start: string, end: string) => void
   loadingColors?: Set<string>
 }
 
@@ -46,6 +48,7 @@ export function CalendarWeek({
   onAppointmentClick,
   onColorChange,
   onDelete,
+  onRangeChange,
   loadingColors = new Set(),
 }: CalendarWeekProps) {
   const [weekStart, setWeekStart] = useState(
@@ -55,6 +58,17 @@ export function CalendarWeek({
   const [selectedDayForDetail, setSelectedDayForDetail] = useState<string | null>(null)
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  
+  // Notify parent of the week range when it changes
+  useEffect(() => {
+    if (onRangeChange) {
+      const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 })
+      onRangeChange(
+        format(weekStart, 'yyyy-MM-dd'),
+        format(weekEnd, 'yyyy-MM-dd')
+      )
+    }
+  }, [weekStart, onRangeChange])
 
   // Map appointments by date and time slot
   const appointmentsByTimeSlot = useMemo(() => {

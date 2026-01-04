@@ -19,17 +19,12 @@ import { ChevronLeft, ChevronRight, List, Calendar, Users, Briefcase, Package, G
 import Link from 'next/link'
 import Image from "next/image";
 
-import {
-  Collapsible,
-  CollapsibleContent
-} from "@/components/ui/collapsible"
-
 export function SideBarDashboard({ children }: {children: React.ReactNode}){
     const pathname = usePathname();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const { user, login, logout } = useAuth()
-    const { hasPermission, isAdmin } = usePermissions()
+    const { user } = useAuth()
+    const { hasPermission } = usePermissions()
 
     const allMainMenuItems = [
         { href: "/private/agenda", label: "Agendamentos", icon: Calendar, permission: "agenda" as const, tourId: "agenda-link" },
@@ -104,34 +99,32 @@ export function SideBarDashboard({ children }: {children: React.ReactNode}){
                 )}
 
                 {/* Expanded nav */}
-                <Collapsible open={!isCollapsed} className="flex flex-col flex-1">
-                    <CollapsibleContent suppressHydrationWarning className="flex flex-col flex-1 overflow-hidden">
-                        <nav className="flex flex-col gap-0.5 md:gap-1 p-3 md:p-4 flex-1 overflow-y-auto">
-                            {/* Main section */}
-                            <div className="mb-2">
-                                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2 md:mb-3 pl-2">Painel</p>
-                                <div className="space-y-0.5 md:space-y-1">
-                                    {mainMenuItems.map((item) => (
-                                        <NavLink key={item.href} {...item} pathname={pathname} />
-                                    ))}
-                                </div>
+                {!isCollapsed && (
+                    <nav className="flex flex-col gap-0.5 md:gap-1 p-3 md:p-4 flex-1 overflow-y-auto">
+                        {/* Main section */}
+                        <div className="mb-2">
+                            <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2 md:mb-3 pl-2">Painel</p>
+                            <div className="space-y-0.5 md:space-y-1">
+                                {mainMenuItems.map((item) => (
+                                    <NavLink key={item.href} {...item} pathname={pathname} />
+                                ))}
                             </div>
+                        </div>
 
-                            {/* Spacer */}
-                            <div className="flex-1" />
+                        {/* Spacer */}
+                        <div className="flex-1" />
 
-                            {/* Settings section */}
-                            <div className="pt-3 md:pt-4 border-t dark:border-slate-700">
-                                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2 md:mb-3 pl-2">Configurações</p>
-                                <div className="space-y-0.5 md:space-y-1">
-                                    {settingsMenuItems.map((item) => (
-                                        <NavLink key={item.href} {...item} pathname={pathname} />
-                                    ))}
-                                </div>
+                        {/* Settings section */}
+                        <div className="pt-3 md:pt-4 border-t dark:border-slate-700">
+                            <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2 md:mb-3 pl-2">Configurações</p>
+                            <div className="space-y-0.5 md:space-y-1">
+                                {settingsMenuItems.map((item) => (
+                                    <NavLink key={item.href} {...item} pathname={pathname} />
+                                ))}
                             </div>
-                        </nav>
-                    </CollapsibleContent>
-                </Collapsible>
+                        </div>
+                    </nav>
+                )}
             </aside>
 
             {/* Main content */}

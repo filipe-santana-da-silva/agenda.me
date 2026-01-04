@@ -10,6 +10,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { toast } from 'sonner'
+import dynamic from 'next/dynamic'
+
+const TimelineTimer = dynamic(() => import('@/app/private/agenda/_components/timeline-timer').then(mod => ({ default: mod.TimelineTimer })), {
+  ssr: false,
+})
 
 interface Appointment {
   id: string
@@ -67,6 +72,7 @@ export function CalendarViewWithAppointments() {
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([])
   const [services, setServices] = useState<{ id: string; name: string; price_in_cents: number }[]>([])
   const [professionals, setProfessionals] = useState<{ id: string; name: string }[]>([])
+  const [showTimelineTimer, setShowTimelineTimer] = useState(false)
 
   // Reset appointment index and editing state when selected date changes
   useEffect(() => {
@@ -246,6 +252,17 @@ export function CalendarViewWithAppointments() {
               >
                 Semana
               </button>
+              <button
+                onClick={() => setShowTimelineTimer(!showTimelineTimer)}
+                className={`px-3 py-1.5 md:px-4 md:py-2 text-sm font-semibold transition-all flex items-center gap-2 ${
+                  showTimelineTimer
+                    ? 'text-blue-600 border-b-2 border-blue-600 -mb-0.5'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+                Timeline
+              </button>
             </div>
           </div>
           <div className="flex gap-2" data-tour="week-nav">
@@ -280,6 +297,13 @@ export function CalendarViewWithAppointments() {
           </div>
         </div>
       </CardHeader>
+
+      {/* Timeline Timer */}
+      {showTimelineTimer && (
+        <CardContent className="pb-4">
+          <TimelineTimer duration={60} />
+        </CardContent>
+      )}
 
       <CardContent>
         {viewMode === 'month' ? (

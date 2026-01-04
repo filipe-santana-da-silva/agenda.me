@@ -38,9 +38,31 @@ export default function ChatSuccessModal({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4 animate-in fade-in">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 animate-in zoom-in-95">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-6">
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-6xl max-h-[95vh] animate-in zoom-in-95 overflow-hidden grid grid-cols-[5rem_1fr]">
+        {/* Barra de Progresso - Esquerda */}
+        <div className="w-20 bg-linear-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4 border-r border-gray-200 shrink-0">
+          <div className="flex flex-col items-center gap-3 h-full justify-center">
+            {[1, 2, 3, 4, 5].map((step, index) => (
+              <div key={step} className="flex flex-col items-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    step <= 5
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-300 text-gray-600'
+                  }`}
+                >
+                  {step}
+                </div>
+                {index < 4 && <div className="w-0.5 h-6 bg-blue-500 my-1"></div>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Conteúdo Central */}
+        <div className="flex-1 p-8 overflow-y-auto flex flex-col justify-center">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-6">
             <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -108,6 +130,7 @@ export default function ChatSuccessModal({
             >
               Fechar
             </Button>
+          </div>
           </div>
         </div>
       </div>

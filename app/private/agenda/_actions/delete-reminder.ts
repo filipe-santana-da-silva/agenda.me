@@ -24,7 +24,7 @@ export async function deleteReminder(formData: FormSchema) {
 
     console.log('Deletando lembrete com id:', formData.reminderId)
     const { data, error: deleteError } = await supabase
-      .from('Reminder')
+      .from('reminders')
       .delete()
       .eq('id', formData.reminderId)
       .select()

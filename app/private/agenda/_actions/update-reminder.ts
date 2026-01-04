@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 const formSchema = z.object({
   reminderId: z.string().min(1, 'O id do lembrete é obrigatório'),
   description: z.string().min(1, 'A descrição do lembrete é obrigatória'),
+  appointmentId: z.string().nullable().optional(),
 })
 
 type FormSchema = z.infer<typeof formSchema>
@@ -27,6 +28,7 @@ export async function updateReminder(formData: FormSchema) {
       .from('reminders')
       .update({
         description: schema.data.description,
+        appointment_id: schema.data.appointmentId || null,
       })
       .eq('id', schema.data.reminderId)
       .select()

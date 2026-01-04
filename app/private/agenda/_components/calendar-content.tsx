@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns'
+import { format, startOfMonth, endOfMonth, parseISO, startOfWeek, endOfWeek } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +21,7 @@ import { Calendar, Clock } from 'lucide-react'
 import { Suspense } from 'react'
 import { deleteAppointment } from '../_actions/delete-appointment'
 import type { AppointmentWithService } from '../appointments/appointment-list'
+import { TimelineTimer } from './timeline-timer'
 
 const CalendarMonth = dynamic(
   () => import('./calendar-month'),
@@ -63,6 +64,7 @@ export function CalendarContent() {
   const [toDeleteAppointment, setToDeleteAppointment] = useState<AppointmentWithService | null>(null)
   const [appointmentColors, setAppointmentColors] = useState<Record<string, number>>({})
   const [loadingColors, setLoadingColors] = useState<Set<string>>(new Set())
+  const [showTimelineTimer, setShowTimelineTimer] = useState(false)
 
   // Fetch all appointments for the month - include selectedDate in queryKey to refetch when month changes
   const { data: allAppointments = [], isLoading, refetch, isError, error } = useQuery({
@@ -201,9 +203,17 @@ export function CalendarContent() {
       <div className="space-y-4 overflow-x-hidden">
         {/* Header */}
         <Card className="w-full mx-auto max-w-full">
-          <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 p-4 sm:p-6">
-            <CardTitle className="text-xl sm:text-2xl font-bold">Agenda</CardTitle>
-            <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
+          <CardHeader className="flex flex-col gap-4 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <CardTitle className="text-xl sm:text-2xl font-bold">Agenda</CardTitle>
+              <Button
+                onClick={() => router.push('/private/agenda/new')}
+                className="w-full sm:w-auto text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2"
+              >
+                Novo Agendamento
+              </Button>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start sm:justify-start gap-2 w-full flex-wrap">
               <div className="flex items-center gap-1 sm:gap-2 bg-muted p-1 rounded-lg">
                 <Button
                   variant={viewMode === 'month' ? 'default' : 'ghost'}
@@ -224,17 +234,24 @@ export function CalendarContent() {
                   <span className="hidden sm:inline">Semana</span>
                 </Button>
               </div>
-            <Button
-  onClick={() => router.push('/private/agenda/new')}
-  className="relative w-full sm:w-auto text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 flex items-center justify-center"
->
-  <span className="mx-auto">Novo Agendamento</span>
-</Button>
-
-
+              <Button
+                variant={showTimelineTimer ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowTimelineTimer(!showTimelineTimer)}
+                className="gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm flex items-center"
+                title="Ativar/Desativar Timeline de Tempo"
+              >
+                <Clock className="w-4 h-4" />
+                <span>Timeline</span>
+              </Button>
             </div>
           </CardHeader>
         </Card>
+
+        {/* Timeline Timer */}
+        {showTimelineTimer && (
+          <TimelineTimer duration={60} />
+        )}
 
         {/* Loading state: keep calendar mounted during loading to avoid remount flicker */}
         {isLoading && (
@@ -310,6 +327,10 @@ export function CalendarContent() {
                         if (apt) {
                           handleDelete(apt)
                         }
+                      }}
+                      onRangeChange={(s: string, e: string) => {
+                        setVisibleStart(s)
+                        setVisibleEnd(e)
                       }}
                       loadingColors={loadingColors}
                     />

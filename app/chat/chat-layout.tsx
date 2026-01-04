@@ -35,11 +35,6 @@ const ChatDateModal = dynamic(() => import('./modals/chat-date-modal'), {
   ssr: false
 });
 
-const ChatTimeModal = dynamic(() => import('./modals/chat-time-modal'), {
-  loading: LoadingSkeleton,
-  ssr: false
-});
-
 const ChatSuccessModal = dynamic(() => import('./modals/chat-success-modal'), {
   loading: LoadingSkeleton,
   ssr: false
@@ -56,7 +51,6 @@ export interface ChatLayoutProps {
   showProfessionalsModal: boolean;
   showViewProfessionalsModal: boolean;
   showDateModal: boolean;
-  showTimeModal: boolean;
   showSuccessModal: boolean;
   successMessage: string;
   
@@ -67,7 +61,6 @@ export interface ChatLayoutProps {
   onProfessionalsModalChange: (open: boolean) => void;
   onViewProfessionalsModalChange: (open: boolean) => void;
   onDateModalChange: (open: boolean) => void;
-  onTimeModalChange: (open: boolean) => void;
   onSuccessModalChange: (open: boolean) => void;
   
   // Menu handlers
@@ -106,14 +99,12 @@ export function ChatLayout({
   showServicesModal,
   showProfessionalsModal,
   showDateModal,
-  showTimeModal,
   showSuccessModal,
   successMessage,
   onMenuModalChange,
   onServicesModalChange,
   onProfessionalsModalChange,
   onDateModalChange,
-  onTimeModalChange,
   onSuccessModalChange,
   onMenuOption,
   onServiceSelect,
@@ -223,28 +214,11 @@ export function ChatLayout({
             onOpenChange={onDateModalChange}
             onNext={() => {
               onDateModalChange(false);
-              onTimeModalChange(true);
+              onSuccessModalChange(true);
             }}
             onBack={() => {
               onDateModalChange(false);
               onProfessionalsModalChange(true);
-            }}
-            appointment={appointment}
-          />
-        </Suspense>
-      )}
-
-      {showTimeModal && (
-        <Suspense fallback={<div />}>
-          <ChatTimeModal
-            onOpenChange={onTimeModalChange}
-            onNext={() => {
-              onTimeModalChange(false);
-              onSuccessModalChange(true);
-            }}
-            onBack={() => {
-              onTimeModalChange(false);
-              onDateModalChange(true);
             }}
             appointment={appointment}
           />

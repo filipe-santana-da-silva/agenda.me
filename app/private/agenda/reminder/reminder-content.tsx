@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 
 // Lightweight local Reminder type to avoid depending on generated prisma types
@@ -29,6 +29,23 @@ type ReminderItem = {
         }
     } | null
 }
+
+type Appointment = {
+    id: string
+    appointment_date: string
+    appointment_time: string
+    status: string | null
+    customer?: {
+        id: string
+        name: string
+        phone: string
+    }
+    service?: {
+        id: string
+        name: string
+        price: number
+    }
+}
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card"
 import { Plus, Trash2, NotebookPen, CheckCircle2, AlertCircle, Calendar, User, Eye, Edit2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -38,6 +55,8 @@ import { updateReminder } from "../_actions/update-reminder"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { getAppointmentsForReminders } from "../_data-access/get-appointments-for-reminders"
 
 const Reminderlist = dynamic(() => import("./reminder-list").then(mod => mod.Reminderlist), {
   ssr: false,
@@ -59,8 +78,33 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
     const [reminderToDelete, setReminderToDelete] = useState<string | null>(null);
     const [selectedReminder, setSelectedReminder] = useState<ReminderItem | null>(null);
     const [editDescription, setEditDescription] = useState('');
+    const [editAppointmentId, setEditAppointmentId] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [loadingAppointments, setLoadingAppointments] = useState(false);
+
+    useEffect(() => {
+        const fetchAppointments = async () => {
+            setLoadingAppointments(true)
+            try {
+                const data = await getAppointmentsForReminders()
+                const transformedData = data?.map((apt: Omit<Appointment, 'customer' | 'service'> & { customer?: { id: string; name: string; phone: string }[] | null; service?: { id: string; name: string; price: number }[] | null }) => ({
+                    ...apt,
+                    customer: apt.customer?.[0] || undefined,
+                    service: apt.service?.[0] || undefined,
+                })) || []
+                setAppointments(transformedData)
+            } catch (error) {
+                console.error('Erro ao buscar agendamentos:', error)
+                toast.error('Erro ao caregar agendamentos')
+            } finally {
+                setLoadingAppointments(false)
+            }
+        }
+        
+        fetchAppointments()
+    }, [])
 
     async function handleConfirmDelete(){
         if (!reminderToDelete) return
@@ -93,6 +137,7 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
     function handleEditReminder(item: ReminderItem){
         setSelectedReminder(item)
         setEditDescription(item.description)
+        setEditAppointmentId(item.appointment_id || null)
         setEditDialogOpen(true)
     }
 
@@ -102,7 +147,8 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
         setIsUpdating(true)
         const response = await updateReminder({ 
             reminderId: selectedReminder.id,
-            description: editDescription
+            description: editDescription,
+            appointmentId: editAppointmentId
         })
 
         if(response.error){
@@ -114,6 +160,7 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
         setEditDialogOpen(false)
         setSelectedReminder(null)
         setEditDescription('')
+        setEditAppointmentId(null)
         setIsUpdating(false)
         if (onRefresh) onRefresh();
     }
@@ -158,7 +205,11 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
                     <ScrollArea className="h-85 lg:max-h-[calc(100vh - 15rem)] w-full">
                         <div className="pr-4">
                             {reminder.map((item) => (
-                                <div key={item.id} className="flex flex-col gap-2 py-3 px-3 bg-white mb-2 rounded-lg border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all group">
+                                <div 
+                                    key={item.id} 
+                                    onClick={() => handleViewReminder(item)}
+                                    className="flex flex-col gap-2 py-3 px-3 bg-white mb-2 rounded-lg border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all group cursor-pointer"
+                                >
                                     <div className="flex flex-row items-start justify-between">
                                         <div className="flex items-start gap-3 flex-1 min-w-0">
                                             <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
@@ -166,7 +217,7 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
                                         </div>
                                         <div className="flex gap-2 ml-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Button 
-                                                onClick={() => handleViewReminder(item)} 
+                                                onClick={(e) => { e.stopPropagation(); handleViewReminder(item); }} 
                                                 className="bg-transparent hover:bg-blue-50 shadow-none rounded-lg cursor-pointer w-9 h-9 p-0" 
                                                 size="sm"
                                                 title="Visualizar"
@@ -174,7 +225,7 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
                                                 <Eye className="w-4 h-4 text-blue-600"/>
                                             </Button>
                                             <Button 
-                                                onClick={() => handleEditReminder(item)} 
+                                                onClick={(e) => { e.stopPropagation(); handleEditReminder(item); }} 
                                                 className="bg-transparent hover:bg-blue-50 shadow-none rounded-lg cursor-pointer w-9 h-9 p-0" 
                                                 size="sm"
                                                 title="Editar"
@@ -182,7 +233,7 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
                                                 <Edit2 className="w-4 h-4 text-blue-600"/>
                                             </Button>
                                             <Button 
-                                                onClick={() => handleDeleteReminder(item.id)} 
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteReminder(item.id); }} 
                                                 className="bg-transparent hover:bg-red-50 shadow-none rounded-lg cursor-pointer w-9 h-9 p-0" 
                                                 size="sm"
                                                 title="Deletar"
@@ -303,7 +354,7 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Editar lembrete</DialogTitle>
-                        <DialogDescription>Atualize a descrição do seu lembrete</DialogDescription>
+                        <DialogDescription>Atualize a descrição e o agendamento vinculado</DialogDescription>
                     </DialogHeader>
                     {selectedReminder && (
                         <div className="space-y-4">
@@ -315,6 +366,29 @@ export function ReminderList({ reminder, onRefresh } : ReminderListProps){
                                     placeholder="Descrição do lembrete"
                                     className="w-full"
                                 />
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Agendamento</label>
+                                <Select value={editAppointmentId || 'none'} onValueChange={(value) => setEditAppointmentId(value === 'none' ? null : value)}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Selecione um agendamento" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Sem agendamento</SelectItem>
+                                        {loadingAppointments ? (
+                                            <div className="p-2 text-sm text-muted-foreground text-center">Carregando...</div>
+                                        ) : appointments.length > 0 ? (
+                                            appointments.map((apt) => (
+                                                <SelectItem key={apt.id} value={apt.id}>
+                                                    {new Date(apt.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR')} às {apt.appointment_time} - {apt.customer?.name || 'Cliente'} ({apt.service?.name || 'Serviço'})
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <div className="p-2 text-sm text-muted-foreground text-center">Nenhum agendamento disponível</div>
+                                        )}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                     )}

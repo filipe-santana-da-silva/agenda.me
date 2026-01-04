@@ -1,4 +1,4 @@
-import { BotMessageSquare } from "lucide-react"
+import { CalendarPlus } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -14,7 +14,7 @@ const Header = () => {
       <div className="flex items-center gap-2">
         <Link href="/chat">
           <Button variant="outline" size="icon">
-            <BotMessageSquare className="size-5" />
+            <CalendarPlus className="size-5" />
           </Button>
         </Link>
         <MenuSheet />

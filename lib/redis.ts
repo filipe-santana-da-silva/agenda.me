@@ -27,17 +27,20 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
       socket: {
         reconnectStrategy: (retries) => {
           if (retries > 10) {
-            console.error('[REDIS] Máximo de tentativas de reconexão atingido')
-            return new Error('Redis máximo de retries')
+            // Não exibir erro, apenas retornar false para desconectar
+            return false
           }
-          return retries * 50
+          return Math.min(retries * 50, 500) // Max 500ms entre tentativas
         },
       },
     })
 
     // Event listeners
     redisClient.on('error', (err) => {
-      console.error('[REDIS] Erro:', err)
+      // Apenas log em desenvolvimento
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[REDIS] Erro de conexão (usando cache em memória):', err instanceof Error ? err.message : String(err))
+      }
       isConnected = false
     })
 
@@ -51,7 +54,9 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
     })
 
     redisClient.on('reconnecting', () => {
-      console.log('[REDIS] Tentando reconectar...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[REDIS] Tentando reconectar...')
+      }
     })
 
     // Conectar
@@ -60,10 +65,10 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
 
     return redisClient
   } catch (error) {
-    console.warn(
-      '[REDIS] Falha na conexão, usando cache em memória:',
-      error instanceof Error ? error.message : 'Erro desconhecido'
-    )
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido'
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[CACHE] Redis não disponível, usando cache em memória:', errorMsg)
+    }
     redisClient = null
     isConnected = false
     return null
@@ -104,7 +109,9 @@ export async function pingRedis(): Promise<boolean> {
     const pong = await client.ping()
     return pong === 'PONG'
   } catch (error) {
-    console.error('[REDIS] Ping falhou:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[REDIS] Ping falhou (usando cache em memória)')
+    }
     return false
   }
 }

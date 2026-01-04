@@ -15,10 +15,10 @@ import QuickSearch from "@/components/quick-search";
 import { Card } from "@/components/ui/card";
 import dynamic from "next/dynamic";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { createClient } from "@/utils/supabase/client";
 import { useSearchParams } from "next/navigation";
 import BarbershopCarousel from "@/components/barbershop-carousel";
 import { CAROUSEL_IMAGES } from "@/data/carousel-images";
+import { BookingFlowModal } from "@/components/booking-flow-modal";
 const BookingLogin = dynamic(() => import("./booking-login"), { ssr: false });
 
 interface BookingPageContentProps {
@@ -33,6 +33,7 @@ export function BookingPageContent({
   const searchParams = useSearchParams();
   const [user, setUser] = useState<{ name: string; phone: string } | null>(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [showBookingFlow, setShowBookingFlow] = useState(false);
   const [services, setServices] = useState<Array<{ id: string; name: string; description: string; price: number; image_url: string }>>([]);
   const [isServicesVisible, setIsServicesVisible] = useState(false);
   const [isBarbershopsVisible, setIsBarbershopsVisible] = useState(false);
@@ -40,7 +41,6 @@ export function BookingPageContent({
   const servicesRef = useRef<HTMLDivElement>(null);
   const barbershopsRef = useRef<HTMLDivElement>(null);
   const bookingsRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
 
   // Carregar usuário do localStorage ao iniciar
   useEffect(() => {
@@ -96,27 +96,56 @@ export function BookingPageContent({
     }
   }, [user]);
 
-  // Buscar serviços do Supabase
+  // Usar serviços mock
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("services")
-          .select("*");
-
-        if (error) {
-          console.error("Erro ao buscar serviços:", error);
-          return;
-        }
-
-        setServices(data || []);
-      } catch (err) {
-        console.error("Erro ao buscar serviços:", err);
-      }
-    };
-
-    fetchServices();
-  }, [supabase]);
+    const mockServices = [
+      {
+        id: "550e8400-e29b-41d4-a716-446655440001",
+        name: "Corte de Cabelo",
+        description: "Corte de cabelo personalizado com tesoura e/ou máquina, realizado por nossos profissionais experientes.",
+        price: 60,
+        image_url: "https://utfs.io/f/0ddfbd26-a424-43a0-aaf3-c3f1dc6be6d1-1kgxo7.png",
+      },
+      {
+        id: "550e8400-e29b-41d4-a716-446655440002",
+        name: "Barba",
+        description: "Aparação e finalização de barba com acabamento perfeito e produtos de qualidade.",
+        price: 40,
+        image_url: "https://utfs.io/f/e6bdffb6-24a9-455b-aba3-903c2c2b5bde-1jo6tu.png",
+      },
+      {
+        id: "550e8400-e29b-41d4-a716-446655440003",
+        name: "Pézinho",
+        description: "Aparação dos pelos da nuca e contorno do rosto para um acabamento limpo e preciso.",
+        price: 35,
+        image_url: "https://utfs.io/f/8a457cda-f768-411d-a737-cdb23ca6b9b5-b3pegf.png",
+      },
+      {
+        id: "550e8400-e29b-41d4-a716-446655440004",
+        name: "Sobrancelha",
+        description: "Design e preenchimento de sobrancelha para um visual mais definido e harmonioso.",
+        price: 20,
+        image_url: "https://utfs.io/f/2118f76e-89e4-43e6-87c9-8f157500c333-b0ps0b.png",
+      },
+      {
+        id: "550e8400-e29b-41d4-a716-446655440005",
+        name: "Massagem",
+        description: "Massagem relaxante para aliviar tensões e promover bem-estar físico e mental.",
+        price: 50,
+        image_url: "https://utfs.io/f/c4919193-a675-4c47-9f21-ebd86d1c8e6a-4oen2a.png",
+      },
+      {
+        id: "550e8400-e29b-41d4-a716-446655440006",
+        name: "Hidratação",
+        description: "Tratamento hidratante intensivo para peles ressecadas e descamação, com produtos premium.",
+        price: 25,
+        image_url: "https://utfs.io/f/8a457cda-f768-411d-a737-cdb23ca6b9b5-b3pegf.png",
+      },
+    ];
+    
+    console.log("Usando serviços mock na página de booking");
+    setServices(mockServices);
+  }, []);
 
   return (
     <div>
@@ -222,8 +251,20 @@ export function BookingPageContent({
           </PageContainer>
 
           <Footer />
+
+          {/* Modal de fluxo de agendamento */}
+          <BookingFlowModal
+            isOpen={showBookingFlow}
+            onClose={() => setShowBookingFlow(false)}
+          />
         </div>
       ) : null}
+
+      {/* Modal de fluxo de agendamento - fora da renderização condicional */}
+      <BookingFlowModal
+        isOpen={showBookingFlow}
+        onClose={() => setShowBookingFlow(false)}
+      />
     </div>
   );
 }
