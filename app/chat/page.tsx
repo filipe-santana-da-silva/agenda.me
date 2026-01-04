@@ -1789,14 +1789,15 @@ const ChatPage = () => {
             </div>
 
             {/* Conteúdo principal */}
-            <div className="flex-1 overflow-y-auto bg-white">
+            <div className="flex-1 overflow-y-auto bg-white relative">
               {successMessage.includes("sucesso") && appointmentData ? (
                 <div className="p-3 lg:p-8">
                   <button
                     onClick={() => {
+                      setShowSuccessModal(false);
                       router.push("/booking");
                     }}
-                    className="absolute top-3 lg:top-8 right-3 lg:right-8 text-gray-600 hover:text-gray-800 text-2xl lg:text-2xl p-2"
+                    className="fixed top-4 right-4 lg:absolute lg:top-8 lg:right-8 z-50 text-gray-600 hover:text-gray-800 text-2xl lg:text-2xl p-2 hover:bg-gray-100 rounded-full transition-colors"
                   >
                     ✕
                   </button>
