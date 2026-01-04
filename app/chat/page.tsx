@@ -1122,7 +1122,7 @@ const ChatPage = () => {
                       <button
                         onClick={() => {
                           setShowCheckoutModal(false);
-                          setShowDateModal(true);
+                          router.push("/booking");
                         }}
                         className="p-0 text-gray-600 hover:text-gray-800 text-sm lg:text-xl shrink-0 bg-transparent cursor-pointer"
                       >
@@ -1795,7 +1795,7 @@ const ChatPage = () => {
                   <button
                     onClick={() => {
                       setShowSuccessModal(false);
-                      router.push("/booking");
+                      window.location.href = "/booking";
                     }}
                     className="fixed top-4 right-4 lg:absolute lg:top-8 lg:right-8 z-50 text-gray-600 hover:text-gray-800 text-2xl lg:text-2xl p-2 hover:bg-gray-100 rounded-full transition-colors"
                   >
