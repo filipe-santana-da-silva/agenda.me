@@ -61,47 +61,49 @@ export const CheckoutModal = ({
         {/* Content */}
         <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
           {/* Form Section */}
-          <div className="flex-1 p-6 lg:p-8 overflow-y-auto flex flex-col">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
-                {checkoutTab === "register" ? "Registre-se" : "Faça seu login"}
-              </h2>
-              <Button
-                onClick={onClose}
-                variant="ghost"
-                size="sm"
-                className="p-0 h-auto text-gray-600 hover:bg-gray-100 text-xl shrink-0"
-              >
-                ✕
-              </Button>
-            </div>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Form Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
+                  {checkoutTab === "register" ? "Registre-se" : "Faça seu login"}
+                </h2>
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-auto text-gray-600 hover:bg-gray-100 text-xl shrink-0"
+                >
+                  ✕
+                </Button>
+              </div>
 
-            {/* Tab Buttons */}
-            <div className="flex gap-4 mb-8">
-              <button
-                onClick={() => onTabChange("register")}
-                className={`px-6 py-2 rounded-full font-semibold transition-all ${
-                  checkoutTab === "register"
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                }`}
-              >
-                Registre-se
-              </button>
-              <button
-                onClick={() => onTabChange("login")}
-                className={`px-6 py-2 rounded-full font-semibold transition-all ${
-                  checkoutTab === "login"
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                }`}
-              >
-                Faça seu login
-              </button>
-            </div>
+              {/* Tab Buttons */}
+              <div className="flex gap-4 mb-8">
+                <button
+                  onClick={() => onTabChange("register")}
+                  className={`px-6 py-2 rounded-full font-semibold transition-all ${
+                    checkoutTab === "register"
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                  }`}
+                >
+                  Registre-se
+                </button>
+                <button
+                  onClick={() => onTabChange("login")}
+                  className={`px-6 py-2 rounded-full font-semibold transition-all ${
+                    checkoutTab === "login"
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                  }`}
+                >
+                  Faça seu login
+                </button>
+              </div>
 
-            {/* Form Inputs */}
-            <div className="space-y-6 flex-1 pb-20 lg:pb-0">
+              {/* Form Inputs */}
+              <div className="space-y-6">
               {checkoutTab === "register" ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
@@ -198,10 +200,27 @@ export const CheckoutModal = ({
                   </div>
                 </>
               )}
+              </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="fixed bottom-0 left-0 right-0 lg:static border-t border-gray-200 p-4 flex gap-3 justify-center bg-white lg:bg-transparent lg:border-t lg:p-4 lg:-m-6 lg:-mb-0">
+            {/* Action Buttons - Fixed Bottom on Mobile */}
+            <div className="shrink-0 border-t border-gray-200 bg-white p-6 lg:p-8 flex gap-3 lg:hidden">
+              <button
+                onClick={onBack}
+                className="flex-1 py-2 px-8 rounded-full border-2 border-gray-300 text-gray-900 font-semibold hover:bg-gray-50 transition-all text-sm"
+              >
+                ← Voltar
+              </button>
+              <button
+                onClick={onConfirm}
+                className="flex-1 py-2 px-8 rounded-full bg-gray-900 text-white font-semibold hover:bg-gray-800 transition-all text-sm"
+              >
+                Confirmar →
+              </button>
+            </div>
+
+            {/* Action Buttons - Desktop */}
+            <div className="hidden lg:flex border-t border-gray-200 p-4 gap-3 justify-center mt-6">
               <button
                 onClick={onBack}
                 className="py-2 px-8 rounded-full border-2 border-gray-300 text-gray-900 font-semibold hover:bg-gray-50 transition-all text-sm"

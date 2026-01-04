@@ -47,7 +47,6 @@ interface AppointmentData {
 const ChatPage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const supabase = createClient();
 
   // Mensagens do chat (sem IA)
   const [messages, setMessages] = useState<Array<{ 
@@ -220,7 +219,7 @@ const ChatPage = () => {
     console.log("Usando dados mock para serviços e profissionais");
     setServices(staticServices);
     setProfessionals(staticProfessionals);
-  }, []);
+  }, [staticServices, staticProfessionals]);
 
   // Estados das opções interativas
   const [hasInitiated, setHasInitiated] = useState(false);
@@ -276,14 +275,6 @@ const ChatPage = () => {
     }
     // eslint-disable-next-line
   }, [hasInitiated]);
-
-  // Iniciar agendamento
-  const startBooking = () => {
-    setMessageOptions({});
-    setSelectedCategory(null);
-    setShowCategoriesModal(true);
-    setAwaitingInput("category");
-  };
 
   // Listar serviços
   const handleShowServices = async () => {
@@ -350,15 +341,6 @@ const ChatPage = () => {
       }
     }
     return times;
-  };
-
-  // Listar profissionais
-  const handleShowProfessionals = async () => {
-    if (professionals && professionals.length > 0) {
-      setShowViewProfessionalsModal(true);
-    } else {
-      sendMessage({ text: "Nenhum profissional encontrado." });
-    }
   };
 
   // Voltar ao menu
@@ -1099,8 +1081,8 @@ const ChatPage = () => {
 
       {/* Modal Checkout - Cadastro/Login */}
       {showCheckoutModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-2 animate-in fade-in duration-200">
-          <div className="bg-white rounded-lg lg:rounded-3xl shadow-xl flex flex-col w-full h-[100vh] lg:h-auto lg:max-h-[95vh] overflow-hidden shrink-0 animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg lg:rounded-3xl shadow-xl flex flex-col w-full max-w-5xl max-h-[95vh] overflow-hidden shrink-0 animate-in zoom-in-95 duration-300">
             {/* Progress bar - TOPO */}
             <div className="bg-white px-3 py-2 lg:px-8 lg:py-6 flex justify-start shrink-0 border-b border-gray-200">
               <div className="flex items-center gap-1">
@@ -1133,7 +1115,7 @@ const ChatPage = () => {
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Conteúdo scrollável */}
                 <div className="flex-1 overflow-y-auto">
-                  <div className="p-3 lg:p-8">
+                  <div className="p-3 lg:p-8 pb-20 lg:pb-0">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-3 lg:mb-6">
                       <h3 className="text-xs lg:text-xl font-semibold text-gray-900">Finalize</h3>
@@ -1259,7 +1241,61 @@ const ChatPage = () => {
                 </div>
 
                 {/* Botões rodapé */}
-                <div className="flex gap-2 border-t border-gray-200 p-2 lg:p-6 shrink-0 bg-white">
+                <div className="shrink-0 border-t border-gray-200 bg-white p-6 lg:p-8 flex gap-3 lg:hidden">
+                  <Button
+                    onClick={() => {
+                      setShowCheckoutModal(false);
+                      setShowDateModal(true);
+                    }}
+                    variant="outline"
+                    className="flex-1 text-xs lg:text-base py-2 lg:py-3"
+                  >
+                    ← Voltar
+                  </Button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('bookingUser', JSON.stringify({
+                        name: checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}` : '',
+                        phone: checkoutForm.phone,
+                      }));
+                      setShowCheckoutModal(false);
+                      
+                      const servico = services.find(s => s.id === appointment.service_id)?.name || "";
+                      const profissional = professionals.find(p => p.id === appointment.professional_id)?.name || "";
+                      let dataFormatada = "";
+                      if (appointment.appointment_date) {
+                        const partes = appointment.appointment_date.split("-");
+                        if (partes.length === 3) {
+                          dataFormatada = `${partes[2]} de ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][parseInt(partes[1]) - 1]} de ${partes[0]}`;
+                        }
+                      }
+                      
+                      setAppointmentData({
+                        id: Math.floor(Math.random() * 10000).toString(),
+                        date: dataFormatada,
+                        time: appointment.appointment_time,
+                        clientName: checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim() : checkoutForm.firstName,
+                        phone: checkoutForm.phone,
+                        professional: profissional,
+                        service: servico,
+                        email: "Seu email"
+                      });
+                      
+                      setSuccessMessage("Agendamento realizado com sucesso!");
+                      setShowSuccessModal(true);
+                      
+                      const dataExibicao = new Date(appointment.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR');
+                      const resumo = `Resumo do agendamento:\nServiço: ${servico}\nProfissional: ${profissional}\nData: ${dataExibicao}\nHorário: ${appointment.appointment_time}`;
+                      sendMessage({ text: resumo });
+                    }}
+                    className="flex-1 py-2 lg:py-3 px-4 lg:px-8 rounded-lg lg:rounded-full bg-gray-900 text-white font-semibold hover:bg-gray-800 transition-all text-xs lg:text-sm"
+                  >
+                    Confirmar →
+                  </button>
+                </div>
+
+                {/* Desktop Buttons */}
+                <div className="hidden lg:flex gap-2 border-t border-gray-200 p-2 lg:p-6 shrink-0 bg-white">
                   <Button
                     onClick={() => {
                       setShowCheckoutModal(false);
