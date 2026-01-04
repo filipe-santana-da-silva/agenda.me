@@ -101,7 +101,7 @@ export const CheckoutModal = ({
             </div>
 
             {/* Form Inputs */}
-            <div className="space-y-6 flex-1">
+            <div className="space-y-6 flex-1 pb-20 lg:pb-0">
               {checkoutTab === "register" ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
@@ -201,7 +201,7 @@ export const CheckoutModal = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="border-t border-gray-200 p-4 -m-6 -mb-0 flex gap-3 justify-center mt-6">
+            <div className="fixed bottom-0 left-0 right-0 lg:static border-t border-gray-200 p-4 flex gap-3 justify-center bg-white lg:bg-transparent lg:border-t lg:p-4 lg:-m-6 lg:-mb-0">
               <button
                 onClick={onBack}
                 className="py-2 px-8 rounded-full border-2 border-gray-300 text-gray-900 font-semibold hover:bg-gray-50 transition-all text-sm"
