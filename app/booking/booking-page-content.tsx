@@ -96,55 +96,42 @@ export function BookingPageContent({
     }
   }, [user]);
 
-  // Usar serviços mock
+  // Usar serviços reais do Supabase
   useEffect(() => {
-    const mockServices = [
-      {
-        id: "550e8400-e29b-41d4-a716-446655440001",
-        name: "Corte de Cabelo",
-        description: "Corte de cabelo personalizado com tesoura e/ou máquina, realizado por nossos profissionais experientes.",
-        price: 60,
-        image_url: "https://utfs.io/f/0ddfbd26-a424-43a0-aaf3-c3f1dc6be6d1-1kgxo7.png",
-      },
-      {
-        id: "550e8400-e29b-41d4-a716-446655440002",
-        name: "Barba",
-        description: "Aparação e finalização de barba com acabamento perfeito e produtos de qualidade.",
-        price: 40,
-        image_url: "https://utfs.io/f/e6bdffb6-24a9-455b-aba3-903c2c2b5bde-1jo6tu.png",
-      },
-      {
-        id: "550e8400-e29b-41d4-a716-446655440003",
-        name: "Pézinho",
-        description: "Aparação dos pelos da nuca e contorno do rosto para um acabamento limpo e preciso.",
-        price: 35,
-        image_url: "https://utfs.io/f/8a457cda-f768-411d-a737-cdb23ca6b9b5-b3pegf.png",
-      },
-      {
-        id: "550e8400-e29b-41d4-a716-446655440004",
-        name: "Sobrancelha",
-        description: "Design e preenchimento de sobrancelha para um visual mais definido e harmonioso.",
-        price: 20,
-        image_url: "https://utfs.io/f/2118f76e-89e4-43e6-87c9-8f157500c333-b0ps0b.png",
-      },
-      {
-        id: "550e8400-e29b-41d4-a716-446655440005",
-        name: "Massagem",
-        description: "Massagem relaxante para aliviar tensões e promover bem-estar físico e mental.",
-        price: 50,
-        image_url: "https://utfs.io/f/c4919193-a675-4c47-9f21-ebd86d1c8e6a-4oen2a.png",
-      },
-      {
-        id: "550e8400-e29b-41d4-a716-446655440006",
-        name: "Hidratação",
-        description: "Tratamento hidratante intensivo para peles ressecadas e descamação, com produtos premium.",
-        price: 25,
-        image_url: "https://utfs.io/f/8a457cda-f768-411d-a737-cdb23ca6b9b5-b3pegf.png",
-      },
-    ];
-    
-    console.log("Usando serviços mock na página de booking");
-    setServices(mockServices);
+    const loadServices = async () => {
+      try {
+        const { createClient } = await import("@/utils/supabase/client");
+        const supabase = createClient();
+
+        const { data: servicesData, error } = await supabase
+          .from("services")
+          .select("id, name, description, price, image_url")
+          .order("name");
+
+        if (error) {
+          console.error("Erro ao buscar serviços:", error);
+        } else if (servicesData) {
+          const formattedServices = servicesData.map((service: {
+            id: string;
+            name: string;
+            description: string;
+            price: number;
+            image_url: string;
+          }) => ({
+            id: service.id,
+            name: service.name,
+            description: service.description,
+            price: service.price,
+            image_url: service.image_url,
+          }));
+          setServices(formattedServices);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar serviços do Supabase:", error);
+      }
+    };
+
+    loadServices();
   }, []);
 
   return (

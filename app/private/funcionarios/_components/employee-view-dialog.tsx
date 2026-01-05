@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Mail, Phone, Calendar, MapPin, Clock, Briefcase } from 'lucide-react';
+import Image from 'next/image';
 
 type Employee = {
   id: string;
@@ -24,6 +25,8 @@ type Employee = {
   emergency_contact?: string;
   emergency_phone?: string;
   notes?: string;
+  description?: string;
+  image_url?: string | null;
   work_start?: string;
   work_end?: string;
   lunch_start?: string;
@@ -87,14 +90,34 @@ export function EmployeeViewDialog({ open, onOpenChange, employee }: EmployeeVie
           {/* Informações Básicas */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between">
-                {employee.name}
-                <Badge className={getStatusColor(employee.status)}>
-                  {getStatusLabel(employee.status)}
-                </Badge>
-              </CardTitle>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    {employee.name}
+                    <Badge className={getStatusColor(employee.status)}>
+                      {getStatusLabel(employee.status)}
+                    </Badge>
+                  </CardTitle>
+                </div>
+                {employee.image_url && (
+                  <div className="shrink-0">
+                    <Image
+                      src={employee.image_url}
+                      alt={employee.name}
+                      width={80}
+                      height={80}
+                      className="w-20 h-20 rounded-lg object-cover"
+                    />
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
+              {employee.description && (
+                <div className="pb-3 border-b border-gray-200">
+                  <p className="text-sm text-gray-700 italic">{employee.description}</p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-gray-500" />

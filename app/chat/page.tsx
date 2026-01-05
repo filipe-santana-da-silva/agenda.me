@@ -45,6 +45,7 @@ interface AppointmentData {
 }
 
 const ChatPage = () => {
+  const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -117,116 +118,62 @@ const ChatPage = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
 
-  // Serviços estáticos do seed - DEVE estar antes do useEffect
-  const staticServices: Service[] = [
-    {
-      id: "550e8400-e29b-41d4-a716-446655440001",
-      name: "Corte de Cabelo",
-      duration: "01:00:00",
-      price: 60,
-      imageUrl: "https://utfs.io/f/0ddfbd26-a424-43a0-aaf3-c3f1dc6be6d1-1kgxo7.png",
-      category: "Cabelos",
-      description: "Corte de cabelo personalizado com tesoura e/ou máquina, realizado por nossos profissionais experientes.",
-    },
-    {
-      id: "550e8400-e29b-41d4-a716-446655440002",
-      name: "Barba",
-      duration: "00:20:00",
-      price: 40,
-      imageUrl: "https://utfs.io/f/e6bdffb6-24a9-455b-aba3-903c2c2b5bde-1jo6tu.png",
-      category: "Barba",
-      description: "Aparação e finalização de barba com acabamento perfeito e produtos de qualidade.",
-    },
-    {
-      id: "550e8400-e29b-41d4-a716-446655440003",
-      name: "Pézinho",
-      duration: "00:30:00",
-      price: 35,
-      imageUrl: "https://utfs.io/f/8a457cda-f768-411d-a737-cdb23ca6b9b5-b3pegf.png",
-      category: "Corpo",
-      description: "Aparação dos pelos da nuca e contorno do rosto para um acabamento limpo e preciso.",
-    },
-    {
-      id: "550e8400-e29b-41d4-a716-446655440004",
-      name: "Sobrancelha",
-      duration: "00:15:00",
-      price: 20,
-      imageUrl: "https://utfs.io/f/2118f76e-89e4-43e6-87c9-8f157500c333-b0ps0b.png",
-      category: "Rosto",
-      description: "Design e preenchimento de sobrancelha para um visual mais definido e harmonioso.",
-    },
-    {
-      id: "550e8400-e29b-41d4-a716-446655440005",
-      name: "Massagem",
-      duration: "00:45:00",
-      price: 50,
-      imageUrl: "https://utfs.io/f/c4919193-a675-4c47-9f21-ebd86d1c8e6a-4oen2a.png",
-      category: "Bem-estar",
-      description: "Massagem relaxante para aliviar tensões e promover bem-estar físico e mental.",
-    },
-    {
-      id: "550e8400-e29b-41d4-a716-446655440006",
-      name: "Hidratação",
-      duration: "00:30:00",
-      price: 25,
-      imageUrl: "https://utfs.io/f/8a457cda-f768-411d-a737-cdb23ca6b9b5-b3pegf.png",
-      category: "Tratamentos",
-      description: "Tratamento hidratante intensivo para peles ressecadas e descamação, com produtos premium.",
-    },
-  ];
-
-  // Profissionais estáticos do seed - DEVE estar antes do useEffect
-  const staticProfessionals: Professional[] = [
-    {
-      id: "650e8400-e29b-41d4-a716-446655440001",
-      name: "Vitor",
-      position: "Barbeiro",
-      department: "Salão",
-      imageUrl: "https://utfs.io/f/c97a2dc9-cf62-468b-a851-bfd2bdde775f-16p.png",
-    },
-    {
-      id: "650e8400-e29b-41d4-a716-446655440002",
-      name: "Vinícius",
-      position: "Barbeiro",
-      department: "Salão",
-      imageUrl: "https://utfs.io/f/45331760-899c-4b4b-910e-e00babb6ed81-16q.png",
-    },
-    {
-      id: "650e8400-e29b-41d4-a716-446655440003",
-      name: "João Pedro",
-      position: "Barbeiro",
-      department: "Salão",
-      imageUrl: "https://utfs.io/f/5832df58-cfd7-4b3f-b102-42b7e150ced2-16r.png",
-    },
-    {
-      id: "650e8400-e29b-41d4-a716-446655440004",
-      name: "Carlos",
-      position: "Barbeiro",
-      department: "Salão",
-      imageUrl: "https://utfs.io/f/7e309eaa-d722-465b-b8b6-76217404a3d3-16s.png",
-    },
-    {
-      id: "650e8400-e29b-41d4-a716-446655440005",
-      name: "Lucas",
-      position: "Barbeiro",
-      department: "Salão",
-      imageUrl: "https://utfs.io/f/178da6b6-6f9a-424a-be9d-a2feb476eb36-16t.png",
-    },
-  ];
-
   useEffect(() => {
-    // Usar dados mock por padrão (em desenvolvimento)
-    console.log("Usando dados mock para serviços e profissionais");
-    setServices(staticServices);
-    setProfessionals(staticProfessionals);
-  }, [staticServices, staticProfessionals]);
+    const loadData = async () => {
+      try {
+        // Buscar serviços do banco de dados
+        const { data: servicesData, error: servicesError } = await supabase
+          .from('services')
+          .select('id, name, duration, price, image_url, description')
+          .order('name', { ascending: true });
+
+        if (servicesError) throw servicesError;
+
+        if (servicesData) {
+          const formattedServices: Service[] = servicesData.map((s: Record<string, unknown>) => ({
+            id: s.id as string,
+            name: s.name as string,
+            duration: s.duration as string,
+            price: s.price ? Number(s.price) : 0,
+            imageUrl: (s.image_url as string) || undefined,
+            description: (s.description as string) || undefined,
+          }));
+          setServices(formattedServices);
+        }
+
+        // Buscar profissionais do banco de dados
+        const { data: employeesData, error: employeesError } = await supabase
+          .from('employees')
+          .select('id, name, position, department, image_url')
+          .eq('status', 'active')
+          .order('name', { ascending: true });
+
+        if (employeesError) throw employeesError;
+
+        if (employeesData) {
+          const formattedProfessionals: Professional[] = employeesData.map((e: Record<string, unknown>) => ({
+            id: e.id as string,
+            name: e.name as string,
+            position: (e.position as string) || undefined,
+            department: (e.department as string) || undefined,
+            imageUrl: (e.image_url as string) || undefined,
+          }));
+          setProfessionals(formattedProfessionals);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do banco:', error);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Estados das opções interativas
   const [hasInitiated, setHasInitiated] = useState(false);
-  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [showServicesModal, setShowServicesModal] = useState(false);
   const [showViewServicesModal, setShowViewServicesModal] = useState(false);
   const [showProfessionalsModal, setShowProfessionalsModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showViewProfessionalsModal, setShowViewProfessionalsModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -241,7 +188,6 @@ const ChatPage = () => {
   const [passwordSaved, setPasswordSaved] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [checkoutForm, setCheckoutForm] = useState({
     firstName: "",
     lastName: "",
@@ -252,23 +198,11 @@ const ChatPage = () => {
   });
 
   // Função para agrupar serviços por categoria
-  const groupServicesByCategory = (srvcs: Service[]) => {
-    const grouped: { [key: string]: Service[] } = {};
-    srvcs.forEach(service => {
-      const category = service.category || "Outros";
-      if (!grouped[category]) {
-        grouped[category] = [];
-      }
-      grouped[category].push(service);
-    });
-    return grouped;
-  };
-
   // Inicia o fluxo de perguntas ao abrir o chat
   useEffect(() => {
     if (!hasInitiated && messages.length === 0) {
       setHasInitiated(true);
-      setShowCategoriesModal(true);
+      setShowServicesModal(true);
       sendMessage({ 
         text: "Olá! 👋 Bem-vindo ao Agenda.ai\n\nComo posso ajudá-lo?"
       });
@@ -277,6 +211,7 @@ const ChatPage = () => {
   }, [hasInitiated]);
 
   // Listar serviços
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleShowServices = async () => {
     if (services && services.length > 0) {
       setShowViewServicesModal(true);
@@ -294,12 +229,7 @@ const ChatPage = () => {
     setAwaitingInput("professional");
   };
 
-  // Lidar com seleção de categoria
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-    setShowCategoriesModal(false);
-    setShowServicesModal(true);
-  };
+
 
   // Lidar com seleção de profissional
   const handleProfessionalSelect = (professional: Professional) => {
@@ -349,7 +279,93 @@ const ChatPage = () => {
     sendMessage({ 
       text: "O que deseja fazer?"
     });
-    setShowCategoriesModal(true);
+    setShowServicesModal(true);
+  };
+
+  // Criar ou obter cliente na tabela customers
+  const createOrGetCustomer = async (name: string, lastName: string, phone: string, birthDate: string) => {
+    try {
+      // Remover formatação do telefone
+      const cleanPhone = phone.replace(/\D/g, '');
+      
+      // Verificar se o cliente já existe
+      const { data: existingCustomer, error: selectError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('phone', cleanPhone)
+        .maybeSingle();
+
+      if (existingCustomer) {
+        console.log('Cliente já existe:', existingCustomer.id);
+        return existingCustomer.id;
+      }
+
+      // Se não existe, criar novo cliente
+      const { data: newCustomer, error: insertError } = await supabase
+        .from('customers')
+        .insert({
+          name: name,
+          last_name: lastName,
+          phone: cleanPhone,
+          birth_date: birthDate || null,
+        })
+        .select('id')
+        .single();
+
+      if (insertError) {
+        // Se o erro for de chave duplicada, tentar obter o cliente existente
+        if (insertError.code === '23505') {
+          console.warn('Cliente já existe (duplicate key), procurando...');
+          const { data: duplicateCustomer } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('phone', cleanPhone)
+            .maybeSingle();
+          
+          if (duplicateCustomer) {
+            console.log('Cliente encontrado:', duplicateCustomer.id);
+            return duplicateCustomer.id;
+          }
+        }
+        console.error('Erro ao criar cliente:', insertError);
+        throw insertError;
+      }
+
+      console.log('Cliente criado:', newCustomer.id);
+      return newCustomer.id;
+    } catch (error) {
+      console.error('Erro ao criar/obter cliente:', error);
+      return null;
+    }
+  };
+
+  // Função para registrar agendamento na tabela appointments
+  const registerAppointment = async (customerId: string, serviceId: string, professionalId: string, appointmentDate: string, appointmentTime: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert({
+          customer_id: customerId,
+          service_id: serviceId,
+          professional_id: professionalId,
+          appointment_date: appointmentDate,
+          appointment_time: appointmentTime,
+          status: 'pending',
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Erro ao registrar agendamento:', error);
+        throw error;
+      }
+
+      console.log('Agendamento registrado:', data.id);
+      return data.id;
+    } catch (error) {
+      console.error('Erro ao registrar agendamento:', error);
+      return null;
+    }
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -467,146 +483,6 @@ const ChatPage = () => {
 
 
 
-      {/* Modal Categorias */}
-      {showCategoriesModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-2 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl flex flex-col w-full h-[95vh] max-h-[95vh] overflow-hidden shrink-0 animate-in zoom-in-95 duration-300">
-            {/* Progress bar - TOPO */}
-            <div className="bg-white px-4 sm:px-8 py-4 sm:py-6 flex justify-start shrink-0">
-              <div className="flex items-center gap-2">
-                {[1, 2, 3, 4, 5].map((dot) => (
-                  <div
-                    key={dot}
-                    className={`w-3 h-3 rounded-full transition-all ${
-                      dot === 1 ? "bg-blue-500" : "bg-gray-300"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Conteúdo com sidebar - FLEX ROW em lg, COLUMN em mobile */}
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-              {/* Sidebar esquerda - hidden em mobile */}
-              <div className="hidden lg:flex w-56 bg-gray-100 flex-col items-center justify-center p-6 border-r border-gray-200 shrink-0">
-                <div className="flex flex-col items-center gap-6">
-                  {/* Checkmark */}
-                  <div className="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center">
-                    <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  {/* Texto */}
-                  <p className="text-sm text-gray-700 text-center leading-relaxed">
-                    Qual serviço deseja fazer?
-                  </p>
-                </div>
-              </div>
-
-              {/* Conteúdo principal - SCROLLÁVEL */}
-              <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Header mobile com sidebar info */}
-                <div className="lg:hidden bg-gray-100 p-3 sm:p-4 border-b border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center shrink-0">
-                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <p className="text-xs sm:text-sm text-gray-700 font-semibold">Qual serviço deseja fazer?</p>
-                  </div>
-                </div>
-                {/* Conteúdo scrollável */}
-                <div className="flex-1 overflow-y-auto">
-                  <div className="p-3 sm:p-6 lg:p-8">
-                    <div className="flex items-center justify-between mb-3 sm:mb-6 lg:mb-8">
-                      <h2 className="text-base sm:text-xl lg:text-2xl font-bold text-gray-900">Selecione uma categoria</h2>
-                      <button
-                        onClick={() => {
-                          router.push("/booking");
-                        }}
-                        className="p-0 h-auto text-gray-600 hover:bg-transparent text-lg sm:text-xl shrink-0 bg-transparent cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    <div className="space-y-2 sm:space-y-3 overflow-visible">
-                      {Array.from(new Set(services.map(s => s.category || "Outros"))).sort().map((category) => {
-                        const categoryService = services.find(s => s.category === category);
-                        return (
-                          <div key={category} className="overflow-visible">
-                            <button
-                              onClick={() => handleCategorySelect(category)}
-                              className={`w-full text-left p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-200 flex items-center gap-3 sm:gap-4 hover:scale-105 origin-center group ${
-                                selectedCategory === category
-                                  ? 'border-blue-400 bg-blue-50 text-blue-900 font-semibold'
-                                  : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-900'
-                              }`}
-                            >
-                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full shrink-0 bg-gray-100 overflow-hidden border-2 border-gray-300 box-border">
-                                {categoryService?.imageUrl ? (
-                                  <Image 
-                                    src={categoryService.imageUrl} 
-                                    alt={category}
-                                    width={48}
-                                    height={48}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full bg-linear-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-xs sm:text-sm">
-                                    {category.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                              </div>
-                              <span className="text-sm sm:text-base transition-transform duration-200 group-hover:scale-105 origin-left">{category}</span>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Botões do rodapé - FIXO */}
-                <div className="shrink-0 border-t border-gray-200 bg-white p-3 sm:p-6 lg:p-8 space-y-3">
-                  <Button
-                    onClick={() => {
-                      setShowCategoriesModal(false);
-                      setAwaitingInput(null);
-                    }}
-                    variant="outline"
-                    className="w-full text-sm sm:text-base"
-                  >
-                    ← Voltar
-                  </Button>
-                </div>
-              </div>
-
-              {/* Resumo à direita - FIXO em lg, hidden em mobile */}
-              <div className="w-80 bg-gray-50 border-l border-gray-200 hidden lg:flex flex-col shrink-0 overflow-hidden">
-                {/* Conteúdo do resumo scrollável */}
-                <div className="flex-1 overflow-y-auto p-6 lg:p-8">
-                  <h3 className="text-lg font-bold text-gray-900 mb-6">Resumo</h3>
-                  <div className="space-y-0">
-                    {selectedCategory && (
-                      <div className="flex justify-between items-center gap-4 pb-4 border-b border-gray-200">
-                        <div className="text-sm text-gray-500">Categoria</div>
-                        <div className="text-right font-semibold text-gray-900 text-sm">{selectedCategory}</div>
-                      </div>
-                    )}
-                    {!selectedCategory && (
-                      <div className="text-center text-gray-500 py-8">
-                        Selecione uma categoria
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal Serviços */}
       {showServicesModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-2 sm:p-4 animate-in fade-in duration-200">
@@ -671,43 +547,43 @@ const ChatPage = () => {
                       </button>
                     </div>
                     <div className="space-y-2 sm:space-y-3 overflow-visible">
-                      {selectedCategory && services.filter(s => s.category === selectedCategory).map((service) => (
-                      <div key={service.id} className="overflow-visible">
-                        <button
-                          onClick={() => handleServiceSelect(service)}
-                          className={`w-full flex items-center gap-3 sm:gap-4 p-2 sm:p-4 rounded-lg sm:rounded-xl border transition-all duration-200 group hover:scale-105 origin-center cursor-pointer ${
-                            selectedService?.id === service.id 
-                              ? 'border-blue-300 bg-blue-50' 
-                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-full bg-gray-100 overflow-hidden border-2 border-gray-300 box-border">
-                            {service.imageUrl ? (
-                              <Image 
-                                src={service.imageUrl} 
-                                alt={service.name}
-                                width={80}
-                                height={80}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-linear-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-sm sm:text-lg">
-                                {service.name.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 text-left min-w-0">
-                            <div className="font-semibold text-gray-900 text-sm sm:text-base transition-transform duration-200 group-hover:scale-105 origin-left">{service.name}</div>
-                            {service.description && (
-                              <div className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2 transition-transform duration-200 group-hover:scale-105 origin-left">{service.description}</div>
-                            )}
-                          </div>
-                          <div className="shrink-0 text-right">
-                            {service.price && <div className="text-sm sm:text-base font-normal text-gray-400">R$ {service.price}</div>}
-                          </div>
-                        </button>
-                      </div>
-                    ))}
+                      {services.map((service) => (
+                        <div key={service.id} className="overflow-visible">
+                          <button
+                            onClick={() => handleServiceSelect(service)}
+                            className={`w-full flex items-center gap-3 sm:gap-4 p-2 sm:p-4 rounded-lg sm:rounded-xl border transition-all duration-200 group hover:scale-105 origin-center cursor-pointer ${
+                              selectedService?.id === service.id 
+                                ? 'border-blue-300 bg-blue-50' 
+                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-full bg-gray-100 overflow-hidden border-2 border-gray-300 box-border">
+                              {service.imageUrl ? (
+                                <Image 
+                                  src={service.imageUrl} 
+                                  alt={service.name}
+                                  width={80}
+                                  height={80}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-linear-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-sm sm:text-lg">
+                                  {service.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="font-semibold text-gray-900 text-sm sm:text-base transition-transform duration-200 group-hover:scale-105 origin-left">{service.name}</div>
+                              {service.description && (
+                                <div className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2 transition-transform duration-200 group-hover:scale-105 origin-left">{service.description}</div>
+                              )}
+                            </div>
+                            <div className="shrink-0 text-right">
+                              {service.price && <div className="text-sm sm:text-base font-normal text-gray-400">R$ {service.price}</div>}
+                            </div>
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -717,7 +593,6 @@ const ChatPage = () => {
                   <Button
                     onClick={() => {
                       setShowServicesModal(false);
-                      setShowCategoriesModal(true);
                     }}
                     variant="outline"
                     className="w-full text-sm sm:text-base"
@@ -1253,44 +1128,83 @@ const ChatPage = () => {
                     ← Voltar
                   </Button>
                   <button
-                    onClick={() => {
-                      localStorage.setItem('bookingUser', JSON.stringify({
-                        name: checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}` : '',
-                        phone: checkoutForm.phone,
-                      }));
-                      setShowCheckoutModal(false);
+                    onClick={async () => {
+                      const name = checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim() : checkoutForm.firstName;
                       
-                      const servico = services.find(s => s.id === appointment.service_id)?.name || "";
-                      const profissional = professionals.find(p => p.id === appointment.professional_id)?.name || "";
-                      let dataFormatada = "";
-                      if (appointment.appointment_date) {
-                        const partes = appointment.appointment_date.split("-");
-                        if (partes.length === 3) {
-                          dataFormatada = `${partes[2]} de ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][parseInt(partes[1]) - 1]} de ${partes[0]}`;
-                        }
+                      if (!name || !checkoutForm.phone) {
+                        alert('Por favor, preencha nome e telefone');
+                        return;
                       }
-                      
-                      setAppointmentData({
-                        id: Math.floor(Math.random() * 10000).toString(),
-                        date: dataFormatada,
-                        time: appointment.appointment_time,
-                        clientName: checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim() : checkoutForm.firstName,
-                        phone: checkoutForm.phone,
-                        professional: profissional,
-                        service: servico,
-                        email: "Seu email"
-                      });
-                      
-                      setSuccessMessage("Agendamento realizado com sucesso!");
-                      setShowSuccessModal(true);
-                      
-                      const dataExibicao = new Date(appointment.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR');
-                      const resumo = `Resumo do agendamento:\nServiço: ${servico}\nProfissional: ${profissional}\nData: ${dataExibicao}\nHorário: ${appointment.appointment_time}`;
-                      sendMessage({ text: resumo });
+
+                      setLoading(true);
+                      try {
+                        // Criar ou obter cliente na tabela customers
+                        const customerId = await createOrGetCustomer(checkoutForm.firstName, checkoutForm.lastName, checkoutForm.phone, checkoutForm.birthday);
+                        
+                        if (!customerId) {
+                          alert('Erro ao criar/obter cliente. Tente novamente.');
+                          setLoading(false);
+                          return;
+                        }
+
+                        localStorage.setItem('bookingUser', JSON.stringify({
+                          name: `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim(),
+                          phone: checkoutForm.phone,
+                          customerId: customerId,
+                        }));
+                        setShowCheckoutModal(false);
+                        
+                        // Registrar agendamento na tabela appointments
+                        const appointmentId = await registerAppointment(
+                          customerId,
+                          appointment.service_id,
+                          appointment.professional_id,
+                          appointment.appointment_date,
+                          appointment.appointment_time
+                        );
+                        
+                        if (!appointmentId) {
+                          console.warn('Aviso: Agendamento criado mas não foi registrado no banco');
+                        }
+                        
+                        const servico = services.find(s => s.id === appointment.service_id)?.name || "";
+                        const profissional = professionals.find(p => p.id === appointment.professional_id)?.name || "";
+                        let dataFormatada = "";
+                        if (appointment.appointment_date) {
+                          const partes = appointment.appointment_date.split("-");
+                          if (partes.length === 3) {
+                            dataFormatada = `${partes[2]} de ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][parseInt(partes[1]) - 1]} de ${partes[0]}`;
+                          }
+                        }
+                        
+                        setAppointmentData({
+                          id: appointmentId || Math.floor(Math.random() * 10000).toString(),
+                          date: dataFormatada,
+                          time: appointment.appointment_time,
+                          clientName: name,
+                          phone: checkoutForm.phone,
+                          professional: profissional,
+                          service: servico,
+                          email: "Seu email"
+                        });
+                        
+                        setSuccessMessage("Agendamento realizado com sucesso!");
+                        setShowSuccessModal(true);
+                        
+                        const dataExibicao = new Date(appointment.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR');
+                        const resumo = `Resumo do agendamento:\nServiço: ${servico}\nProfissional: ${profissional}\nData: ${dataExibicao}\nHorário: ${appointment.appointment_time}`;
+                        sendMessage({ text: resumo });
+                      } catch (error) {
+                        console.error('Erro:', error);
+                        alert('Erro ao processar. Tente novamente.');
+                      } finally {
+                        setLoading(false);
+                      }
                     }}
-                    className="flex-1 py-2 lg:py-3 px-4 lg:px-8 rounded-lg lg:rounded-full bg-gray-900 text-white font-semibold hover:bg-gray-800 transition-all text-xs lg:text-sm"
+                    disabled={loading}
+                    className="flex-1 py-2 lg:py-3 px-4 lg:px-8 rounded-lg lg:rounded-full bg-gray-900 text-white font-semibold hover:bg-gray-800 transition-all text-xs lg:text-sm disabled:opacity-50"
                   >
-                    Confirmar →
+                    {loading ? 'Processando...' : 'Confirmar →'}
                   </button>
                 </div>
 
@@ -1307,44 +1221,83 @@ const ChatPage = () => {
                     ← Voltar
                   </Button>
                   <button
-                    onClick={() => {
-                      localStorage.setItem('bookingUser', JSON.stringify({
-                        name: checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}` : '',
-                        phone: checkoutForm.phone,
-                      }));
-                      setShowCheckoutModal(false);
+                    onClick={async () => {
+                      const name = checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim() : checkoutForm.firstName;
                       
-                      const servico = services.find(s => s.id === appointment.service_id)?.name || "";
-                      const profissional = professionals.find(p => p.id === appointment.professional_id)?.name || "";
-                      let dataFormatada = "";
-                      if (appointment.appointment_date) {
-                        const partes = appointment.appointment_date.split("-");
-                        if (partes.length === 3) {
-                          dataFormatada = `${partes[2]} de ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][parseInt(partes[1]) - 1]} de ${partes[0]}`;
-                        }
+                      if (!name || !checkoutForm.phone) {
+                        alert('Por favor, preencha nome e telefone');
+                        return;
                       }
-                      
-                      setAppointmentData({
-                        id: Math.floor(Math.random() * 10000).toString(),
-                        date: dataFormatada,
-                        time: appointment.appointment_time,
-                        clientName: checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim() : checkoutForm.firstName,
-                        phone: checkoutForm.phone,
-                        professional: profissional,
-                        service: servico,
-                        email: "Seu email"
-                      });
-                      
-                      setSuccessMessage("Agendamento realizado com sucesso!");
-                      setShowSuccessModal(true);
-                      
-                      const dataExibicao = new Date(appointment.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR');
-                      const resumo = `Resumo do agendamento:\nServiço: ${servico}\nProfissional: ${profissional}\nData: ${dataExibicao}\nHorário: ${appointment.appointment_time}`;
-                      sendMessage({ text: resumo });
+
+                      setLoading(true);
+                      try {
+                        // Criar ou obter cliente na tabela customers
+                        const customerId = await createOrGetCustomer(checkoutForm.firstName, checkoutForm.lastName, checkoutForm.phone, checkoutForm.birthday);
+                        
+                        if (!customerId) {
+                          alert('Erro ao criar/obter cliente. Tente novamente.');
+                          setLoading(false);
+                          return;
+                        }
+
+                        localStorage.setItem('bookingUser', JSON.stringify({
+                          name: `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim(),
+                          phone: checkoutForm.phone,
+                          customerId: customerId,
+                        }));
+                        setShowCheckoutModal(false);
+                        
+                        // Registrar agendamento na tabela appointments
+                        const appointmentId = await registerAppointment(
+                          customerId,
+                          appointment.service_id,
+                          appointment.professional_id,
+                          appointment.appointment_date,
+                          appointment.appointment_time
+                        );
+                        
+                        if (!appointmentId) {
+                          console.warn('Aviso: Agendamento criado mas não foi registrado no banco');
+                        }
+                        
+                        const servico = services.find(s => s.id === appointment.service_id)?.name || "";
+                        const profissional = professionals.find(p => p.id === appointment.professional_id)?.name || "";
+                        let dataFormatada = "";
+                        if (appointment.appointment_date) {
+                          const partes = appointment.appointment_date.split("-");
+                          if (partes.length === 3) {
+                            dataFormatada = `${partes[2]} de ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][parseInt(partes[1]) - 1]} de ${partes[0]}`;
+                          }
+                        }
+                        
+                        setAppointmentData({
+                          id: appointmentId || Math.floor(Math.random() * 10000).toString(),
+                          date: dataFormatada,
+                          time: appointment.appointment_time,
+                          clientName: name,
+                          phone: checkoutForm.phone,
+                          professional: profissional,
+                          service: servico,
+                          email: "Seu email"
+                        });
+                        
+                        setSuccessMessage("Agendamento realizado com sucesso!");
+                        setShowSuccessModal(true);
+                        
+                        const dataExibicao = new Date(appointment.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR');
+                        const resumo = `Resumo do agendamento:\nServiço: ${servico}\nProfissional: ${profissional}\nData: ${dataExibicao}\nHorário: ${appointment.appointment_time}`;
+                        sendMessage({ text: resumo });
+                      } catch (error) {
+                        console.error('Erro:', error);
+                        alert('Erro ao processar. Tente novamente.');
+                      } finally {
+                        setLoading(false);
+                      }
                     }}
-                    className="flex-1 py-2 lg:py-3 px-4 lg:px-8 rounded-lg lg:rounded-full bg-gray-900 text-white font-semibold hover:bg-gray-800 transition-all text-xs lg:text-sm"
+                    disabled={loading}
+                    className="flex-1 py-2 lg:py-3 px-4 lg:px-8 rounded-lg lg:rounded-full bg-gray-900 text-white font-semibold hover:bg-gray-800 transition-all text-xs lg:text-sm disabled:opacity-50"
                   >
-                    Confirmar →
+                    {loading ? 'Processando...' : 'Confirmar →'}
                   </button>
                 </div>
               </div>
@@ -1609,11 +1562,8 @@ const ChatPage = () => {
               </div>
               <div className="space-y-6">
                 {services && services.length > 0 ? (
-                  Object.entries(groupServicesByCategory(services)).map(([category, categoryServices]) => (
-                    <div key={category}>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">{category}</h3>
-                      <div className="space-y-3">
-                        {categoryServices.map((service) => (
+                  <div className="space-y-3">
+                    {services.map((service) => (
                           <div
                             key={service.id}
                             className="flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 group"
@@ -1645,9 +1595,7 @@ const ChatPage = () => {
                             </div>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  ))
+                  </div>
                 ) : (
                   <div className="text-center text-gray-500 py-8">Nenhum serviço encontrado</div>
                 )}
@@ -1861,78 +1809,6 @@ const ChatPage = () => {
                       <div className="text-gray-900 font-semibold text-xs lg:text-sm">{appointmentData.service}</div>
                     </div>
                   </div>
-
-                  {/* Mensagem */}
-                  {!passwordSaved && (
-                    <div className="bg-blue-50 rounded-lg lg:rounded-2xl p-3 lg:p-4 mb-4 lg:mb-8">
-                      <p className="text-xs lg:text-sm text-blue-700 leading-relaxed">
-                        Seu agendamento está confirmado. Definindo uma senha agora você poderá agendar na próxima vez sem preencher os dados.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Formulário ou Botão */}
-                  {!passwordSaved && (
-                    <>
-                      {showPasswordForm ? (
-                        <div className="flex gap-2 lg:gap-3 mb-6 lg:mb-8">
-                          <div className="flex-1 relative">
-                            <input
-                              type={showPassword ? "text" : "password"}
-                              placeholder="Defina sua senha"
-                              value={passwordInput}
-                              onChange={(e) => setPasswordInput(e.target.value)}
-                              className="w-full px-3 lg:px-4 py-2 lg:py-3 rounded-lg lg:rounded-xl border border-gray-200 text-xs lg:text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-2 lg:right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                            >
-                              {showPassword ? (
-                                <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                                </svg>
-                              ) : (
-                                <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-14-14zM10 3C5.58 3 2.238 5.957.333 10a13.364 13.364 0 001.858 3.573l1.534-1.534A9.964 9.964 0 015.07 9.66l1.428-1.428a4 4 0 015.664 5.664l1.429-1.429a9.964 9.964 0 00-1.428-2.536l1.534-1.534C17.762 14.043 20.957 10 10 3zm4.293 4.293a1 1 0 10-1.414 1.414A3 3 0 113 10a1 1 0 00-2 0 5 5 0 009.293-2.707z" clipRule="evenodd" />
-                                </svg>
-                              )}
-                            </button>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setPasswordSaved(true);
-                              setPasswordInput("");
-                              setShowPasswordForm(false);
-                              setShowPassword(false);
-                            }}
-                            className="bg-gray-900 text-white font-semibold py-2 lg:py-3 px-4 lg:px-8 rounded-lg lg:rounded-full hover:bg-gray-800 transition-all whitespace-nowrap text-xs lg:text-base"
-                          >
-                            Salvar
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setShowPasswordForm(true);
-                          }}
-                          className="w-full bg-gray-900 text-white font-semibold py-2 lg:py-3 px-4 lg:px-6 rounded-lg lg:rounded-full hover:bg-gray-800 transition-all mb-6 lg:mb-8 text-xs lg:text-base"
-                        >
-                          Definir uma senha
-                        </button>
-                      )}
-                    </>
-                  )}
-
-                  {passwordSaved && (
-                    <div className="bg-gray-100 rounded-lg lg:rounded-2xl p-3 lg:p-4 mb-6 lg:mb-8">
-                      <p className="text-center text-gray-900 font-semibold text-xs lg:text-sm leading-relaxed">
-                        Ótimo, agora você pode gerenciar seus agendamentos na Área do Cliente
-                      </p>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="p-3 lg:p-8 text-center bg-white flex flex-col items-center justify-center h-full">
@@ -1950,7 +1826,6 @@ const ChatPage = () => {
           </div>
         </div>
       )}
-
 
     </div>
   );

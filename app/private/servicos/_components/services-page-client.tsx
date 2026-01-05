@@ -5,10 +5,11 @@ import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Trash2, Edit2, Search } from 'lucide-react'
+import { Plus, Trash2, Edit2, Search, Eye } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import Image from 'next/image'
 import { ServiceDialog } from './service-dialog'
+import { ServiceViewDialog } from './service-view-dialog'
 import { DeleteConfirmDialog } from './delete-confirm-dialog'
 import {
   Table,
@@ -26,6 +27,8 @@ type Service = {
   duration: string
   price: number | null
   image_url?: string | null
+  description?: string
+  commission_rate?: number
   created_at?: string
 }
 
@@ -35,7 +38,9 @@ export function ServicesPageClient() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
+  const [viewingService, setViewingService] = useState<Service | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
 
   const loadServices = async () => {
@@ -244,6 +249,17 @@ export function ServicesPageClient() {
                           variant="ghost"
                           size="sm"
                           onClick={() => {
+                            setViewingService(service)
+                            setViewDialogOpen(true)
+                          }}
+                          title="Visualizar detalhes"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
                             setEditingService(service)
                             setIsDialogOpen(true)
                           }}
@@ -276,6 +292,12 @@ export function ServicesPageClient() {
         service={editingService}
         onClose={handleDialogClose}
         onSaved={handleServiceSaved}
+      />
+
+      <ServiceViewDialog
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+        service={viewingService}
       />
 
       <DeleteConfirmDialog
