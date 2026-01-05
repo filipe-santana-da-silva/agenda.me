@@ -368,6 +368,81 @@ const ChatPage = () => {
     }
   };
 
+  // Função unificada de checkout - evita duplicação
+  const handleCheckoutConfirm = async () => {
+    const name = checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim() : checkoutForm.firstName;
+    
+    if (!name || !checkoutForm.phone) {
+      alert('Por favor, preencha nome e telefone');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Criar ou obter cliente na tabela customers
+      const customerId = await createOrGetCustomer(checkoutForm.firstName, checkoutForm.lastName, checkoutForm.phone, checkoutForm.birthday);
+      
+      if (!customerId) {
+        alert('Erro ao criar/obter cliente. Tente novamente.');
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem('bookingUser', JSON.stringify({
+        name: `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim(),
+        phone: checkoutForm.phone,
+        customerId: customerId,
+      }));
+      setShowCheckoutModal(false);
+      
+      // Registrar agendamento na tabela appointments
+      const appointmentId = await registerAppointment(
+        customerId,
+        appointment.service_id,
+        appointment.professional_id,
+        appointment.appointment_date,
+        appointment.appointment_time
+      );
+      
+      if (!appointmentId) {
+        console.warn('Aviso: Agendamento criado mas não foi registrado no banco');
+      }
+      
+      const servico = services.find(s => s.id === appointment.service_id)?.name || "";
+      const profissional = professionals.find(p => p.id === appointment.professional_id)?.name || "";
+      let dataFormatada = "";
+      if (appointment.appointment_date) {
+        const partes = appointment.appointment_date.split("-");
+        if (partes.length === 3) {
+          dataFormatada = `${partes[2]} de ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][parseInt(partes[1]) - 1]} de ${partes[0]}`;
+        }
+      }
+      
+      setAppointmentData({
+        id: appointmentId || Math.floor(Math.random() * 10000).toString(),
+        date: dataFormatada,
+        time: appointment.appointment_time,
+        clientName: name,
+        phone: checkoutForm.phone,
+        professional: profissional,
+        service: servico,
+        email: "Seu email"
+      });
+      
+      setSuccessMessage("Agendamento realizado com sucesso!");
+      setShowSuccessModal(true);
+      
+      const dataExibicao = new Date(appointment.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR');
+      const resumo = `Resumo do agendamento:\nServiço: ${servico}\nProfissional: ${profissional}\nData: ${dataExibicao}\nHorário: ${appointment.appointment_time}`;
+      sendMessage({ text: resumo });
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('Erro ao processar. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const saveAppointment = async (appointmentData?: Record<string, unknown>) => {
     setLoading(true);
@@ -1128,79 +1203,7 @@ const ChatPage = () => {
                     ← Voltar
                   </Button>
                   <button
-                    onClick={async () => {
-                      const name = checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim() : checkoutForm.firstName;
-                      
-                      if (!name || !checkoutForm.phone) {
-                        alert('Por favor, preencha nome e telefone');
-                        return;
-                      }
-
-                      setLoading(true);
-                      try {
-                        // Criar ou obter cliente na tabela customers
-                        const customerId = await createOrGetCustomer(checkoutForm.firstName, checkoutForm.lastName, checkoutForm.phone, checkoutForm.birthday);
-                        
-                        if (!customerId) {
-                          alert('Erro ao criar/obter cliente. Tente novamente.');
-                          setLoading(false);
-                          return;
-                        }
-
-                        localStorage.setItem('bookingUser', JSON.stringify({
-                          name: `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim(),
-                          phone: checkoutForm.phone,
-                          customerId: customerId,
-                        }));
-                        setShowCheckoutModal(false);
-                        
-                        // Registrar agendamento na tabela appointments
-                        const appointmentId = await registerAppointment(
-                          customerId,
-                          appointment.service_id,
-                          appointment.professional_id,
-                          appointment.appointment_date,
-                          appointment.appointment_time
-                        );
-                        
-                        if (!appointmentId) {
-                          console.warn('Aviso: Agendamento criado mas não foi registrado no banco');
-                        }
-                        
-                        const servico = services.find(s => s.id === appointment.service_id)?.name || "";
-                        const profissional = professionals.find(p => p.id === appointment.professional_id)?.name || "";
-                        let dataFormatada = "";
-                        if (appointment.appointment_date) {
-                          const partes = appointment.appointment_date.split("-");
-                          if (partes.length === 3) {
-                            dataFormatada = `${partes[2]} de ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][parseInt(partes[1]) - 1]} de ${partes[0]}`;
-                          }
-                        }
-                        
-                        setAppointmentData({
-                          id: appointmentId || Math.floor(Math.random() * 10000).toString(),
-                          date: dataFormatada,
-                          time: appointment.appointment_time,
-                          clientName: name,
-                          phone: checkoutForm.phone,
-                          professional: profissional,
-                          service: servico,
-                          email: "Seu email"
-                        });
-                        
-                        setSuccessMessage("Agendamento realizado com sucesso!");
-                        setShowSuccessModal(true);
-                        
-                        const dataExibicao = new Date(appointment.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR');
-                        const resumo = `Resumo do agendamento:\nServiço: ${servico}\nProfissional: ${profissional}\nData: ${dataExibicao}\nHorário: ${appointment.appointment_time}`;
-                        sendMessage({ text: resumo });
-                      } catch (error) {
-                        console.error('Erro:', error);
-                        alert('Erro ao processar. Tente novamente.');
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
+                    onClick={handleCheckoutConfirm}
                     disabled={loading}
                     className="flex-1 py-2 lg:py-3 px-4 lg:px-8 rounded-lg lg:rounded-full bg-gray-900 text-white font-semibold hover:bg-gray-800 transition-all text-xs lg:text-sm disabled:opacity-50"
                   >
@@ -1208,7 +1211,7 @@ const ChatPage = () => {
                   </button>
                 </div>
 
-                {/* Desktop Buttons */}
+                {/* Desktop Buttons - Mesmo handler do mobile */}
                 <div className="hidden lg:flex gap-2 border-t border-gray-200 p-2 lg:p-6 shrink-0 bg-white">
                   <Button
                     onClick={() => {
@@ -1221,79 +1224,7 @@ const ChatPage = () => {
                     ← Voltar
                   </Button>
                   <button
-                    onClick={async () => {
-                      const name = checkoutTab === 'register' ? `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim() : checkoutForm.firstName;
-                      
-                      if (!name || !checkoutForm.phone) {
-                        alert('Por favor, preencha nome e telefone');
-                        return;
-                      }
-
-                      setLoading(true);
-                      try {
-                        // Criar ou obter cliente na tabela customers
-                        const customerId = await createOrGetCustomer(checkoutForm.firstName, checkoutForm.lastName, checkoutForm.phone, checkoutForm.birthday);
-                        
-                        if (!customerId) {
-                          alert('Erro ao criar/obter cliente. Tente novamente.');
-                          setLoading(false);
-                          return;
-                        }
-
-                        localStorage.setItem('bookingUser', JSON.stringify({
-                          name: `${checkoutForm.firstName} ${checkoutForm.lastName}`.trim(),
-                          phone: checkoutForm.phone,
-                          customerId: customerId,
-                        }));
-                        setShowCheckoutModal(false);
-                        
-                        // Registrar agendamento na tabela appointments
-                        const appointmentId = await registerAppointment(
-                          customerId,
-                          appointment.service_id,
-                          appointment.professional_id,
-                          appointment.appointment_date,
-                          appointment.appointment_time
-                        );
-                        
-                        if (!appointmentId) {
-                          console.warn('Aviso: Agendamento criado mas não foi registrado no banco');
-                        }
-                        
-                        const servico = services.find(s => s.id === appointment.service_id)?.name || "";
-                        const profissional = professionals.find(p => p.id === appointment.professional_id)?.name || "";
-                        let dataFormatada = "";
-                        if (appointment.appointment_date) {
-                          const partes = appointment.appointment_date.split("-");
-                          if (partes.length === 3) {
-                            dataFormatada = `${partes[2]} de ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][parseInt(partes[1]) - 1]} de ${partes[0]}`;
-                          }
-                        }
-                        
-                        setAppointmentData({
-                          id: appointmentId || Math.floor(Math.random() * 10000).toString(),
-                          date: dataFormatada,
-                          time: appointment.appointment_time,
-                          clientName: name,
-                          phone: checkoutForm.phone,
-                          professional: profissional,
-                          service: servico,
-                          email: "Seu email"
-                        });
-                        
-                        setSuccessMessage("Agendamento realizado com sucesso!");
-                        setShowSuccessModal(true);
-                        
-                        const dataExibicao = new Date(appointment.appointment_date + 'T00:00:00').toLocaleDateString('pt-BR');
-                        const resumo = `Resumo do agendamento:\nServiço: ${servico}\nProfissional: ${profissional}\nData: ${dataExibicao}\nHorário: ${appointment.appointment_time}`;
-                        sendMessage({ text: resumo });
-                      } catch (error) {
-                        console.error('Erro:', error);
-                        alert('Erro ao processar. Tente novamente.');
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
+                    onClick={handleCheckoutConfirm}
                     disabled={loading}
                     className="flex-1 py-2 lg:py-3 px-4 lg:px-8 rounded-lg lg:rounded-full bg-gray-900 text-white font-semibold hover:bg-gray-800 transition-all text-xs lg:text-sm disabled:opacity-50"
                   >

@@ -194,15 +194,7 @@ export default function LoginFormSteps() {
               </Button>
 
               <div className="pt-4 border-t border-gray-200 text-center">
-                <p className="text-gray-600 text-sm">
-                  Primeira vez aqui?{' '}
-                  <a
-                    href="#"
-                    className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
-                  >
-                    Solicite acesso
-                  </a>
-                </p>
+                {/* Removed "Solicite acesso" link */}
               </div>
             </form>
           )}

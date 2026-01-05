@@ -45,7 +45,7 @@ export default function Home() {
     },
     {
       icon: Bot,
-      title: 'Agendamento com IA',
+      title: 'Agendamento Personalizado',
       description: 'Sistema inteligente que realiza agendamentos para seus clientes automaticamente'
     }
   ]

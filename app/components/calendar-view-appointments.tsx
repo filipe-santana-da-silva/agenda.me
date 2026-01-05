@@ -301,7 +301,14 @@ export function CalendarViewWithAppointments() {
       {/* Timeline Timer */}
       {showTimelineTimer && (
         <CardContent className="pb-4">
-          <TimelineTimer duration={60} />
+          {selectedDate && appointmentsByDate[selectedDate]?.[selectedAppointmentIndex] ? (
+            <TimelineTimer 
+              appointment={appointmentsByDate[selectedDate][selectedAppointmentIndex]} 
+              duration={60}
+            />
+          ) : (
+            <TimelineTimer duration={60} />
+          )}
         </CardContent>
       )}
 
