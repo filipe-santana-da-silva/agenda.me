@@ -15,7 +15,7 @@
     "e2e:debug": "playwright test --debug"
   },
   "dependencies": {
-    "@ai-sdk/openai": "2.0.85",
+    "@ai-sdk/openai": "2.0.88",
     "@ai-sdk/react": "^2.0.114",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
